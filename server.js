@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 
@@ -11,6 +12,7 @@ import testsRouter from './routes/tests.js'
 import chatRouter from './routes/chat.js'
 import journalRouter from './routes/journal.js'
 import healthRouter from './routes/health.js'
+import calendarRouter from './routes/calendar.js'
 
 const app = express()
 const port = 3001
@@ -28,6 +30,7 @@ app.use('/api/tests', testsRouter)
 app.use('/api', chatRouter)
 app.use('/api/journal', journalRouter)
 app.use('/api/health', healthRouter)
+app.use('/api/calendar', calendarRouter)
 
 app.listen(port, () => {
   console.log(`Dylan AI server running on http://localhost:${port}`)

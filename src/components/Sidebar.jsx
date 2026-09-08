@@ -1,4 +1,4 @@
-import { LayoutGrid, Lock, Settings as SettingsIcon, Send, Bot } from 'lucide-react'
+import { LayoutGrid, Lock, CalendarDays, Settings as SettingsIcon, Send, Bot } from 'lucide-react'
 import { LIFE_MODES } from '../data/lifeModes.js'
 
 export default function Sidebar({
@@ -51,6 +51,14 @@ export default function Sidebar({
         onClick={() => setActivePage('Journal')}
       >
         <Lock size={18} strokeWidth={2} />
+      </button>
+
+      <button
+        className={`icon-nav-button calendar ${activePage === 'Calendar' ? 'active' : ''}`}
+        title="Calendar"
+        onClick={() => setActivePage('Calendar')}
+      >
+        <CalendarDays size={18} strokeWidth={2} />
       </button>
 
       <button

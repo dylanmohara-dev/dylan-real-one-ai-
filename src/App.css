@@ -175,6 +175,11 @@ select option {
   --mode-accent2-rgb: 49, 39, 99;
 }
 
+.app-shell.theme-calendar {
+  --mode-accent-rgb: 6, 182, 212;
+  --mode-accent2-rgb: 8, 89, 130;
+}
+
 /* ============ TOP SETTINGS BAR ============ */
 
 .top-settings-bar {
@@ -320,6 +325,17 @@ select option {
   color: #b8a4f5;
   background: rgba(129, 90, 224, 0.14);
   border-color: rgba(129, 90, 224, 0.35);
+}
+
+.icon-nav-button.calendar {
+  color: rgba(6, 182, 212, 0.75);
+}
+
+.icon-nav-button.calendar:hover,
+.icon-nav-button.calendar.active {
+  color: #67e8f9;
+  background: rgba(6, 182, 212, 0.14);
+  border-color: rgba(6, 182, 212, 0.35);
 }
 
 .icon-nav-button.gear {
@@ -1745,4 +1761,38 @@ footer {
   margin-right: 6px;
   vertical-align: -2px;
   color: rgb(var(--mode-accent-rgb));
+}
+
+/* ============ CALENDAR ============ */
+
+.calendar-header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.calendar-connect {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 420px;
+}
+
+.calendar-event-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.calendar-event-link {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: rgb(var(--mode-accent-rgb));
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.calendar-event-link:hover {
+  text-decoration: underline;
 }

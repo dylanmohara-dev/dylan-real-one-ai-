@@ -20,6 +20,8 @@ import {
   Heart,
   Moon,
   PenLine,
+  CalendarClock,
+  Clock,
 } from 'lucide-react'
 
 // Two or more icons per mode, tiled as a low-opacity watermark pattern so
@@ -36,4 +38,5 @@ export const MODE_BACKGROUND_ICONS = {
   discipline: [CheckCircle2, Target],
   family: [Users, Heart],
   journal: [Moon, PenLine],
+  calendar: [CalendarClock, Clock],
 }

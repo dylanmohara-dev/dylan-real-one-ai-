@@ -1,7 +1,8 @@
 import './App.css'
-import { LayoutGrid, Lock } from 'lucide-react'
+import { LayoutGrid, Lock, CalendarDays } from 'lucide-react'
 import { useAppData } from './hooks/useAppData.js'
 import { useJournal } from './hooks/useJournal.js'
+import { useCalendar } from './hooks/useCalendar.js'
 import { LIFE_MODES, OVERVIEW_ASSISTANT_MESSAGE, OVERVIEW_PROMPTS } from './data/lifeModes.js'
 import TopSettingsBar from './components/TopSettingsBar.jsx'
 import Sidebar from './components/Sidebar.jsx'
@@ -18,10 +19,12 @@ import JournalPage from './components/JournalPage.jsx'
 import HealthPage from './components/HealthPage.jsx'
 import ModeBackground from './components/ModeBackground.jsx'
 import ModeTransition from './components/ModeTransition.jsx'
+import CalendarPage from './components/CalendarPage.jsx'
 
 function App() {
   const data = useAppData()
   const journal = useJournal()
+  const calendar = useCalendar()
 
   const {
     activePage,
@@ -173,6 +176,10 @@ function App() {
       return <JournalPage journal={journal} />
     }
 
+    if (activePage === 'Calendar') {
+      return <CalendarPage calendar={calendar} />
+    }
+
     if (activePage === 'health') {
       return (
         <HealthPage
@@ -218,13 +225,17 @@ function App() {
     ? activeMode.key
     : activePage === 'Journal'
       ? 'journal'
-      : null
+      : activePage === 'Calendar'
+        ? 'calendar'
+        : null
 
   const transitionMode = activeMode
     ? activeMode
     : activePage === 'Journal'
       ? { title: 'Journal', icon: Lock }
-      : { title: 'Overview', icon: LayoutGrid }
+      : activePage === 'Calendar'
+        ? { title: 'Calendar', icon: CalendarDays }
+        : { title: 'Overview', icon: LayoutGrid }
 
   return (
     <div className="app-root">
@@ -238,7 +249,7 @@ function App() {
 
       <TopSettingsBar settings={settings} setSettings={data.setSettings} />
 
-      <div className={`app-shell ${activeMode ? `theme-${activeMode.key}` : activePage === 'Journal' ? 'theme-journal' : ''}`}>
+      <div className={`app-shell ${activeMode ? `theme-${activeMode.key}` : activePage === 'Journal' ? 'theme-journal' : activePage === 'Calendar' ? 'theme-calendar' : ''}`}>
         <Sidebar
           activePage={activePage}
           setActivePage={setActivePage}

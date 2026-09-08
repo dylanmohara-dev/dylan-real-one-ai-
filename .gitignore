@@ -29,3 +29,7 @@ goals.json
 memories.json
 notes.json
 tasks.json
+
+# Secrets - never commit
+.env
+.env.*
