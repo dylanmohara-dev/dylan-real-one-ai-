@@ -24,7 +24,7 @@ dist-ssr
 *.sw?
 
 # Personal runtime data - don't version this
-data/
+/data/
 goals.json
 memories.json
 notes.json
