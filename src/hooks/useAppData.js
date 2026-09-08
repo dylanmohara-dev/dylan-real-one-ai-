@@ -17,6 +17,9 @@ export function useAppData() {
   const [notes, setNotes] = useState([])
   const [memories, setMemories] = useState([])
   const [healthEntries, setHealthEntries] = useState([])
+  const [financeAccounts, setFinanceAccounts] = useState([])
+  const [financeNetWorth, setFinanceNetWorth] = useState(0)
+  const [financeHistory, setFinanceHistory] = useState([])
 
   const [taskInput, setTaskInput] = useState('')
   const [taskPriority, setTaskPriority] = useState('medium')
@@ -146,6 +149,7 @@ export function useAppData() {
         assignmentData,
         testData,
         healthData,
+        financeData,
       ] = await Promise.all([
         request('/tasks'),
         request('/goals'),
@@ -155,6 +159,7 @@ export function useAppData() {
         request('/assignments'),
         request('/tests'),
         request('/health'),
+        request('/finance'),
       ])
 
       setTasks(taskData.tasks || [])
@@ -165,6 +170,9 @@ export function useAppData() {
       setAssignments(assignmentData.assignments || [])
       setTests(testData.tests || [])
       setHealthEntries(healthData.entries || [])
+      setFinanceAccounts(financeData.accounts || [])
+      setFinanceNetWorth(financeData.netWorth || 0)
+      setFinanceHistory(financeData.history || [])
     } catch (error) {
       setErrorMessage(error.message)
     }
@@ -294,6 +302,55 @@ export function useAppData() {
   async function deleteHealthEntry(id) {
     try {
       await request(`/health/${id}`, { method: 'DELETE' })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function addFinanceAccount(name, type, balance) {
+    if (!name.trim() || balance === '' || balance === null || balance === undefined) return
+
+    setSaving(true)
+
+    try {
+      await request('/finance/accounts', {
+        method: 'POST',
+        body: JSON.stringify({ name: name.trim(), type, balance: Number(balance) }),
+      })
+
+      await loadData()
+      showSuccess('Account added.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function updateFinanceBalance(id, balance) {
+    if (balance === '' || balance === null || balance === undefined) return
+
+    setSaving(true)
+
+    try {
+      await request(`/finance/accounts/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ balance: Number(balance) }),
+      })
+
+      await loadData()
+      showSuccess('Balance updated.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteFinanceAccount(id) {
+    try {
+      await request(`/finance/accounts/${id}`, { method: 'DELETE' })
       await loadData()
     } catch (error) {
       showError(error.message)
@@ -689,9 +746,22 @@ export function useAppData() {
         }
       }
 
+      if (mode.key === 'finance') {
+        const goal = 10000
+        return {
+          ...mode,
+          headline: financeAccounts.length
+            ? `Net worth: $${financeNetWorth.toLocaleString()}`
+            : mode.headline,
+          metricValue: `$${financeNetWorth.toLocaleString()}`,
+          progress: goal ? Math.max(0, Math.min(100, Math.round((financeNetWorth / goal) * 100))) : 0,
+          isSetUp: financeAccounts.length > 0,
+        }
+      }
+
       return { ...mode, progress: 0, isSetUp: false }
     })
-  }, [classes, assignments, tests, healthEntries])
+  }, [classes, assignments, tests, healthEntries, financeAccounts, financeNetWorth])
 
   const setUpCount = useMemo(
     () => overviewCards.filter((card) => card.isSetUp).length,
@@ -804,6 +874,14 @@ export function useAppData() {
     healthEntries,
     addHealthEntry,
     deleteHealthEntry,
+
+    // finance
+    financeAccounts,
+    financeNetWorth,
+    financeHistory,
+    addFinanceAccount,
+    updateFinanceBalance,
+    deleteFinanceAccount,
 
     // overview
     overviewCards,

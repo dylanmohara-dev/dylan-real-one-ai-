@@ -17,6 +17,7 @@ import SchoolPage from './components/SchoolPage.jsx'
 import SettingsPage from './components/SettingsPage.jsx'
 import JournalPage from './components/JournalPage.jsx'
 import HealthPage from './components/HealthPage.jsx'
+import FinancePage from './components/FinancePage.jsx'
 import ModeBackground from './components/ModeBackground.jsx'
 import ModeTransition from './components/ModeTransition.jsx'
 import CalendarPage from './components/CalendarPage.jsx'
@@ -187,6 +188,20 @@ function App() {
           saving={data.saving}
           addHealthEntry={data.addHealthEntry}
           deleteHealthEntry={data.deleteHealthEntry}
+        />
+      )
+    }
+
+    if (activePage === 'finance') {
+      return (
+        <FinancePage
+          accounts={data.financeAccounts}
+          netWorth={data.financeNetWorth}
+          history={data.financeHistory}
+          saving={data.saving}
+          addAccount={data.addFinanceAccount}
+          updateBalance={data.updateFinanceBalance}
+          deleteAccount={data.deleteFinanceAccount}
         />
       )
     }
