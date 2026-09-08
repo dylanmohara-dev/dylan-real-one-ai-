@@ -1,4 +1,4 @@
-import { LayoutGrid, Lock, CalendarDays, Settings as SettingsIcon, Send, Bot } from 'lucide-react'
+import { LayoutGrid, Lock, CalendarDays, Plug, Settings as SettingsIcon, Send, Bot, Maximize2 } from 'lucide-react'
 import { LIFE_MODES } from '../data/lifeModes.js'
 
 export default function Sidebar({
@@ -7,10 +7,12 @@ export default function Sidebar({
   userInitial,
   userName,
   assistantContext,
+  chatMessages,
   message,
   setMessage,
   sendMessage,
   loading,
+  onOpenChat,
 }) {
   const iconNav = [
     { key: 'Overview', label: 'Overview', icon: LayoutGrid },
@@ -62,6 +64,14 @@ export default function Sidebar({
       </button>
 
       <button
+        className={`icon-nav-button connections ${activePage === 'Connections' ? 'active' : ''}`}
+        title="Connections"
+        onClick={() => setActivePage('Connections')}
+      >
+        <Plug size={18} strokeWidth={2} />
+      </button>
+
+      <button
         className={`icon-nav-button gear ${activePage === 'Settings' ? 'active' : ''}`}
         title="Settings"
         onClick={() => setActivePage('Settings')}
@@ -87,9 +97,17 @@ export default function Sidebar({
               OWN CONTEXT
             </span>
           </div>
+
+          <button className="assistant-expand" onClick={onOpenChat} title="Open full chat">
+            <Maximize2 size={13} strokeWidth={2.25} />
+          </button>
         </div>
 
-        <div className="assistant-bubble">{assistantContext.message}</div>
+        <div className="assistant-bubble">
+          {chatMessages && chatMessages.length
+            ? chatMessages[chatMessages.length - 1].content
+            : assistantContext.message}
+        </div>
 
         <div className="assistant-pills">
           {assistantContext.prompts.map((prompt) => (

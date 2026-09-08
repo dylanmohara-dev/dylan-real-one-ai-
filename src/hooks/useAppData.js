@@ -20,6 +20,8 @@ export function useAppData() {
   const [financeAccounts, setFinanceAccounts] = useState([])
   const [financeNetWorth, setFinanceNetWorth] = useState(0)
   const [financeHistory, setFinanceHistory] = useState([])
+  const [skills, setSkills] = useState([])
+  const [maxActiveSkills, setMaxActiveSkills] = useState(3)
 
   const [taskInput, setTaskInput] = useState('')
   const [taskPriority, setTaskPriority] = useState('medium')
@@ -150,6 +152,7 @@ export function useAppData() {
         testData,
         healthData,
         financeData,
+        skillsData,
       ] = await Promise.all([
         request('/tasks'),
         request('/goals'),
@@ -160,6 +163,7 @@ export function useAppData() {
         request('/tests'),
         request('/health'),
         request('/finance'),
+        request('/skills'),
       ])
 
       setTasks(taskData.tasks || [])
@@ -173,6 +177,8 @@ export function useAppData() {
       setFinanceAccounts(financeData.accounts || [])
       setFinanceNetWorth(financeData.netWorth || 0)
       setFinanceHistory(financeData.history || [])
+      setSkills(skillsData.skills || [])
+      setMaxActiveSkills(skillsData.maxActiveSkills || 3)
     } catch (error) {
       setErrorMessage(error.message)
     }
@@ -351,6 +357,43 @@ export function useAppData() {
   async function deleteFinanceAccount(id) {
     try {
       await request(`/finance/accounts/${id}`, { method: 'DELETE' })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function addSkill(name, unit) {
+    if (!name?.toString().trim()) return
+
+    setSaving(true)
+    try {
+      await request('/skills', {
+        method: 'POST',
+        body: JSON.stringify({ name: name.toString().trim(), unit: (unit || 'reps').toString().trim() }),
+      })
+      await loadData()
+      showSuccess('Skill added.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function removeSkill(id) {
+    try {
+      await request(`/skills/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Skill removed.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function deleteSkillSession(id) {
+    try {
+      await request(`/skills/sessions/${id}`, { method: 'DELETE' })
       await loadData()
     } catch (error) {
       showError(error.message)
@@ -759,9 +802,27 @@ export function useAppData() {
         }
       }
 
+      if (mode.key === 'skills') {
+        if (!skills.length) {
+          return { ...mode, progress: 0, isSetUp: false }
+        }
+        const topSkill = skills.reduce((best, item) => (item.level > (best?.level || 0) ? item : best), null)
+        const avgProgress = Math.round(
+          (skills.reduce((sum, item) => sum + item.xpIntoLevel / item.xpForNextLevel, 0) / skills.length) * 100
+        )
+        return {
+          ...mode,
+          headline: `${skills.length} skill${skills.length === 1 ? '' : 's'} in training`,
+          subtitle: `Top: ${topSkill.name}, Lv. ${topSkill.level}`,
+          metricValue: `Lv. ${topSkill.level}`,
+          progress: avgProgress,
+          isSetUp: true,
+        }
+      }
+
       return { ...mode, progress: 0, isSetUp: false }
     })
-  }, [classes, assignments, tests, healthEntries, financeAccounts, financeNetWorth])
+  }, [classes, assignments, tests, healthEntries, financeAccounts, financeNetWorth, skills])
 
   const setUpCount = useMemo(
     () => overviewCards.filter((card) => card.isSetUp).length,
@@ -882,6 +943,13 @@ export function useAppData() {
     addFinanceAccount,
     updateFinanceBalance,
     deleteFinanceAccount,
+
+    // skills
+    skills,
+    maxActiveSkills,
+    addSkill,
+    removeSkill,
+    deleteSkillSession,
 
     // overview
     overviewCards,

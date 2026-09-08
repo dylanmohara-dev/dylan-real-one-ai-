@@ -1,8 +1,12 @@
 import './App.css'
+import { useState } from 'react'
 import { LayoutGrid, Lock, CalendarDays } from 'lucide-react'
 import { useAppData } from './hooks/useAppData.js'
 import { useJournal } from './hooks/useJournal.js'
 import { useCalendar } from './hooks/useCalendar.js'
+import { useGmail } from './hooks/useGmail.js'
+import { useDrive } from './hooks/useDrive.js'
+import { useSlack } from './hooks/useSlack.js'
 import { LIFE_MODES, OVERVIEW_ASSISTANT_MESSAGE, OVERVIEW_PROMPTS } from './data/lifeModes.js'
 import TopSettingsBar from './components/TopSettingsBar.jsx'
 import Sidebar from './components/Sidebar.jsx'
@@ -18,14 +22,37 @@ import SettingsPage from './components/SettingsPage.jsx'
 import JournalPage from './components/JournalPage.jsx'
 import HealthPage from './components/HealthPage.jsx'
 import FinancePage from './components/FinancePage.jsx'
+import SkillsPage from './components/SkillsPage.jsx'
 import ModeBackground from './components/ModeBackground.jsx'
 import ModeTransition from './components/ModeTransition.jsx'
 import CalendarPage from './components/CalendarPage.jsx'
+import ConnectionsPage from './components/ConnectionsPage.jsx'
+import ChatOverlay from './components/ChatOverlay.jsx'
+import OnboardingWizard from './components/OnboardingWizard.jsx'
 
 function App() {
   const data = useAppData()
   const journal = useJournal()
   const calendar = useCalendar()
+  const gmail = useGmail()
+  const drive = useDrive()
+  const slack = useSlack()
+  const [chatOverlayOpen, setChatOverlayOpen] = useState(false)
+  const openChat = () => setChatOverlayOpen(true)
+
+  function completeOnboarding({ name }) {
+    // Write directly (and synchronously) to localStorage rather than relying on
+    // setSettings + the settings-persisting effect — that effect runs on React's
+    // next render, and the reload right below would race it, so the flag could
+    // be lost and the wizard would come back on every load.
+    const updated = {
+      ...settings,
+      onboardingComplete: true,
+      userName: name || settings.userName,
+    }
+    localStorage.setItem('dylan-ai-settings', JSON.stringify(updated))
+    window.location.reload()
+  }
 
   const {
     activePage,
@@ -51,6 +78,7 @@ function App() {
           setUpCount={data.setUpCount}
           overviewCards={data.overviewCards}
           setActivePage={setActivePage}
+          openChat={openChat}
         />
       )
     }
@@ -169,6 +197,7 @@ function App() {
           settings={settings}
           setSettings={data.setSettings}
           setActivePage={setActivePage}
+          openChat={openChat}
         />
       )
     }
@@ -179,6 +208,10 @@ function App() {
 
     if (activePage === 'Calendar') {
       return <CalendarPage calendar={calendar} />
+    }
+
+    if (activePage === 'Connections') {
+      return <ConnectionsPage gmail={gmail} drive={drive} slack={slack} />
     }
 
     if (activePage === 'health') {
@@ -206,6 +239,19 @@ function App() {
       )
     }
 
+    if (activePage === 'skills') {
+      return (
+        <SkillsPage
+          skills={data.skills}
+          maxActiveSkills={data.maxActiveSkills}
+          saving={data.saving}
+          addSkill={data.addSkill}
+          removeSkill={data.removeSkill}
+          deleteSkillSession={data.deleteSkillSession}
+        />
+      )
+    }
+
     if (LIFE_MODES.some((mode) => mode.key === activePage)) {
       return <ModePage modeKey={activePage} setActivePage={setActivePage} />
     }
@@ -218,6 +264,7 @@ function App() {
         setUpCount={data.setUpCount}
         overviewCards={data.overviewCards}
         setActivePage={setActivePage}
+        openChat={openChat}
       />
     )
   }
@@ -252,8 +299,20 @@ function App() {
         ? { title: 'Calendar', icon: CalendarDays }
         : { title: 'Overview', icon: LayoutGrid }
 
+  if (!settings.onboardingComplete) {
+    return <OnboardingWizard onComplete={completeOnboarding} />
+  }
+
+  const themeClass = activeMode
+    ? `theme-${activeMode.key}`
+    : activePage === 'Journal'
+    ? 'theme-journal'
+    : activePage === 'Calendar'
+    ? 'theme-calendar'
+    : ''
+
   return (
-    <div className="app-root">
+    <div className={`app-root ${themeClass}`}>
       {settings.signatureTransitions && settings.enterAnimation !== 'none' && (
         <ModeTransition
           flashKey={modeFlashKey}
@@ -264,17 +323,19 @@ function App() {
 
       <TopSettingsBar settings={settings} setSettings={data.setSettings} />
 
-      <div className={`app-shell ${activeMode ? `theme-${activeMode.key}` : activePage === 'Journal' ? 'theme-journal' : activePage === 'Calendar' ? 'theme-calendar' : ''}`}>
+      <div className={`app-shell ${themeClass}`}>
         <Sidebar
           activePage={activePage}
           setActivePage={setActivePage}
           userInitial={userInitial}
           userName={settings.userName}
           assistantContext={assistantContext}
+          chatMessages={data.chatMessages}
           message={message}
           setMessage={setMessage}
           sendMessage={sendMessage}
           loading={loading}
+          onOpenChat={openChat}
         />
 
         <main className="main-content">
@@ -290,6 +351,20 @@ function App() {
 
           <footer>Dylan AI can make mistakes. Check important information.</footer>
         </main>
+
+        <ChatOverlay
+          open={chatOverlayOpen}
+          onClose={() => setChatOverlayOpen(false)}
+          contextTitle={activeMode ? `${activeMode.title} assistant` : 'Dylan AI — General'}
+          chatMessages={data.chatMessages}
+          loading={loading}
+          memorySuggestion={data.memorySuggestion}
+          saveMemory={data.saveMemory}
+          setMemorySuggestion={data.setMemorySuggestion}
+          message={message}
+          setMessage={setMessage}
+          sendMessage={sendMessage}
+        />
       </div>
     </div>
   )

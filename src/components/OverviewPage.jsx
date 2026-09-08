@@ -1,3 +1,7 @@
+import { useMemo } from 'react'
+import { Sparkles } from 'lucide-react'
+import { WELCOME_GREETINGS } from '../data/lifeModes.js'
+
 export default function OverviewPage({
   overviewEyebrow,
   userName,
@@ -5,13 +9,19 @@ export default function OverviewPage({
   setUpCount,
   overviewCards,
   setActivePage,
+  openChat,
 }) {
+  const greeting = useMemo(() => {
+    const pick = WELCOME_GREETINGS[Math.floor(Math.random() * WELCOME_GREETINGS.length)]
+    return pick(userName || 'there')
+  }, [userName])
+
   return (
     <div className="overview-page">
       <div className="overview-header">
         <div>
           <span className="eyebrow">{overviewEyebrow}</span>
-          <h1 className="serif">Welcome, {userName || 'there'}</h1>
+          <h1 className="serif">{greeting}</h1>
         </div>
 
         <div className="overview-stats">
@@ -32,6 +42,17 @@ export default function OverviewPage({
         </div>
       </div>
 
+      <button className="overview-ask-ai" onClick={openChat}>
+        <span className="overview-ask-ai-icon">
+          <Sparkles size={16} strokeWidth={2.25} />
+        </span>
+        <span className="overview-ask-ai-text">
+          <strong>Ask Dylan AI anything</strong>
+          <span>It can log things for you too — try "I ate 300 calories of chicken"</span>
+        </span>
+        <span className="overview-ask-ai-arrow">→</span>
+      </button>
+
       <div className="overview-divider" />
 
       <div className="mode-grid">
@@ -40,7 +61,7 @@ export default function OverviewPage({
 
           return (
             <button
-              className="mode-card"
+              className={`mode-card theme-${card.key}`}
               key={card.key}
               style={{
                 '--card-rgb': card.rgb,

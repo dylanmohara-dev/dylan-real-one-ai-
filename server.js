@@ -14,6 +14,11 @@ import journalRouter from './routes/journal.js'
 import healthRouter from './routes/health.js'
 import calendarRouter from './routes/calendar.js'
 import financeRouter from './routes/finance.js'
+import onboardingRouter from './routes/onboarding.js'
+import skillsRouter from './routes/skills.js'
+import gmailRouter from './routes/gmail.js'
+import driveRouter from './routes/drive.js'
+import slackRouter from './routes/slack.js'
 
 const app = express()
 const port = 3001
@@ -33,6 +38,11 @@ app.use('/api/journal', journalRouter)
 app.use('/api/health', healthRouter)
 app.use('/api/calendar', calendarRouter)
 app.use('/api/finance', financeRouter)
+app.use('/api/onboarding', onboardingRouter)
+app.use('/api/skills', skillsRouter)
+app.use('/api/gmail', gmailRouter)
+app.use('/api/drive', driveRouter)
+app.use('/api/slack', slackRouter)
 
 app.listen(port, () => {
   console.log(`Dylan AI server running on http://localhost:${port}`)

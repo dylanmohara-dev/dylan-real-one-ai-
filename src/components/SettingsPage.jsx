@@ -1,4 +1,4 @@
-export default function SettingsPage({ settings, setSettings, setActivePage }) {
+export default function SettingsPage({ settings, setSettings, setActivePage, openChat }) {
   return (
     <div className="page">
       <div className="page-header">
@@ -70,9 +70,10 @@ export default function SettingsPage({ settings, setSettings, setActivePage }) {
       <div className="classic-tools">
         <span className="eyebrow">CLASSIC TOOLS</span>
         <p className="classic-tools-note">
-          The general Tasks, Goals, Notes, Memory, and Chat views still work
+          The general Tasks, Goals, Notes, and Memory views still work
           — they're just tucked away here now that the sidebar focuses on
-          life modes.
+          life modes. Chat lives in the sidebar on every page now (hit the
+          expand icon), or use the button below for the general assistant.
         </p>
 
         <div className="classic-tools-grid">
@@ -80,7 +81,18 @@ export default function SettingsPage({ settings, setSettings, setActivePage }) {
           <button onClick={() => setActivePage('Goals')}>Goals</button>
           <button onClick={() => setActivePage('Notes')}>Notes</button>
           <button onClick={() => setActivePage('Memory')}>Memory</button>
-          <button onClick={() => setActivePage('Chat')}>Chat</button>
+          <button onClick={openChat}>Chat</button>
+        </div>
+
+        <div className="setup-wizard-rerun">
+          <div>
+            <strong>Setup wizard</strong>
+            <p>Re-run the first-time setup questions any time — nothing already
+              tracked gets touched.</p>
+          </div>
+          <button onClick={() => setSettings((prev) => ({ ...prev, onboardingComplete: false }))}>
+            Run setup wizard
+          </button>
         </div>
       </div>
     </div>

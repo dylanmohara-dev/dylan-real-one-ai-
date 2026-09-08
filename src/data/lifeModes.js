@@ -1,6 +1,6 @@
 import {
   BookOpen,
-  Globe,
+  Volleyball,
   Dumbbell,
   Activity,
   TrendingUp,
@@ -17,6 +17,19 @@ export const DEFAULT_SETTINGS = {
   userName: 'Dylan',
   signatureTransitions: true,
   enterAnimation: 'wipe',
+  onboardingComplete: false,
+}
+
+export const ONBOARDING_PROMPTS = {
+  school: "List your classes this term, and anything big due soon.",
+  sports: 'What do you play, how often do you practice, and what are you working toward?',
+  gym: "What's your routine or split look like right now?",
+  health: 'Anything about sleep, food, water, or activity worth knowing?',
+  finance: 'List any accounts you want tracked — checking, savings, credit cards — with rough balances.',
+  skills: "What's the one skill you want to get better at?",
+  reading: "What are you reading, and what's your daily page goal?",
+  discipline: 'What daily habits do you want to hold yourself to?',
+  family: 'Who\'s in your family, and what do you want to stay on top of?',
 }
 
 export const LIFE_MODES = [
@@ -36,7 +49,7 @@ export const LIFE_MODES = [
   },
   {
     key: 'sports',
-    icon: Globe,
+    icon: Volleyball,
     title: 'Sports',
     rgb: '34, 197, 94',
     rgb2: '163, 230, 53',
@@ -153,4 +166,13 @@ export const OVERVIEW_ASSISTANT_MESSAGE =
 export const OVERVIEW_PROMPTS = [
   'Set up my school classes',
   'What should I focus on this week?',
+]
+
+export const WELCOME_GREETINGS = [
+  (name) => `Welcome back, ${name}`,
+  (name) => `What's up, ${name}?`,
+  (name) => `What do you want to do, ${name}?`,
+  (name) => `Good to see you, ${name}`,
+  (name) => `Ready when you are, ${name}`,
+  (name) => `Back at it, ${name}`,
 ]
