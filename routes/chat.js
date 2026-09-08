@@ -9,7 +9,7 @@ const MODEL = 'llama3.2:3b'
 
 router.post('/chat', async (req, res) => {
   try {
-    const { messages } = req.body
+    const { messages, mode } = req.body
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'Messages are required' })
     }
@@ -47,9 +47,11 @@ NOTES:
 ${notes.map((n) => `- ${n.content}`).join('\n') || '- None'}
 `
 
+    const modeLabel = mode && mode !== 'general' ? mode : null
+
     const systemPrompt = `
 You are Dylan AI, Dylan's personal AI operating system.
-
+${modeLabel ? `\nYou are currently in Dylan's "${modeLabel}" area — keep your focus and suggestions relevant to ${modeLabel} unless Dylan clearly asks about something else.\n` : ''}
 You have access to Dylan's tasks, goals, notes, and memories.
 
 Be concise, useful, organized and action-oriented.

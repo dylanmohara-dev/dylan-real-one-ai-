@@ -1,4 +1,5 @@
 import './App.css'
+import { LayoutGrid, Lock } from 'lucide-react'
 import { useAppData } from './hooks/useAppData.js'
 import { useJournal } from './hooks/useJournal.js'
 import { LIFE_MODES, OVERVIEW_ASSISTANT_MESSAGE, OVERVIEW_PROMPTS } from './data/lifeModes.js'
@@ -14,6 +15,9 @@ import MemoryPage from './components/MemoryPage.jsx'
 import SchoolPage from './components/SchoolPage.jsx'
 import SettingsPage from './components/SettingsPage.jsx'
 import JournalPage from './components/JournalPage.jsx'
+import HealthPage from './components/HealthPage.jsx'
+import ModeBackground from './components/ModeBackground.jsx'
+import ModeTransition from './components/ModeTransition.jsx'
 
 function App() {
   const data = useAppData()
@@ -169,6 +173,17 @@ function App() {
       return <JournalPage journal={journal} />
     }
 
+    if (activePage === 'health') {
+      return (
+        <HealthPage
+          healthEntries={data.healthEntries}
+          saving={data.saving}
+          addHealthEntry={data.addHealthEntry}
+          deleteHealthEntry={data.deleteHealthEntry}
+        />
+      )
+    }
+
     if (LIFE_MODES.some((mode) => mode.key === activePage)) {
       return <ModePage modeKey={activePage} setActivePage={setActivePage} />
     }
@@ -199,12 +214,25 @@ function App() {
 
   const userInitial = (settings.userName || 'D').trim().charAt(0).toUpperCase()
 
+  const backgroundModeKey = activeMode
+    ? activeMode.key
+    : activePage === 'Journal'
+      ? 'journal'
+      : null
+
+  const transitionMode = activeMode
+    ? activeMode
+    : activePage === 'Journal'
+      ? { title: 'Journal', icon: Lock }
+      : { title: 'Overview', icon: LayoutGrid }
+
   return (
     <div className="app-root">
       {settings.signatureTransitions && settings.enterAnimation !== 'none' && (
-        <div
-          key={modeFlashKey}
-          className={`mode-flash anim-${settings.enterAnimation}`}
+        <ModeTransition
+          flashKey={modeFlashKey}
+          animation={settings.enterAnimation}
+          mode={transitionMode}
         />
       )}
 
@@ -224,6 +252,8 @@ function App() {
         />
 
         <main className="main-content">
+          <ModeBackground modeKey={backgroundModeKey} />
+
           {(errorMessage || successMessage) && (
             <div className={`app-notification ${errorMessage ? 'error' : 'success'}`}>
               {errorMessage || successMessage}

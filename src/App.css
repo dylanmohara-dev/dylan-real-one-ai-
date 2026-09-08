@@ -486,6 +486,7 @@ select option {
 /* ============ MAIN ============ */
 
 .main-content {
+  position: relative;
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -497,6 +498,30 @@ select option {
     transparent 32%
   );
   transition: background 0.6s ease;
+  overflow: hidden;
+}
+
+.main-content > .app-notification,
+.main-content > .content,
+.main-content > footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============ PER-MODE BACKGROUND TEXTURE ============ */
+
+.mode-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.mode-background-icon {
+  position: absolute;
+  color: rgb(var(--mode-accent-rgb));
+  opacity: 0.05;
 }
 
 .content {
@@ -1466,15 +1491,40 @@ footer {
   inset: 0;
   z-index: 999;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.mode-flash-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  opacity: 0;
+  color: var(--text-on-accent, #171004);
+}
+
+.mode-flash-label {
+  font-family: var(--font-serif);
+  font-size: 34px;
+  letter-spacing: 0.01em;
 }
 
 .mode-flash.anim-fade {
   background: radial-gradient(
-    circle at 50% 15%,
-    rgba(var(--mode-accent-rgb), 0.3),
-    transparent 55%
+    circle at 50% 50%,
+    rgb(var(--mode-accent-rgb)),
+    rgb(var(--mode-accent2-rgb)) 100%
   );
-  animation: modeFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modeFadeBig 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.mode-flash.anim-fade .mode-flash-content {
+  animation: modeFadeContent 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .mode-flash.anim-wipe::before {
@@ -1482,29 +1532,78 @@ footer {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    100deg,
-    transparent,
-    rgba(var(--mode-accent-rgb), 0.85),
-    transparent
+    120deg,
+    rgb(var(--mode-accent2-rgb)),
+    rgb(var(--mode-accent-rgb))
   );
-  animation: modeWipe 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modeWipeBig 0.75s cubic-bezier(0.83, 0, 0.17, 1) forwards;
 }
 
-@keyframes modeFade {
-  from {
+.mode-flash.anim-wipe .mode-flash-content {
+  animation: modeWipeContent 0.75s cubic-bezier(0.83, 0, 0.17, 1) forwards;
+}
+
+@keyframes modeFadeBig {
+  0% {
     opacity: 1;
   }
-  to {
+  55% {
+    opacity: 1;
+  }
+  100% {
     opacity: 0;
   }
 }
 
-@keyframes modeWipe {
-  from {
-    transform: translateX(-120%) skewX(-8deg);
+@keyframes modeFadeContent {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
   }
-  to {
-    transform: translateX(120%) skewX(-8deg);
+  25% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes modeWipeBig {
+  0% {
+    transform: translateX(-100%);
+  }
+  45% {
+    transform: translateX(0%);
+  }
+  58% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes modeWipeContent {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }
 
@@ -1616,4 +1715,34 @@ footer {
   margin: 0;
   font-size: 12px;
   color: #ff8080;
+}
+
+/* ============ HEALTH ============ */
+
+.health-log-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.health-log-card {
+  margin-bottom: 0;
+}
+
+.health-log-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.health-item-icon {
+  margin-right: 6px;
+  vertical-align: -2px;
+  color: rgb(var(--mode-accent-rgb));
 }

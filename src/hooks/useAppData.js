@@ -12,10 +12,11 @@ export function useAppData() {
   const [successMessage, setSuccessMessage] = useState('')
 
   const [tasks, setTasks] = useState([])
-  const [chatMessages, setChatMessages] = useState([])
+  const [chatThreads, setChatThreads] = useState({ general: [] })
   const [goals, setGoals] = useState([])
   const [notes, setNotes] = useState([])
   const [memories, setMemories] = useState([])
+  const [healthEntries, setHealthEntries] = useState([])
 
   const [taskInput, setTaskInput] = useState('')
   const [taskPriority, setTaskPriority] = useState('medium')
@@ -82,12 +83,26 @@ export function useAppData() {
   useEffect(() => {
     loadData()
 
-    const savedChat = localStorage.getItem('dylan-ai-chat')
+    const savedThreads = localStorage.getItem('dylan-ai-chat-threads')
 
-    if (savedChat) {
+    if (savedThreads) {
       try {
-        setChatMessages(JSON.parse(savedChat))
+        setChatThreads(JSON.parse(savedThreads))
       } catch {}
+    } else {
+      // One-time migration: earlier versions kept a single flat chat
+      // history under 'dylan-ai-chat'. Fold it into the 'general' thread
+      // so nothing written before per-mode chat existed is lost.
+      const legacyChat = localStorage.getItem('dylan-ai-chat')
+
+      if (legacyChat) {
+        try {
+          const parsed = JSON.parse(legacyChat)
+          if (Array.isArray(parsed) && parsed.length) {
+            setChatThreads({ general: parsed })
+          }
+        } catch {}
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -99,8 +114,8 @@ export function useAppData() {
   }, [settings])
 
   useEffect(() => {
-    localStorage.setItem('dylan-ai-chat', JSON.stringify(chatMessages))
-  }, [chatMessages])
+    localStorage.setItem('dylan-ai-chat-threads', JSON.stringify(chatThreads))
+  }, [chatThreads])
 
   async function request(endpoint, options = {}) {
     const response = await fetch(`${API}${endpoint}`, {
@@ -130,6 +145,7 @@ export function useAppData() {
         classData,
         assignmentData,
         testData,
+        healthData,
       ] = await Promise.all([
         request('/tasks'),
         request('/goals'),
@@ -138,6 +154,7 @@ export function useAppData() {
         request('/classes'),
         request('/assignments'),
         request('/tests'),
+        request('/health'),
       ])
 
       setTasks(taskData.tasks || [])
@@ -147,6 +164,7 @@ export function useAppData() {
       setClasses(classData.classes || [])
       setAssignments(assignmentData.assignments || [])
       setTests(testData.tests || [])
+      setHealthEntries(healthData.entries || [])
     } catch (error) {
       setErrorMessage(error.message)
     }
@@ -175,9 +193,14 @@ export function useAppData() {
 
     if (!trimmed || loading) return
 
+    const threadKey = activeMode ? activeMode.key : 'general'
     const userMessage = { role: 'user', content: trimmed }
+    const priorMessages = chatThreads[threadKey] || []
 
-    setChatMessages((prev) => [...prev, userMessage])
+    setChatThreads((prev) => ({
+      ...prev,
+      [threadKey]: [...(prev[threadKey] || []), userMessage],
+    }))
 
     setMessage('')
     setLoading(true)
@@ -187,20 +210,24 @@ export function useAppData() {
       const chatResult = await request('/chat', {
         method: 'POST',
         body: JSON.stringify({
-          messages: [...chatMessages, userMessage],
+          messages: [...priorMessages, userMessage],
           settings: {
             allowActions: settings.aiActions,
           },
+          mode: threadKey,
         }),
       })
 
-      setChatMessages((prev) => [
+      setChatThreads((prev) => ({
         ...prev,
-        {
-          role: 'assistant',
-          content: chatResult.reply || 'No response from Dylan AI.',
-        },
-      ])
+        [threadKey]: [
+          ...(prev[threadKey] || []),
+          {
+            role: 'assistant',
+            content: chatResult.reply || 'No response from Dylan AI.',
+          },
+        ],
+      }))
 
       if (chatResult.actionPerformed) {
         await loadData()
@@ -228,15 +255,48 @@ export function useAppData() {
     } catch (error) {
       showError(error.message)
 
-      setChatMessages((prev) => [
+      setChatThreads((prev) => ({
         ...prev,
-        {
-          role: 'assistant',
-          content: 'I could not connect to the Dylan AI backend.',
-        },
-      ])
+        [threadKey]: [
+          ...(prev[threadKey] || []),
+          {
+            role: 'assistant',
+            content: 'I could not connect to the Dylan AI backend.',
+          },
+        ],
+      }))
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function addHealthEntry(category, value, note = '') {
+    if (!value?.toString().trim()) return
+
+    setSaving(true)
+
+    try {
+      await request('/health', {
+        method: 'POST',
+        body: JSON.stringify({ category, value: value.toString().trim(), note }),
+      })
+
+      await loadData()
+
+      showSuccess('Logged.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteHealthEntry(id) {
+    try {
+      await request(`/health/${id}`, { method: 'DELETE' })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
     }
   }
 
@@ -591,22 +651,47 @@ export function useAppData() {
       assignments.filter((a) => a.completed).length +
       tests.filter((t) => t.completed).length
 
+    const today = new Date().toDateString()
+    const HEALTH_CATEGORIES = ['sleep', 'food', 'water', 'activity']
+    const todaysHealthCategories = new Set(
+      healthEntries
+        .filter((entry) => new Date(entry.createdAt).toDateString() === today)
+        .map((entry) => entry.category)
+    )
+    const healthLoggedToday = HEALTH_CATEGORIES.filter((category) =>
+      todaysHealthCategories.has(category)
+    ).length
+
     return LIFE_MODES.map((mode) => {
-      if (mode.key !== 'school') {
-        return { ...mode, progress: 0, isSetUp: false }
+      if (mode.key === 'school') {
+        return {
+          ...mode,
+          headline: classes.length
+            ? `${classes.length} class${classes.length === 1 ? '' : 'es'} tracked`
+            : mode.headline,
+          metricValue: `${schoolDone} / ${schoolTotal}`,
+          progress: schoolTotal ? Math.round((schoolDone / schoolTotal) * 100) : 0,
+          isSetUp: classes.length > 0,
+        }
       }
 
-      return {
-        ...mode,
-        headline: classes.length
-          ? `${classes.length} class${classes.length === 1 ? '' : 'es'} tracked`
-          : mode.headline,
-        metricValue: `${schoolDone} / ${schoolTotal}`,
-        progress: schoolTotal ? Math.round((schoolDone / schoolTotal) * 100) : 0,
-        isSetUp: classes.length > 0,
+      if (mode.key === 'health') {
+        return {
+          ...mode,
+          headline: healthEntries.length
+            ? healthLoggedToday
+              ? `${healthLoggedToday} of 4 logged today`
+              : 'Nothing logged today'
+            : mode.headline,
+          metricValue: `${healthLoggedToday} / 4`,
+          progress: Math.round((healthLoggedToday / 4) * 100),
+          isSetUp: healthEntries.length > 0,
+        }
       }
+
+      return { ...mode, progress: 0, isSetUp: false }
     })
-  }, [classes, assignments, tests])
+  }, [classes, assignments, tests, healthEntries])
 
   const setUpCount = useMemo(
     () => overviewCards.filter((card) => card.isSetUp).length,
@@ -617,6 +702,9 @@ export function useAppData() {
     setUpCount > 0
       ? `${setUpCount} OF ${LIFE_MODES.length} MODES ACTIVE`
       : 'NOTHING TRACKED YET'
+
+  const currentThreadKey = activeMode ? activeMode.key : 'general'
+  const chatMessages = chatThreads[currentThreadKey] || []
 
   return {
     // navigation / ui state
@@ -629,10 +717,12 @@ export function useAppData() {
     errorMessage,
     successMessage,
 
-    // chat
+    // chat (per-mode threads — chatMessages is whichever thread matches
+    // the current page: a LIFE_MODES key, or 'general' everywhere else)
     message,
     setMessage,
     chatMessages,
+    currentThreadKey,
     sendMessage,
     memorySuggestion,
     setMemorySuggestion,
@@ -709,6 +799,11 @@ export function useAppData() {
     setMemoryInput,
     saveMemory,
     deleteMemory,
+
+    // health
+    healthEntries,
+    addHealthEntry,
+    deleteHealthEntry,
 
     // overview
     overviewCards,
