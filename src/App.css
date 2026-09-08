@@ -123,11 +123,16 @@ select option {
 }
 
 .app-shell {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   width: 100%;
   overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 0%, var(--bg-glow-1), transparent 45%),
+    radial-gradient(circle at 88% 100%, var(--bg-glow-2), transparent 45%);
+  transition: background 0.6s ease;
 }
 
 /* ============ MODE ACCENTS ============ */
@@ -138,6 +143,8 @@ select option {
   --mode-heading-font: 'Lora', Georgia, serif;
   --mode-radius-scale: 0.85;
   --mode-border-width: 1px;
+  --bg-glow-1: rgba(244, 196, 48, 0.13);
+  --bg-glow-2: rgba(244, 196, 48, 0.07);
 }
 
 .app-shell.theme-sports {
@@ -146,6 +153,8 @@ select option {
   --mode-heading-font: 'Bebas Neue', 'Anton', sans-serif;
   --mode-radius-scale: 0.5;
   --mode-border-width: 2px;
+  --bg-glow-1: rgba(34, 197, 94, 0.13);
+  --bg-glow-2: rgba(34, 197, 94, 0.07);
 }
 
 .app-shell.theme-gym {
@@ -154,6 +163,8 @@ select option {
   --mode-heading-font: 'Anton', 'Bebas Neue', sans-serif;
   --mode-radius-scale: 0.35;
   --mode-border-width: 2px;
+  --bg-glow-1: rgba(249, 115, 22, 0.13);
+  --bg-glow-2: rgba(249, 115, 22, 0.07);
 }
 
 .app-shell.theme-health {
@@ -162,6 +173,8 @@ select option {
   --mode-heading-font: 'Quicksand', 'Nunito', sans-serif;
   --mode-radius-scale: 1.6;
   --mode-border-width: 1px;
+  --bg-glow-1: rgba(45, 212, 191, 0.13);
+  --bg-glow-2: rgba(45, 212, 191, 0.07);
 }
 
 .app-shell.theme-finance {
@@ -170,6 +183,8 @@ select option {
   --mode-heading-font: 'Space Grotesk', 'IBM Plex Mono', monospace;
   --mode-radius-scale: 0.7;
   --mode-border-width: 1px;
+  --bg-glow-1: rgba(59, 130, 246, 0.13);
+  --bg-glow-2: rgba(59, 130, 246, 0.07);
 }
 
 .app-shell.theme-skills {
@@ -178,6 +193,8 @@ select option {
   --mode-heading-font: 'Poppins', sans-serif;
   --mode-radius-scale: 1.15;
   --mode-border-width: 1px;
+  --bg-glow-1: rgba(168, 85, 247, 0.13);
+  --bg-glow-2: rgba(168, 85, 247, 0.07);
 }
 
 .app-shell.theme-reading {
@@ -186,6 +203,8 @@ select option {
   --mode-heading-font: 'Crimson Pro', Georgia, serif;
   --mode-radius-scale: 1.3;
   --mode-border-width: 1px;
+  --bg-glow-1: rgba(244, 63, 94, 0.13);
+  --bg-glow-2: rgba(244, 63, 94, 0.07);
 }
 
 .app-shell.theme-discipline {
@@ -194,6 +213,8 @@ select option {
   --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;
   --mode-radius-scale: 0.25;
   --mode-border-width: 2px;
+  --bg-glow-1: rgba(239, 68, 68, 0.13);
+  --bg-glow-2: rgba(239, 68, 68, 0.07);
 }
 
 .app-shell.theme-family {
@@ -202,6 +223,8 @@ select option {
   --mode-heading-font: 'Fredoka', sans-serif;
   --mode-radius-scale: 1.8;
   --mode-border-width: 1px;
+  --bg-glow-1: rgba(99, 102, 241, 0.13);
+  --bg-glow-2: rgba(99, 102, 241, 0.07);
 }
 
 .app-shell.theme-journal {
@@ -210,6 +233,8 @@ select option {
   --mode-heading-font: 'Cormorant Garamond', Georgia, serif;
   --mode-radius-scale: 1.3;
   --mode-border-width: 1px;
+  --bg-glow-1: rgba(129, 90, 224, 0.13);
+  --bg-glow-2: rgba(129, 90, 224, 0.07);
 }
 
 .app-shell.theme-calendar {
@@ -218,6 +243,8 @@ select option {
   --mode-heading-font: 'Manrope', sans-serif;
   --mode-radius-scale: 0.8;
   --mode-border-width: 1px;
+  --bg-glow-1: rgba(6, 182, 212, 0.13);
+  --bg-glow-2: rgba(6, 182, 212, 0.07);
 }
 
 /* ============ TOP SETTINGS BAR ============ */
@@ -231,9 +258,11 @@ select option {
   gap: 26px;
   padding: 0 22px;
   border-bottom: 1px solid var(--border);
-  background: var(--surface-strong);
+  background:
+    linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.09), transparent 65%),
+    var(--surface-strong);
   backdrop-filter: blur(20px);
-  transition: background 0.4s ease, border-color 0.4s ease;
+  transition: background 0.6s ease, border-color 0.4s ease;
 }
 
 .top-settings-group {
@@ -290,9 +319,11 @@ select option {
   flex-direction: column;
   padding: 18px 14px 14px;
   border-right: 1px solid var(--border);
-  background: var(--surface-strong);
+  background:
+    radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.11), transparent 55%),
+    var(--surface-strong);
   backdrop-filter: blur(24px);
-  transition: border-color 0.4s ease, background 0.4s ease;
+  transition: border-color 0.4s ease, background 0.6s ease;
 }
 
 .sidebar-avatar-row {
@@ -565,6 +596,52 @@ select option {
 }
 
 /* ============ PER-MODE BACKGROUND TEXTURE ============ */
+
+.app-shell.theme-school .main-content {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(var(--mode-accent-rgb), 0.06) 28px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+}
+
+.app-shell.theme-sports .main-content {
+  background-image: repeating-linear-gradient(115deg, rgba(var(--mode-accent-rgb), 0.06) 0px, rgba(var(--mode-accent-rgb), 0.06) 3px, transparent 3px, transparent 46px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+}
+
+.app-shell.theme-gym .main-content {
+  background-image: repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.08) 0px, rgba(var(--mode-accent-rgb), 0.08) 10px, transparent 10px, transparent 34px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+}
+
+.app-shell.theme-health .main-content {
+  background-image: radial-gradient(circle at 18% 22%, rgba(var(--mode-accent-rgb), 0.09), transparent 40%), radial-gradient(circle at 82% 68%, rgba(var(--mode-accent2-rgb), 0.07), transparent 45%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+}
+
+.app-shell.theme-finance .main-content {
+  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.16) 1.2px, transparent 1.6px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+  background-size: 22px 22px, auto;
+}
+
+.app-shell.theme-skills .main-content {
+  background-image: radial-gradient(circle at 28% 8%, rgba(var(--mode-accent-rgb), 0.11), transparent 35%), radial-gradient(circle at 78% 62%, rgba(var(--mode-accent2-rgb), 0.09), transparent 40%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+}
+
+.app-shell.theme-reading .main-content {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 34px, rgba(var(--mode-accent-rgb), 0.05) 35px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+}
+
+.app-shell.theme-discipline .main-content {
+  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.06) 0px, rgba(var(--mode-accent-rgb), 0.06) 1px, transparent 1px, transparent 32px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.06) 0px, rgba(var(--mode-accent-rgb), 0.06) 1px, transparent 1px, transparent 32px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+}
+
+.app-shell.theme-family .main-content {
+  background-image: radial-gradient(circle at 14% 82%, rgba(var(--mode-accent-rgb), 0.10), transparent 40%), radial-gradient(circle at 86% 14%, rgba(var(--mode-accent2-rgb), 0.09), transparent 42%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+}
+
+.app-shell.theme-journal .main-content {
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.13), transparent 55%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+}
+
+.app-shell.theme-calendar .main-content {
+  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.06) 0px, rgba(var(--mode-accent-rgb), 0.06) 1px, transparent 1px, transparent 64px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.06) 0px, rgba(var(--mode-accent-rgb), 0.06) 1px, transparent 1px, transparent 64px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+}
+
 
 .mode-background {
   position: absolute;
