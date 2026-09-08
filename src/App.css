@@ -15,6 +15,7 @@
   --mode-heading-font: var(--font-serif);
   --mode-radius-scale: 1;
   --mode-border-width: 1px;
+  --mode-tracking: 0.13em;
 
   /* Fixed brand accent (avatar, send button, default eyebrow) */
   --chrome-rgb: 245, 158, 11;
@@ -131,7 +132,8 @@ select option {
   overflow: hidden;
   background:
     radial-gradient(circle at 12% 0%, var(--bg-glow-1), transparent 45%),
-    radial-gradient(circle at 88% 100%, var(--bg-glow-2), transparent 45%);
+    radial-gradient(circle at 88% 100%, var(--bg-glow-2), transparent 45%),
+    var(--bg);
   transition: background 0.6s ease;
 }
 
@@ -145,6 +147,8 @@ select option {
   --mode-border-width: 1px;
   --bg-glow-1: rgba(244, 196, 48, 0.13);
   --bg-glow-2: rgba(244, 196, 48, 0.07);
+  --bg: #1c1608;
+  --mode-tracking: 0.16em;
 }
 
 .app-shell.theme-sports {
@@ -155,6 +159,8 @@ select option {
   --mode-border-width: 2px;
   --bg-glow-1: rgba(34, 197, 94, 0.13);
   --bg-glow-2: rgba(34, 197, 94, 0.07);
+  --bg: #06190f;
+  --mode-tracking: 0.20em;
 }
 
 .app-shell.theme-gym {
@@ -165,6 +171,8 @@ select option {
   --mode-border-width: 2px;
   --bg-glow-1: rgba(249, 115, 22, 0.13);
   --bg-glow-2: rgba(249, 115, 22, 0.07);
+  --bg: #1a0d04;
+  --mode-tracking: 0.22em;
 }
 
 .app-shell.theme-health {
@@ -175,6 +183,8 @@ select option {
   --mode-border-width: 1px;
   --bg-glow-1: rgba(45, 212, 191, 0.13);
   --bg-glow-2: rgba(45, 212, 191, 0.07);
+  --bg: #051a17;
+  --mode-tracking: 0.08em;
 }
 
 .app-shell.theme-finance {
@@ -185,6 +195,8 @@ select option {
   --mode-border-width: 1px;
   --bg-glow-1: rgba(59, 130, 246, 0.13);
   --bg-glow-2: rgba(59, 130, 246, 0.07);
+  --bg: #050f1c;
+  --mode-tracking: 0.10em;
 }
 
 .app-shell.theme-skills {
@@ -195,6 +207,8 @@ select option {
   --mode-border-width: 1px;
   --bg-glow-1: rgba(168, 85, 247, 0.13);
   --bg-glow-2: rgba(168, 85, 247, 0.07);
+  --bg: #140a1c;
+  --mode-tracking: 0.15em;
 }
 
 .app-shell.theme-reading {
@@ -205,6 +219,8 @@ select option {
   --mode-border-width: 1px;
   --bg-glow-1: rgba(244, 63, 94, 0.13);
   --bg-glow-2: rgba(244, 63, 94, 0.07);
+  --bg: #1c0512;
+  --mode-tracking: 0.05em;
 }
 
 .app-shell.theme-discipline {
@@ -215,6 +231,8 @@ select option {
   --mode-border-width: 2px;
   --bg-glow-1: rgba(239, 68, 68, 0.13);
   --bg-glow-2: rgba(239, 68, 68, 0.07);
+  --bg: #100707;
+  --mode-tracking: 0.30em;
 }
 
 .app-shell.theme-family {
@@ -225,6 +243,8 @@ select option {
   --mode-border-width: 1px;
   --bg-glow-1: rgba(99, 102, 241, 0.13);
   --bg-glow-2: rgba(99, 102, 241, 0.07);
+  --bg: #0d0a1c;
+  --mode-tracking: 0.04em;
 }
 
 .app-shell.theme-journal {
@@ -235,6 +255,8 @@ select option {
   --mode-border-width: 1px;
   --bg-glow-1: rgba(129, 90, 224, 0.13);
   --bg-glow-2: rgba(129, 90, 224, 0.07);
+  --bg: #100a1c;
+  --mode-tracking: 0.09em;
 }
 
 .app-shell.theme-calendar {
@@ -245,6 +267,8 @@ select option {
   --mode-border-width: 1px;
   --bg-glow-1: rgba(6, 182, 212, 0.13);
   --bg-glow-2: rgba(6, 182, 212, 0.07);
+  --bg: #04171c;
+  --mode-tracking: 0.12em;
 }
 
 /* ============ TOP SETTINGS BAR ============ */
@@ -259,7 +283,7 @@ select option {
   padding: 0 22px;
   border-bottom: 1px solid var(--border);
   background:
-    linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.09), transparent 65%),
+    linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.20), transparent 70%),
     var(--surface-strong);
   backdrop-filter: blur(20px);
   transition: background 0.6s ease, border-color 0.4s ease;
@@ -320,7 +344,7 @@ select option {
   padding: 18px 14px 14px;
   border-right: 1px solid var(--border);
   background:
-    radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.11), transparent 55%),
+    radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.24), transparent 60%),
     var(--surface-strong);
   backdrop-filter: blur(24px);
   transition: border-color 0.4s ease, background 0.6s ease;
@@ -598,48 +622,48 @@ select option {
 /* ============ PER-MODE BACKGROUND TEXTURE ============ */
 
 .app-shell.theme-school .main-content {
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(var(--mode-accent-rgb), 0.06) 28px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 25px, rgba(var(--mode-accent-rgb), 0.16) 27px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
 }
 
 .app-shell.theme-sports .main-content {
-  background-image: repeating-linear-gradient(115deg, rgba(var(--mode-accent-rgb), 0.06) 0px, rgba(var(--mode-accent-rgb), 0.06) 3px, transparent 3px, transparent 46px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+  background-image: repeating-linear-gradient(115deg, rgba(var(--mode-accent-rgb), 0.16) 0px, rgba(var(--mode-accent-rgb), 0.16) 5px, transparent 5px, transparent 42px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
 }
 
 .app-shell.theme-gym .main-content {
-  background-image: repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.08) 0px, rgba(var(--mode-accent-rgb), 0.08) 10px, transparent 10px, transparent 34px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+  background-image: repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.20) 0px, rgba(var(--mode-accent-rgb), 0.20) 13px, transparent 13px, transparent 32px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
 }
 
 .app-shell.theme-health .main-content {
-  background-image: radial-gradient(circle at 18% 22%, rgba(var(--mode-accent-rgb), 0.09), transparent 40%), radial-gradient(circle at 82% 68%, rgba(var(--mode-accent2-rgb), 0.07), transparent 45%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+  background-image: radial-gradient(circle at 18% 22%, rgba(var(--mode-accent-rgb), 0.22), transparent 42%), radial-gradient(circle at 82% 68%, rgba(var(--mode-accent2-rgb), 0.18), transparent 48%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
 }
 
 .app-shell.theme-finance .main-content {
-  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.16) 1.2px, transparent 1.6px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
-  background-size: 22px 22px, auto;
+  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.30) 1.6px, transparent 2px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-size: 20px 20px, auto;
 }
 
 .app-shell.theme-skills .main-content {
-  background-image: radial-gradient(circle at 28% 8%, rgba(var(--mode-accent-rgb), 0.11), transparent 35%), radial-gradient(circle at 78% 62%, rgba(var(--mode-accent2-rgb), 0.09), transparent 40%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+  background-image: radial-gradient(circle at 28% 8%, rgba(var(--mode-accent-rgb), 0.26), transparent 38%), radial-gradient(circle at 78% 62%, rgba(var(--mode-accent2-rgb), 0.22), transparent 42%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
 }
 
 .app-shell.theme-reading .main-content {
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 34px, rgba(var(--mode-accent-rgb), 0.05) 35px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(var(--mode-accent-rgb), 0.15) 34px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
 }
 
 .app-shell.theme-discipline .main-content {
-  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.06) 0px, rgba(var(--mode-accent-rgb), 0.06) 1px, transparent 1px, transparent 32px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.06) 0px, rgba(var(--mode-accent-rgb), 0.06) 1px, transparent 1px, transparent 32px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.18) 0px, rgba(var(--mode-accent-rgb), 0.18) 1.5px, transparent 1.5px, transparent 30px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.18) 0px, rgba(var(--mode-accent-rgb), 0.18) 1.5px, transparent 1.5px, transparent 30px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
 }
 
 .app-shell.theme-family .main-content {
-  background-image: radial-gradient(circle at 14% 82%, rgba(var(--mode-accent-rgb), 0.10), transparent 40%), radial-gradient(circle at 86% 14%, rgba(var(--mode-accent2-rgb), 0.09), transparent 42%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+  background-image: radial-gradient(circle at 14% 82%, rgba(var(--mode-accent-rgb), 0.24), transparent 42%), radial-gradient(circle at 86% 14%, rgba(var(--mode-accent2-rgb), 0.20), transparent 44%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
 }
 
 .app-shell.theme-journal .main-content {
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.13), transparent 55%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.28), transparent 58%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
 }
 
 .app-shell.theme-calendar .main-content {
-  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.06) 0px, rgba(var(--mode-accent-rgb), 0.06) 1px, transparent 1px, transparent 64px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.06) 0px, rgba(var(--mode-accent-rgb), 0.06) 1px, transparent 1px, transparent 64px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.07), transparent 32%);
+  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.17) 0px, rgba(var(--mode-accent-rgb), 0.17) 1.5px, transparent 1.5px, transparent 62px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.17) 0px, rgba(var(--mode-accent-rgb), 0.17) 1.5px, transparent 1.5px, transparent 62px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
 }
 
 
@@ -685,11 +709,12 @@ footer {
 .eyebrow {
   display: inline-block;
   color: rgb(var(--mode-accent-rgb));
+  font-family: var(--mode-heading-font, inherit);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.13em;
+  letter-spacing: var(--mode-tracking, 0.13em);
   text-transform: uppercase;
-  transition: color 0.4s ease;
+  transition: color 0.4s ease, letter-spacing 0.3s ease;
 }
 
 .page {
