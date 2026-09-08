@@ -170,6 +170,11 @@ select option {
   --mode-accent2-rgb: 59, 130, 246;
 }
 
+.app-shell.theme-journal {
+  --mode-accent-rgb: 129, 90, 224;
+  --mode-accent2-rgb: 49, 39, 99;
+}
+
 /* ============ TOP SETTINGS BAR ============ */
 
 .top-settings-bar {
@@ -304,6 +309,17 @@ select option {
   color: var(--text-primary);
   background: var(--surface-hover);
   border-color: var(--border-strong);
+}
+
+.icon-nav-button.journal {
+  color: rgba(129, 90, 224, 0.75);
+}
+
+.icon-nav-button.journal:hover,
+.icon-nav-button.journal.active {
+  color: #b8a4f5;
+  background: rgba(129, 90, 224, 0.14);
+  border-color: rgba(129, 90, 224, 0.35);
 }
 
 .icon-nav-button.gear {
@@ -1580,4 +1596,24 @@ footer {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ============ JOURNAL ============ */
+
+.journal-page .page-header p {
+  max-width: 480px;
+}
+
+.journal-setup {
+  max-width: 420px;
+}
+
+.journal-setup input {
+  letter-spacing: 0.02em;
+}
+
+.journal-error {
+  margin: 0;
+  font-size: 12px;
+  color: #ff8080;
 }

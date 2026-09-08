@@ -9,6 +9,7 @@ import classesRouter from './routes/classes.js'
 import assignmentsRouter from './routes/assignments.js'
 import testsRouter from './routes/tests.js'
 import chatRouter from './routes/chat.js'
+import journalRouter from './routes/journal.js'
 
 const app = express()
 const port = 3001
@@ -24,6 +25,7 @@ app.use('/api/classes', classesRouter)
 app.use('/api/assignments', assignmentsRouter)
 app.use('/api/tests', testsRouter)
 app.use('/api', chatRouter)
+app.use('/api/journal', journalRouter)
 
 app.listen(port, () => {
   console.log(`Dylan AI server running on http://localhost:${port}`)

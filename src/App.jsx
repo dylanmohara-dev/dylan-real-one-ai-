@@ -1,5 +1,6 @@
 import './App.css'
 import { useAppData } from './hooks/useAppData.js'
+import { useJournal } from './hooks/useJournal.js'
 import { LIFE_MODES, OVERVIEW_ASSISTANT_MESSAGE, OVERVIEW_PROMPTS } from './data/lifeModes.js'
 import TopSettingsBar from './components/TopSettingsBar.jsx'
 import Sidebar from './components/Sidebar.jsx'
@@ -12,9 +13,11 @@ import NotesPage from './components/NotesPage.jsx'
 import MemoryPage from './components/MemoryPage.jsx'
 import SchoolPage from './components/SchoolPage.jsx'
 import SettingsPage from './components/SettingsPage.jsx'
+import JournalPage from './components/JournalPage.jsx'
 
 function App() {
   const data = useAppData()
+  const journal = useJournal()
 
   const {
     activePage,
@@ -162,6 +165,10 @@ function App() {
       )
     }
 
+    if (activePage === 'Journal') {
+      return <JournalPage journal={journal} />
+    }
+
     if (LIFE_MODES.some((mode) => mode.key === activePage)) {
       return <ModePage modeKey={activePage} setActivePage={setActivePage} />
     }
@@ -203,7 +210,7 @@ function App() {
 
       <TopSettingsBar settings={settings} setSettings={data.setSettings} />
 
-      <div className={`app-shell ${activeMode ? `theme-${activeMode.key}` : ''}`}>
+      <div className={`app-shell ${activeMode ? `theme-${activeMode.key}` : activePage === 'Journal' ? 'theme-journal' : ''}`}>
         <Sidebar
           activePage={activePage}
           setActivePage={setActivePage}

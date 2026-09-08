@@ -1,4 +1,4 @@
-import { LayoutGrid, Settings as SettingsIcon, Send, Bot } from 'lucide-react'
+import { LayoutGrid, Lock, Settings as SettingsIcon, Send, Bot } from 'lucide-react'
 import { LIFE_MODES } from '../data/lifeModes.js'
 
 export default function Sidebar({
@@ -44,6 +44,14 @@ export default function Sidebar({
           )
         })}
       </nav>
+
+      <button
+        className={`icon-nav-button journal ${activePage === 'Journal' ? 'active' : ''}`}
+        title="Journal (private)"
+        onClick={() => setActivePage('Journal')}
+      >
+        <Lock size={18} strokeWidth={2} />
+      </button>
 
       <button
         className={`icon-nav-button gear ${activePage === 'Settings' ? 'active' : ''}`}
