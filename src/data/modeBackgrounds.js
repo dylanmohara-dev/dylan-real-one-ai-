@@ -40,3 +40,21 @@ export const MODE_BACKGROUND_ICONS = {
   journal: [Moon, PenLine],
   calendar: [CalendarClock, Clock],
 }
+
+// How each mode's watermark is laid out — not just which icons, but the
+// arrangement itself, so structured life areas actually look ordered and
+// energetic ones look like they're in motion, rather than every mode being
+// the same random scatter with different icons swapped in.
+export const MODE_BACKGROUND_PATTERN = {
+  school: 'grid',
+  sports: 'diagonal',
+  gym: 'diagonal',
+  health: 'scatter',
+  finance: 'grid',
+  skills: 'scatter',
+  reading: 'scatter',
+  discipline: 'grid',
+  family: 'scatter',
+  journal: 'scatter',
+  calendar: 'grid',
+}

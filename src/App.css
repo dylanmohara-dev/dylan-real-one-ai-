@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Lora:wght@500;600;700&family=Bebas+Neue&family=Anton&family=Quicksand:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&family=Poppins:wght@500;600;700&family=Crimson+Pro:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Fredoka:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@500;600;700&display=swap');
 
 * {
   box-sizing: border-box;
@@ -9,6 +9,12 @@
 :root {
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+
+  /* Per-mode identity tokens — overridden per .theme-* below so switching
+     modes changes heading typeface and card shape, not just accent color. */
+  --mode-heading-font: var(--font-serif);
+  --mode-radius-scale: 1;
+  --mode-border-width: 1px;
 
   /* Fixed brand accent (avatar, send button, default eyebrow) */
   --chrome-rgb: 245, 158, 11;
@@ -101,8 +107,9 @@ select option {
 }
 
 .serif {
-  font-family: var(--font-serif);
+  font-family: var(--mode-heading-font, var(--font-serif));
   font-weight: 600;
+  transition: font-family 0.2s ease;
 }
 
 /* ============ APP ROOT ============ */
@@ -128,56 +135,89 @@ select option {
 .app-shell.theme-school {
   --mode-accent-rgb: 244, 196, 48;
   --mode-accent2-rgb: 255, 157, 58;
+  --mode-heading-font: 'Lora', Georgia, serif;
+  --mode-radius-scale: 0.85;
+  --mode-border-width: 1px;
 }
 
 .app-shell.theme-sports {
   --mode-accent-rgb: 34, 197, 94;
   --mode-accent2-rgb: 163, 230, 53;
+  --mode-heading-font: 'Bebas Neue', 'Anton', sans-serif;
+  --mode-radius-scale: 0.5;
+  --mode-border-width: 2px;
 }
 
 .app-shell.theme-gym {
   --mode-accent-rgb: 249, 115, 22;
   --mode-accent2-rgb: 239, 68, 68;
+  --mode-heading-font: 'Anton', 'Bebas Neue', sans-serif;
+  --mode-radius-scale: 0.35;
+  --mode-border-width: 2px;
 }
 
 .app-shell.theme-health {
   --mode-accent-rgb: 45, 212, 191;
   --mode-accent2-rgb: 20, 184, 166;
+  --mode-heading-font: 'Quicksand', 'Nunito', sans-serif;
+  --mode-radius-scale: 1.6;
+  --mode-border-width: 1px;
 }
 
 .app-shell.theme-finance {
   --mode-accent-rgb: 59, 130, 246;
   --mode-accent2-rgb: 14, 165, 233;
+  --mode-heading-font: 'Space Grotesk', 'IBM Plex Mono', monospace;
+  --mode-radius-scale: 0.7;
+  --mode-border-width: 1px;
 }
 
 .app-shell.theme-skills {
   --mode-accent-rgb: 168, 85, 247;
   --mode-accent2-rgb: 139, 92, 246;
+  --mode-heading-font: 'Poppins', sans-serif;
+  --mode-radius-scale: 1.15;
+  --mode-border-width: 1px;
 }
 
 .app-shell.theme-reading {
   --mode-accent-rgb: 244, 63, 94;
   --mode-accent2-rgb: 236, 72, 153;
+  --mode-heading-font: 'Crimson Pro', Georgia, serif;
+  --mode-radius-scale: 1.3;
+  --mode-border-width: 1px;
 }
 
 .app-shell.theme-discipline {
   --mode-accent-rgb: 239, 68, 68;
   --mode-accent2-rgb: 220, 38, 38;
+  --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --mode-radius-scale: 0.25;
+  --mode-border-width: 2px;
 }
 
 .app-shell.theme-family {
   --mode-accent-rgb: 99, 102, 241;
   --mode-accent2-rgb: 59, 130, 246;
+  --mode-heading-font: 'Fredoka', sans-serif;
+  --mode-radius-scale: 1.8;
+  --mode-border-width: 1px;
 }
 
 .app-shell.theme-journal {
   --mode-accent-rgb: 129, 90, 224;
   --mode-accent2-rgb: 49, 39, 99;
+  --mode-heading-font: 'Cormorant Garamond', Georgia, serif;
+  --mode-radius-scale: 1.3;
+  --mode-border-width: 1px;
 }
 
 .app-shell.theme-calendar {
   --mode-accent-rgb: 6, 182, 212;
   --mode-accent2-rgb: 8, 89, 130;
+  --mode-heading-font: 'Manrope', sans-serif;
+  --mode-radius-scale: 0.8;
+  --mode-border-width: 1px;
 }
 
 /* ============ TOP SETTINGS BAR ============ */
@@ -678,11 +718,11 @@ footer {
 .mode-card,
 .mode-page-card {
   padding: 24px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(16px * var(--mode-radius-scale, 1));
   background: var(--surface);
   text-align: left;
-  transition: all 0.25s ease;
+  transition: all 0.25s ease, border-radius 0.2s ease;
 }
 
 .mode-card {
@@ -758,14 +798,14 @@ footer {
 .mode-progress-track {
   width: 100%;
   height: 6px;
-  border-radius: 10px;
+  border-radius: calc(10px * var(--mode-radius-scale, 1));
   overflow: hidden;
   background: var(--border);
 }
 
 .mode-progress-fill {
   height: 100%;
-  border-radius: 10px;
+  border-radius: calc(10px * var(--mode-radius-scale, 1));
   background: linear-gradient(90deg, rgb(var(--card-rgb, var(--mode-accent-rgb))), rgb(var(--card-rgb2, var(--mode-accent2-rgb))));
   transition: width 0.4s ease;
 }
@@ -803,11 +843,11 @@ footer {
 .form-card textarea {
   min-height: 42px;
   padding: 0 13px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(10px * var(--mode-radius-scale, 1));
   background: var(--surface-input);
   color: var(--text-primary);
-  transition: all 0.2s ease;
+  transition: all 0.2s ease, border-radius 0.2s ease;
 }
 
 .form-card input {
@@ -838,12 +878,12 @@ footer {
   min-height: 42px;
   padding: 0 16px;
   border: 0;
-  border-radius: 10px;
+  border-radius: calc(10px * var(--mode-radius-scale, 1));
   color: var(--text-on-accent);
   background: linear-gradient(135deg, rgb(var(--mode-accent-rgb)), rgb(var(--mode-accent2-rgb)));
   font-size: 12px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.2s ease, border-radius 0.2s ease;
 }
 
 .form-card button:hover:not(:disabled) {
@@ -868,10 +908,10 @@ footer {
   gap: 12px;
   min-height: 60px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 13px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(13px * var(--mode-radius-scale, 1));
   background: var(--surface);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.2s ease;
   animation: fadeUp 0.2s ease;
 }
 
@@ -921,8 +961,8 @@ footer {
   flex-shrink: 0;
   min-height: 32px;
   padding: 0 7px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
   background: var(--surface-input);
   color: var(--text-secondary);
   font-size: 10px;
@@ -971,8 +1011,8 @@ footer {
 
 .goal-card {
   padding: 17px;
-  border: 1px solid var(--border);
-  border-radius: 13px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(13px * var(--mode-radius-scale, 1));
   background: var(--surface);
   animation: fadeUp 0.2s ease;
 }
@@ -1048,9 +1088,10 @@ footer {
 .empty-state {
   padding: 50px 20px;
   text-align: center;
-  border: 1px dashed var(--border-strong);
-  border-radius: 14px;
+  border: var(--mode-border-width, 1px) dashed var(--border-strong);
+  border-radius: calc(14px * var(--mode-radius-scale, 1));
   background: var(--surface);
+  transition: border-radius 0.2s ease;
 }
 
 .empty-state > div {
