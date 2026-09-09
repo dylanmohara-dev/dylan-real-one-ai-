@@ -1,5 +1,52 @@
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 
+// Standard US 4.0 scale. No school-specific customization yet (some
+// schools weight AP/honors classes, use +/- differently, etc.) — this is
+// a reasonable default, not a claim that it matches Dylan's actual
+// school's exact scale.
+function gradeToGPA(percent) {
+  if (percent >= 93) return 4.0
+  if (percent >= 90) return 3.7
+  if (percent >= 87) return 3.3
+  if (percent >= 83) return 3.0
+  if (percent >= 80) return 2.7
+  if (percent >= 77) return 2.3
+  if (percent >= 73) return 2.0
+  if (percent >= 70) return 1.7
+  if (percent >= 67) return 1.3
+  if (percent >= 63) return 1.0
+  if (percent >= 60) return 0.7
+  return 0.0
+}
+
+// A class's average is a straight (unweighted) mean of every graded
+// assignment and test in it — no assignments-vs-tests weighting yet,
+// same "simple first, real" scope discipline as everything else this
+// session. null means "nothing graded yet", not "0%" — an ungraded
+// class should never look like it's failing.
+function classAverage(classId, assignments, tests) {
+  const graded = [
+    ...assignments.filter((a) => a.classId === classId && a.grade !== null && a.grade !== undefined),
+    ...tests.filter((t) => t.classId === classId && t.grade !== null && t.grade !== undefined),
+  ]
+  if (!graded.length) return null
+  const sum = graded.reduce((total, item) => total + Number(item.grade), 0)
+  return sum / graded.length
+}
+
+// Overall GPA is an unweighted mean of every class's own GPA points — no
+// credit-hour weighting yet (every class counts equally). Classes with
+// nothing graded yet are excluded rather than dragging the average down
+// as a phantom 0.0.
+function overallGPA(classes, assignments, tests) {
+  const points = classes
+    .map((c) => classAverage(c.id, assignments, tests))
+    .filter((avg) => avg !== null)
+    .map(gradeToGPA)
+  if (!points.length) return null
+  return points.reduce((a, b) => a + b, 0) / points.length
+}
+
 export default function SchoolPage({
   classes,
   assignments,
@@ -21,9 +68,11 @@ export default function SchoolPage({
   deleteClass,
   addAssignment,
   toggleAssignment,
+  setAssignmentGrade,
   deleteAssignment,
   addTest,
   toggleTest,
+  setTestGrade,
   deleteTest,
   setActivePage,
   assistantContext,
@@ -31,6 +80,7 @@ export default function SchoolPage({
 }) {
   const classAssignments = (classId) => assignments.filter((a) => a.classId === classId)
   const classTests = (classId) => tests.filter((t) => t.classId === classId)
+  const currentGPA = overallGPA(classes, assignments, tests)
 
   if (!selectedClassId) {
     return (
@@ -48,6 +98,16 @@ export default function SchoolPage({
 
         <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />
 
+        {currentGPA !== null && (
+          <div className="school-gpa-banner">
+            <span className="school-gpa-label">Overall GPA</span>
+            <span className="school-gpa-value">{currentGPA.toFixed(2)}</span>
+            <span className="school-gpa-note">
+              Unweighted across {classes.filter((c) => classAverage(c.id, assignments, tests) !== null).length} graded class(es), standard 4.0 scale
+            </span>
+          </div>
+        )}
+
         <div className="form-card">
           <input
             value={classNameInput}
@@ -61,24 +121,30 @@ export default function SchoolPage({
 
         <div className="items-list">
           {classes.length ? (
-            classes.map((schoolClass) => (
-              <div className="item-card" key={schoolClass.id}>
-                <div
-                  className="item-content"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => setSelectedClassId(schoolClass.id)}
-                >
-                  <strong>{schoolClass.name}</strong>
-                  <div className="item-meta">
-                    <span>{classAssignments(schoolClass.id).length} assignments</span>
-                    <span> · {classTests(schoolClass.id).length} tests</span>
+            classes.map((schoolClass) => {
+              const avg = classAverage(schoolClass.id, assignments, tests)
+              return (
+                <div className="item-card" key={schoolClass.id}>
+                  <div
+                    className="item-content"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setSelectedClassId(schoolClass.id)}
+                  >
+                    <strong>{schoolClass.name}</strong>
+                    <div className="item-meta">
+                      <span>{classAssignments(schoolClass.id).length} assignments</span>
+                      <span> · {classTests(schoolClass.id).length} tests</span>
+                      {avg !== null && (
+                        <span> · {avg.toFixed(1)}% ({gradeToGPA(avg).toFixed(1)} GPA)</span>
+                      )}
+                    </div>
                   </div>
+                  <button className="delete-button" onClick={() => deleteClass(schoolClass.id)}>
+                    ×
+                  </button>
                 </div>
-                <button className="delete-button" onClick={() => deleteClass(schoolClass.id)}>
-                  ×
-                </button>
-              </div>
-            ))
+              )
+            })
           ) : (
             <div className="empty-state">
               <div>⌂</div>
@@ -94,6 +160,7 @@ export default function SchoolPage({
   const activeClass = classes.find((c) => c.id === selectedClassId)
   const currentAssignments = classAssignments(selectedClassId)
   const currentTests = classTests(selectedClassId)
+  const classAvg = classAverage(selectedClassId, assignments, tests)
 
   return (
     <div className="page school-page">
@@ -101,7 +168,10 @@ export default function SchoolPage({
         <div>
           <span className="eyebrow">SCHOOL MODE</span>
           <h1 className="serif">{activeClass ? activeClass.name : 'Class'}</h1>
-          <p>Assignments and tests for this class.</p>
+          <p>
+            Assignments and tests for this class.
+            {classAvg !== null && ` Current average: ${classAvg.toFixed(1)}% (${gradeToGPA(classAvg).toFixed(1)} GPA).`}
+          </p>
         </div>
         <button onClick={() => setSelectedClassId(null)}>
           ← Back to Classes
@@ -146,6 +216,19 @@ export default function SchoolPage({
                       {assignment.dueDate && <span>Due {assignment.dueDate}</span>}
                     </div>
                   </div>
+                  <input
+                    type="number"
+                    className="grade-input"
+                    min="0"
+                    max="100"
+                    placeholder="Grade %"
+                    defaultValue={assignment.grade ?? ''}
+                    onBlur={(event) => {
+                      if (event.target.value !== String(assignment.grade ?? '')) {
+                        setAssignmentGrade(assignment, event.target.value)
+                      }
+                    }}
+                  />
                   <button className="delete-button" onClick={() => deleteAssignment(assignment.id)}>
                     ×
                   </button>
@@ -192,6 +275,19 @@ export default function SchoolPage({
                       {test.date && <span>Date {test.date}</span>}
                     </div>
                   </div>
+                  <input
+                    type="number"
+                    className="grade-input"
+                    min="0"
+                    max="100"
+                    placeholder="Grade %"
+                    defaultValue={test.grade ?? ''}
+                    onBlur={(event) => {
+                      if (event.target.value !== String(test.grade ?? '')) {
+                        setTestGrade(test, event.target.value)
+                      }
+                    }}
+                  />
                   <button className="delete-button" onClick={() => deleteTest(test.id)}>
                     ×
                   </button>

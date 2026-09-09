@@ -1499,6 +1499,51 @@ footer {
   font-size: 10px;
 }
 
+/* School: GPA banner + per-item grade input */
+.school-gpa-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  background: rgba(var(--mode-accent-rgb), 0.08);
+}
+
+.school-gpa-label {
+  font-size: 0.7rem;
+  letter-spacing: var(--mode-tracking, 0.1em);
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.school-gpa-value {
+  font-family: var(--mode-heading-font, inherit);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.school-gpa-note {
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+.grade-input {
+  flex-shrink: 0;
+  width: 68px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: var(--surface-input);
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: center;
+}
+
 .check-button {
   width: 24px;
   height: 24px;

@@ -724,6 +724,22 @@ export function useAppData() {
     }
   }
 
+  // Grades come in after the fact, once it's graded — a separate edit
+  // from toggling completion, same PUT endpoint (already merges
+  // arbitrary fields, no backend change needed). Empty string clears it
+  // back to ungraded rather than saving a bogus 0%.
+  async function setAssignmentGrade(assignment, grade) {
+    try {
+      await request(`/assignments/${assignment.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ grade: grade === '' ? null : Number(grade) }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
   async function addTest() {
     if (!testInput.trim() || !selectedClassId) return
     setSaving(true)
@@ -764,6 +780,18 @@ export function useAppData() {
       await request(`/tests/${id}`, { method: 'DELETE' })
       await loadData()
       showSuccess('Test deleted.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function setTestGrade(test, grade) {
+    try {
+      await request(`/tests/${test.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ grade: grade === '' ? null : Number(grade) }),
+      })
+      await loadData()
     } catch (error) {
       showError(error.message)
     }
@@ -1088,9 +1116,11 @@ export function useAppData() {
     deleteClass,
     addAssignment,
     toggleAssignment,
+    setAssignmentGrade,
     deleteAssignment,
     addTest,
     toggleTest,
+    setTestGrade,
     deleteTest,
 
     // goals

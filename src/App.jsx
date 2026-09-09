@@ -188,9 +188,11 @@ function App() {
           deleteClass={data.deleteClass}
           addAssignment={data.addAssignment}
           toggleAssignment={data.toggleAssignment}
+          setAssignmentGrade={data.setAssignmentGrade}
           deleteAssignment={data.deleteAssignment}
           addTest={data.addTest}
           toggleTest={data.toggleTest}
+          setTestGrade={data.setTestGrade}
           deleteTest={data.deleteTest}
           setActivePage={setActivePage}
           assistantContext={assistantContext}
