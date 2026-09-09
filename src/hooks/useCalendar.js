@@ -46,6 +46,14 @@ export function useCalendar() {
     setMonthLoading(true)
     try {
       const data = await request(`/month?year=${year}&month=${month}`)
+      // A THIRD instance of the same bug class as the two fixed earlier:
+      // this never cleared a previously-set `error`, so one transient
+      // failure (a slow boot, a momentary blip) left "Something went
+      // wrong." painted over an otherwise fully working calendar
+      // permanently — nothing on the happy path ever took it back down.
+      // Clearing it here means the banner reflects the LATEST load, not
+      // whatever the worst load ever was.
+      setError('')
       setMonthItems(data.items || [])
       // A failure to reach iCloud does NOT empty the month — local items
       // still come back — so this is surfaced as a notice, not an error.
@@ -62,6 +70,7 @@ export function useCalendar() {
     try {
       const status = await request('/status')
       setConnected(status.connected)
+      setError('') // same fix as loadMonth above — a working status check clears any stale error
       // Used to also call loadEvents() here to populate the old flat event
       // list. That list was replaced by the month grid (loadMonth), but this
       // call was left behind — so a flaky/failing hit to the OLD /events
