@@ -20,6 +20,7 @@ import gmailRouter from './routes/gmail.js'
 import driveRouter from './routes/drive.js'
 import slackRouter from './routes/slack.js'
 import backupRouter from './routes/backup.js'
+import gymRouter from './routes/gym.js'
 import { startModelWarmup } from './lib/ollamaWarm.js'
 
 
@@ -56,6 +57,7 @@ app.use('/api/gmail', gmailRouter)
 app.use('/api/drive', driveRouter)
 app.use('/api/slack', slackRouter)
 app.use('/api/backup', backupRouter)
+app.use('/api/gym', gymRouter)
 
 app.listen(port, () => {
   console.log(`Dylan AI server running on http://localhost:${port}`)

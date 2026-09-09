@@ -23,6 +23,7 @@ import JournalPage from './components/JournalPage.jsx'
 import HealthPage from './components/HealthPage.jsx'
 import FinancePage from './components/FinancePage.jsx'
 import SkillsPage from './components/SkillsPage.jsx'
+import GymPage from './components/GymPage.jsx'
 import ModeBackground from './components/ModeBackground.jsx'
 import ModeTransition from './components/ModeTransition.jsx'
 import CalendarPage from './components/CalendarPage.jsx'
@@ -264,6 +265,22 @@ function App() {
           deleteSkillSession={data.deleteSkillSession}
           uploadSkillVideo={data.uploadSkillVideo}
           deleteSkillVideo={data.deleteSkillVideo}
+          assistantContext={assistantContext}
+          openChat={openChat}
+        />
+      )
+    }
+
+    if (activePage === 'gym') {
+      return (
+        <GymPage
+          gymExercises={data.gymExercises}
+          gymLogs={data.gymLogs}
+          saving={data.saving}
+          addGymExercise={data.addGymExercise}
+          deleteGymExercise={data.deleteGymExercise}
+          addGymLog={data.addGymLog}
+          deleteGymLog={data.deleteGymLog}
           assistantContext={assistantContext}
           openChat={openChat}
         />

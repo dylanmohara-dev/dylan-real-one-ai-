@@ -1,10 +1,11 @@
-import { Trophy, Sparkles, CheckCircle2, Target } from 'lucide-react'
+import { Trophy, Sparkles, CheckCircle2, Target, Dumbbell } from 'lucide-react'
 
 const ICONS = {
   levelup: Sparkles,
   badge: Trophy,
   task: CheckCircle2,
   goal: Target,
+  pr: Dumbbell,
   info: Sparkles,
 }
 

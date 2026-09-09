@@ -21,6 +21,8 @@ export function useAppData() {
   const [financeNetWorth, setFinanceNetWorth] = useState(0)
   const [financeHistory, setFinanceHistory] = useState([])
   const [skills, setSkills] = useState([])
+  const [gymExercises, setGymExercises] = useState([])
+  const [gymLogs, setGymLogs] = useState([])
   const [toasts, setToasts] = useState([])
 
   const [taskInput, setTaskInput] = useState('')
@@ -180,6 +182,8 @@ export function useAppData() {
         healthData,
         financeData,
         skillsData,
+        gymExerciseData,
+        gymLogData,
       ] = await Promise.all([
         request('/tasks'),
         request('/goals'),
@@ -191,6 +195,8 @@ export function useAppData() {
         request('/health'),
         request('/finance'),
         request('/skills'),
+        request('/gym/exercises'),
+        request('/gym/logs'),
       ])
 
       setTasks(taskData.tasks || [])
@@ -205,6 +211,8 @@ export function useAppData() {
       setFinanceNetWorth(financeData.netWorth || 0)
       setFinanceHistory(financeData.history || [])
       setSkills(skillsData.skills || [])
+      setGymExercises(gymExerciseData.exercises || [])
+      setGymLogs(gymLogData.logs || [])
 
       return { skills: skillsData.skills || [], goals: goalData.goals || [] }
     } catch (error) {
@@ -288,6 +296,114 @@ export function useAppData() {
           message: nextGoal.title,
         })
       }
+    }
+  }
+
+  // Gym: estimated 1-rep-max via the Epley formula -- a standard, simple
+  // approximation (weight * (1 + reps/30)) used to compare strength across
+  // different rep ranges, not just raw weight. Good enough for "am I
+  // getting stronger," not meant to be lab-accurate.
+  function epley1RM(weight, reps) {
+    if (!weight || !reps) return 0
+    return weight * (1 + reps / 30)
+  }
+
+  async function addGymExercise(name, category) {
+    if (!name?.trim()) return
+    setSaving(true)
+    try {
+      await request('/gym/exercises', {
+        method: 'POST',
+        body: JSON.stringify({ name: name.trim(), category: category?.trim() || '' }),
+      })
+      await loadData()
+      showSuccess('Exercise added.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteGymExercise(id) {
+    try {
+      await request(`/gym/exercises/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Exercise deleted.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // Logs a set of work for one exercise, then checks it against every prior
+  // log for that same exercise -- both raw max weight and estimated 1RM --
+  // and fires a celebratory toast on a genuine new record. The very first
+  // log for a brand-new exercise never counts as a PR: there's no history
+  // yet to beat, so it's a baseline, not a record.
+  async function addGymLog(exerciseId, date, sets) {
+    if (!exerciseId || !Array.isArray(sets) || !sets.length) return
+    setSaving(true)
+    try {
+      const priorLogs = gymLogs.filter((log) => log.exerciseId === exerciseId)
+      let priorBestWeight = 0
+      let priorBest1RM = 0
+      priorLogs.forEach((log) => {
+        ;(log.sets || []).forEach((set) => {
+          const w = Number(set.weight) || 0
+          const r = Number(set.reps) || 0
+          priorBestWeight = Math.max(priorBestWeight, w)
+          priorBest1RM = Math.max(priorBest1RM, epley1RM(w, r))
+        })
+      })
+
+      let newBestWeight = 0
+      let newBest1RM = 0
+      sets.forEach((set) => {
+        const w = Number(set.weight) || 0
+        const r = Number(set.reps) || 0
+        newBestWeight = Math.max(newBestWeight, w)
+        newBest1RM = Math.max(newBest1RM, epley1RM(w, r))
+      })
+
+      await request('/gym/logs', {
+        method: 'POST',
+        body: JSON.stringify({ exerciseId, date, sets }),
+      })
+
+      await loadData()
+
+      const exercise = gymExercises.find((e) => e.id === exerciseId)
+      const exerciseName = exercise ? exercise.name : 'Exercise'
+
+      if (priorLogs.length > 0 && newBestWeight > priorBestWeight) {
+        pushToast({
+          kind: 'pr',
+          title: 'NEW PR',
+          message: `${exerciseName}: ${newBestWeight} lbs`,
+        })
+      } else if (priorLogs.length > 0 && newBest1RM > priorBest1RM) {
+        pushToast({
+          kind: 'pr',
+          title: 'NEW EST. 1RM',
+          message: `${exerciseName}: ~${Math.round(newBest1RM)} lbs`,
+        })
+      }
+
+      showSuccess('Workout logged.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteGymLog(id) {
+    try {
+      await request(`/gym/logs/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Log deleted.')
+    } catch (error) {
+      showError(error.message)
     }
   }
 
@@ -1168,6 +1284,14 @@ export function useAppData() {
     deleteSkillSession,
     uploadSkillVideo,
     deleteSkillVideo,
+
+    // gym
+    gymExercises,
+    gymLogs,
+    addGymExercise,
+    deleteGymExercise,
+    addGymLog,
+    deleteGymLog,
 
     // overview
     overviewCards,
