@@ -4,12 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n vite,server -c cyan,magenta \"vite\" \"node server.js\"",
+    "dev": "concurrently -k -n vite,server -c cyan,magenta \"vite\" \"node --watch server.js\"",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "client": "vite",
-    "server": "node server.js"
+    "server": "node --watch server.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
