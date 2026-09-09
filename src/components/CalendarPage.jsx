@@ -45,23 +45,9 @@ function buildMonthCells(year, monthIndex) {
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, RefreshCw, Unlink } from 'lucide-react'
 import CalendarEventForm from './CalendarEventForm.jsx'
 
-function formatWhen(event) {
-  const start = new Date(event.start)
-  if (event.allDay) {
-    return start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-  }
-  return start.toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
 export default function CalendarPage({ calendar }) {
   const {
-    checked, connected, events, error, loading, checkStatus, loadEvents, connect, disconnect,
+    checked, connected, error, loading, checkStatus, connect, disconnect,
     monthItems, monthLoading, calendarError, loadMonth,
     targetCalendarUrl, createEvent, updateEvent, deleteEvent,
   } = calendar

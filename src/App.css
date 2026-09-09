@@ -4495,6 +4495,30 @@ button:disabled:active {
   font: inherit;
 }
 
+.calendar-form-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+.calendar-form-mode select,
+.calendar-form-mode input {
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: calc(7px * var(--mode-radius-scale, 1));
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+}
+
+.calendar-form-mode-hint {
+  opacity: 0.75;
+  font-size: 0.68rem;
+  font-weight: 400;
+}
+
 .calendar-form-actions {
   display: flex;
   justify-content: flex-end;
@@ -4592,6 +4616,47 @@ button:disabled:active {
   text-transform: uppercase;
   opacity: 0.75;
   color: rgb(var(--mode-accent-rgb));
+}
+
+.calendar-mode-map {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: var(--mode-border-width, 1px) solid var(--border);
+}
+
+.calendar-mode-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.calendar-mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(9px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+}
+
+.calendar-mode-row-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgb(var(--chip-rgb));
+}
+
+.calendar-mode-row select {
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: calc(7px * var(--mode-radius-scale, 1));
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  max-width: 60%;
 }
 
 /* Settings page: backup & export */

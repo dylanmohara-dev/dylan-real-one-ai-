@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Image as ImageIcon, X, Sparkles } from 'lucide-react'
+import { Image as ImageIcon, X, Sparkles, Mic, MicOff } from 'lucide-react'
 import { LIFE_MODES } from '../data/lifeModes.js'
 
 export default function ChatPage({
@@ -19,6 +19,87 @@ export default function ChatPage({
   const fileInputRef = useRef(null)
 
   /*
+    Voice-to-text via the browser's own SpeechRecognition — no server
+    involved, so this works whether or not the local Ollama model is even
+    running. Chrome/Edge ship it under a vendor prefix; some browsers
+    (older Firefox, some Safari builds) don't ship it at all, so the mic
+    button feature-detects and disables itself with an honest tooltip
+    rather than pretending to work.
+  */
+  const SpeechRecognitionAPI =
+    typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null
+  const [isListening, setIsListening] = useState(false)
+  const [voiceError, setVoiceError] = useState('')
+  const recognitionRef = useRef(null)
+  // Snapshot of whatever was already typed when listening started, so
+  // dictated text appends after it instead of replacing it.
+  const baseMessageRef = useRef('')
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop()
+    }
+  }, [])
+
+  function startListening() {
+    if (!SpeechRecognitionAPI) {
+      setVoiceError('Voice input is not supported in this browser.')
+      return
+    }
+    setVoiceError('')
+    baseMessageRef.current = message
+    const recognition = new SpeechRecognitionAPI()
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+
+    // Rebuilds the full transcript (interim + final) on every event so the
+    // input updates live as Dylan talks, rather than only once he stops —
+    // the same "don't leave him staring at nothing happening" reasoning as
+    // the thinking-time counter above.
+    recognition.onresult = (event) => {
+      let transcript = ''
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript
+      }
+      const base = baseMessageRef.current
+      setMessage(base ? `${base} ${transcript}` : transcript)
+    }
+
+    recognition.onerror = (event) => {
+      setVoiceError(
+        event.error === 'not-allowed'
+          ? 'Microphone access was blocked — allow it in your browser to use voice input.'
+          : event.error === 'no-speech'
+            ? "Didn't catch anything — try again."
+            : 'Voice input stopped unexpectedly.'
+      )
+      setIsListening(false)
+    }
+
+    // Some browsers end recognition on their own after a pause even in
+    // continuous mode — this keeps the button's state honest either way,
+    // whether Dylan stopped it or the browser did.
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setIsListening(true)
+  }
+
+  function stopListening() {
+    recognitionRef.current?.stop()
+    setIsListening(false)
+  }
+
+  function toggleListening() {
+    if (isListening) stopListening()
+    else startListening()
+  }
+
+  /*
     Live "thinking for Xs" counter. A spinner with no number gives you no way
     to tell "working on it" apart from "hung" — which is exactly the state
     the chat was stuck in before the timeout fixes. A ticking number makes
@@ -28,7 +109,12 @@ export default function ChatPage({
 
   useEffect(() => {
     if (!loading) {
-      setElapsedMs(0)
+      // No setState here: the "Thinking for Xs" counter this drives is
+      // only ever rendered while loading is true, so there's nothing to
+      // reset for right now — it gets zeroed again below the next time
+      // loading turns true. (Was calling setElapsedMs(0) unconditionally
+      // here too, which is a lint error — synchronous setState in an
+      // effect body — and was always redundant with the reset below.)
       return undefined
     }
     const startedAt = Date.now()
@@ -200,6 +286,8 @@ export default function ChatPage({
         </div>
       )}
 
+      {voiceError && <p className="journal-error chat-voice-error">{voiceError}</p>}
+
       <div className="chat-composer">
         <input
           ref={fileInputRef}
@@ -216,6 +304,20 @@ export default function ChatPage({
           type="button"
         >
           <ImageIcon size={16} strokeWidth={2.25} />
+        </button>
+
+        <button
+          className={`chat-mic-button ${isListening ? 'is-listening' : ''}`}
+          onClick={toggleListening}
+          title={
+            SpeechRecognitionAPI
+              ? isListening ? 'Stop listening' : 'Speak your message'
+              : 'Voice input not supported in this browser'
+          }
+          type="button"
+          disabled={!SpeechRecognitionAPI}
+        >
+          {isListening ? <MicOff size={16} strokeWidth={2.25} /> : <Mic size={16} strokeWidth={2.25} />}
         </button>
 
         <textarea

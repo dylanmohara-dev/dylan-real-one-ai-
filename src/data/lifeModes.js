@@ -244,8 +244,12 @@ export const LIFE_MODES = [
     assistantTitle: 'Literary expert',
     icon: Columns3,
     title: 'Reading',
-    rgb: '244, 63, 94',
-    rgb2: '236, 72, 153',
+    // Was '244, 63, 94' (a red-pink that duplicated Discipline) — the
+    // theme-reading CSS class was fixed to sepia/brown in an earlier
+    // session, but this object (used directly by ModePage/OverviewPage
+    // card gradients) was never updated to match. Fixed here.
+    rgb: '146, 100, 63',
+    rgb2: '196, 149, 92',
     headline: '0 pages today',
     subtitle: 'Goal of 10 pages a day',
     metricLabel: 'PAGES',
@@ -273,18 +277,22 @@ export const LIFE_MODES = [
   {
     key: 'family',
     assistantName: 'The Anchor',
-    assistantTitle: 'Family relationships expert',
+    assistantTitle: 'Family & faith expert',
     icon: Users,
-    title: 'Family',
-    rgb: '99, 102, 241',
-    rgb2: '59, 130, 246',
+    title: 'Family/Faith',
+    // Was '99, 102, 241' (indigo, too close to Finance's blue) — the
+    // theme-family CSS class was fixed to coral-rose in an earlier
+    // session, but this object (used directly by ModePage/OverviewPage
+    // card gradients) was never updated to match. Fixed here.
+    rgb: '244, 114, 143',
+    rgb2: '251, 165, 175',
     headline: 'No family added',
-    subtitle: 'Check-ins and time together',
+    subtitle: 'Check-ins, time together, and faith practice',
     metricLabel: 'TIME THIS WEEK',
     metricValue: '0H / 6H',
     assistantMessage:
-      "Tell me about your family — I'll help you track check-ins and time together.",
-    prompts: ['Add a family member', 'Plan a family check-in'],
+      "Tell me about your family and faith life — I'll help you track check-ins, time together, and whatever faith practice matters to you.",
+    prompts: ['Add a family member', 'Plan a family check-in', 'Log a moment of faith or reflection'],
   },
 ]
 

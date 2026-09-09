@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { LIFE_MODES } from '../data/lifeModes.js'
 
 // Local <input type="datetime-local"> / <input type="date"> values are
 // naive strings with no timezone (e.g. "2026-09-10T14:30"). Interpreting
@@ -37,8 +38,15 @@ export default function CalendarEventForm({ initial, defaultDateKey, targetCalen
     initial ? isoToLocalInput(initial.end, initial.allDay) : (allDay ? defaultDateKey : `${defaultDateKey}T10:00`)
   )
   const [location, setLocation] = useState(initial?.location || '')
+  const [mode, setMode] = useState(initial?.mode && initial.mode !== 'calendar' ? initial.mode : '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Fixed once an event exists — moving it to a different life area means
+  // it lives on a different iCloud calendar, and this form doesn't move
+  // events between calendars (see resolveCalendarForMode in
+  // lib/appleCalendar.js). Delete and recreate to move one for now.
+  const currentModeLabel = LIFE_MODES.find((m) => m.key === initial?.mode)?.title || 'General (no life area)'
 
   function toggleAllDay(next) {
     setAllDay(next)
@@ -75,6 +83,7 @@ export default function CalendarEventForm({ initial, defaultDateKey, targetCalen
         end,
         allDay,
         location: location.trim(),
+        mode: mode || null,
       })
     } catch (err) {
       setError(err.message)
@@ -122,6 +131,25 @@ export default function CalendarEventForm({ initial, defaultDateKey, targetCalen
         value={location}
         onChange={(e) => setLocation(e.target.value)}
       />
+
+      <label className="calendar-form-mode">
+        Life area
+        {isEdit ? (
+          <input type="text" value={currentModeLabel} disabled />
+        ) : (
+          <select value={mode} onChange={(e) => setMode(e.target.value)}>
+            <option value="">General (no life area)</option>
+            {LIFE_MODES.map((m) => (
+              <option key={m.key} value={m.key}>{m.title}</option>
+            ))}
+          </select>
+        )}
+        {!isEdit && (
+          <span className="calendar-form-mode-hint">
+            Only shows up as its own color in Apple Calendar if this area has its own calendar mapped in Settings — otherwise it still saves fine here, just filed as general.
+          </span>
+        )}
+      </label>
 
       {error && <p className="journal-error">{error}</p>}
 

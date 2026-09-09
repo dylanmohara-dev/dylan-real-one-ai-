@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Download, ShieldCheck, RotateCcw } from 'lucide-react'
-import { DESIGN_SYSTEMS, COLOR_PALETTES } from '../data/lifeModes.js'
+import { DESIGN_SYSTEMS, COLOR_PALETTES, LIFE_MODES } from '../data/lifeModes.js'
 
 const API = 'http://localhost:3001/api'
 
@@ -28,11 +28,15 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
     calendars,
     calendarsLoading,
     targetCalendarUrl,
+    calendarMap,
     loadCalendars,
     chooseTargetCalendar,
+    mapModeToCalendar,
   } = calendar
   const [targetError, setTargetError] = useState('')
   const [choosingTarget, setChoosingTarget] = useState(false)
+  const [mappingMode, setMappingMode] = useState(null)
+  const [mapError, setMapError] = useState('')
 
   useEffect(() => {
     if (calendarConnected) {
@@ -50,6 +54,18 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
       setTargetError(err.message)
     } finally {
       setChoosingTarget(false)
+    }
+  }
+
+  async function handleMapMode(mode, url) {
+    setMappingMode(mode)
+    setMapError('')
+    try {
+      await mapModeToCalendar(mode, url)
+    } catch (err) {
+      setMapError(err.message)
+    } finally {
+      setMappingMode(null)
     }
   }
 
@@ -295,6 +311,38 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
               <p className="mode-page-note calendar-notice">
                 No target chosen yet — adding an event from the Calendar page will be blocked until you pick one.
               </p>
+            )}
+
+            {!calendarsLoading && calendars.length > 0 && (
+              <div className="calendar-mode-map">
+                <p className="classic-tools-note">
+                  Optional: map a specific life area to its OWN iCloud
+                  calendar, so events you tag with that area get their own
+                  color and label — both here and in Apple's own Calendar
+                  app. Apple colors by calendar, not by event, so this is
+                  the only way to get real per-area colors there. Anything
+                  left unmapped uses the default calendar above and shows
+                  up generically.
+                </p>
+                {mapError && <p className="journal-error">{mapError}</p>}
+                <div className="calendar-mode-rows">
+                  {LIFE_MODES.map((m) => (
+                    <div className="calendar-mode-row" key={m.key}>
+                      <span className={`calendar-mode-row-label cal-mode-${m.key}`}>{m.title}</span>
+                      <select
+                        value={calendarMap[m.key] || ''}
+                        onChange={(e) => handleMapMode(m.key, e.target.value || null)}
+                        disabled={mappingMode === m.key}
+                      >
+                        <option value="">Use default calendar</option>
+                        {calendars.map((cal) => (
+                          <option key={cal.url} value={cal.url}>{cal.displayName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </>
         )}

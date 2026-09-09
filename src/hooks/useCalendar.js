@@ -116,6 +116,9 @@ export function useCalendar() {
   const [calendars, setCalendars] = useState([])
   const [targetCalendarUrl, setTargetCalendarUrlState] = useState(null)
   const [calendarsLoading, setCalendarsLoading] = useState(false)
+  // Optional per-life-area override: { school: url, health: url, ... }.
+  // Anything not in here falls back to targetCalendarUrl above.
+  const [calendarMap, setCalendarMapState] = useState({})
 
   const loadCalendars = useCallback(async () => {
     setCalendarsLoading(true)
@@ -123,6 +126,7 @@ export function useCalendar() {
       const data = await request('/calendars')
       setCalendars(data.calendars || [])
       setTargetCalendarUrlState(data.targetCalendarUrl || null)
+      setCalendarMapState(data.calendarMap || {})
     } finally {
       setCalendarsLoading(false)
     }
@@ -140,6 +144,23 @@ export function useCalendar() {
       body: JSON.stringify({ url }),
     })
     setTargetCalendarUrlState(url)
+  }
+
+  // Maps one life area to one of Dylan's iCloud calendars (or clears it
+  // back to "use default" when url is null). This is what makes events
+  // for that area color/label separately, both here and in Apple's own
+  // Calendar app, once that calendar exists and is mapped.
+  async function mapModeToCalendar(mode, url) {
+    await request('/calendars/map', {
+      method: 'POST',
+      body: JSON.stringify({ mode, url }),
+    })
+    setCalendarMapState((prev) => {
+      const next = { ...prev }
+      if (url) next[mode] = url
+      else delete next[mode]
+      return next
+    })
   }
 
   async function createEvent(fields) {
@@ -177,8 +198,10 @@ export function useCalendar() {
     calendars,
     calendarsLoading,
     targetCalendarUrl,
+    calendarMap,
     loadCalendars,
     chooseTargetCalendar,
+    mapModeToCalendar,
     createEvent,
     updateEvent,
     deleteEvent,

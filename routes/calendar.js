@@ -7,6 +7,8 @@ import {
   listCalendars,
   getTargetCalendarUrl,
   setTargetCalendarUrl,
+  getCalendarMap,
+  setCalendarModeMapping,
   createEvent,
   updateEvent,
   deleteEvent,
@@ -16,6 +18,21 @@ import {
 import { loadData } from '../lib/dataStore.js'
 
 const router = Router()
+
+// Keep in sync with LIFE_MODE_KEYS in lib/appleCalendar.js and the 9 keys
+// in src/data/lifeModes.js. Used to turn a raw mode key into what shows up
+// in the calendar grid when no dedicated iCloud calendar is mapped to it.
+const MODE_LABELS = {
+  school: 'School',
+  sports: 'Sports',
+  gym: 'Gym',
+  health: 'Health',
+  finance: 'Finance',
+  skills: 'Skills',
+  reading: 'Reading',
+  discipline: 'Discipline',
+  family: 'Family/Faith',
+}
 
 function logCalendarError(label, error) {
   const line = `${new Date().toISOString()} ${label}: ${error?.stack || error?.message || JSON.stringify(error)}\n\n`
@@ -58,7 +75,7 @@ router.post('/disconnect', (req, res) => {
 router.get('/calendars', async (req, res) => {
   try {
     const calendars = await listCalendars()
-    res.json({ calendars, targetCalendarUrl: getTargetCalendarUrl() })
+    res.json({ calendars, targetCalendarUrl: getTargetCalendarUrl(), calendarMap: getCalendarMap() })
   } catch (error) {
     logCalendarError('LIST_CALENDARS_FAILED', error)
     res.status(400).json({ error: error.message })
@@ -76,12 +93,26 @@ router.post('/calendars/target', (req, res) => {
   }
 })
 
+// Optional per-life-area override on top of the single default target
+// above — see the comment on resolveCalendarForMode in appleCalendar.js
+// for why this is the only way to get real per-area colors in Apple's own
+// Calendar app. Pass url: null to clear a mapping back to "use default".
+router.post('/calendars/map', (req, res) => {
+  try {
+    const { mode, url } = req.body
+    setCalendarModeMapping(mode, url || null)
+    res.json({ success: true, mode, url: url || null })
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
 // --- Writes. Every one of these touches Dylan's real iCloud calendar —
 // nothing here is a local draft that can be silently discarded on failure.
 router.post('/events', async (req, res) => {
   try {
-    const { title, start, end, allDay, location } = req.body
-    const result = await createEvent({ title, start, end, allDay, location })
+    const { title, start, end, allDay, location, mode } = req.body
+    const result = await createEvent({ title, start, end, allDay, location, mode })
     res.json({ success: true, ...result })
   } catch (error) {
     logCalendarError('CREATE_EVENT_FAILED', error)
@@ -159,16 +190,23 @@ router.get('/month', async (req, res) => {
       for (const event of events) {
         const key = dayKey(event.start)
         if (!inRange(key)) continue
+        // event.mode is 'calendar' (the generic bucket) unless this event's
+        // calendar has been mapped to a life area in Settings — see
+        // getCalendarMap/invertCalendarMap in lib/appleCalendar.js. When it
+        // HAS been mapped, show the life-area label instead of the raw
+        // iCloud calendar name so it reads the same way every other
+        // life-area item on this grid does.
+        const resolvedMode = event.mode && event.mode !== 'calendar' ? event.mode : 'calendar'
         items.push({
           id: `event-${event.id}`,
           kind: 'event',
-          mode: 'calendar',
+          mode: resolvedMode,
           title: event.title,
           date: key,
           time: event.allDay
             ? null
             : new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-          meta: event.calendar,
+          meta: resolvedMode !== 'calendar' ? (MODE_LABELS[resolvedMode] || resolvedMode) : event.calendar,
           // Carried through so the client can offer edit/delete on THIS
           // specific iCloud event without a second round-trip — but only
           // for non-recurring ones (see isRecurring comment in
@@ -183,6 +221,10 @@ router.get('/month', async (req, res) => {
             end: event.end,
             allDay: event.allDay,
             location: event.location,
+            // So the edit form can show which life area this event is
+            // filed under (fixed at creation — moving an event between
+            // calendars isn't supported by editing yet).
+            mode: resolvedMode,
           },
         })
       }
