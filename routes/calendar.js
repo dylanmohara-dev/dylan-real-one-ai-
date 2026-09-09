@@ -176,6 +176,18 @@ router.get('/month', async (req, res) => {
 
   const dayKey = (value) => {
     if (!value) return null
+    // A bare "YYYY-MM-DD" (no time component — how every date-only field
+    // here is stored: goal.dueDate, assignment.dueDate, test.date,
+    // task.dueDate) represents a literal calendar day, not a moment in
+    // time. Per the JS spec, a date-only string parses as UTC MIDNIGHT —
+    // so on any machine west of UTC (all of the US, including wherever
+    // this server actually runs), reading it back with LOCAL date parts
+    // silently returns the PREVIOUS day. This was a real, confirmed bug:
+    // a goal due "2026-09-11" landed on the 10th under America/New_York.
+    // Bare dates are read directly off the string, bypassing Date/
+    // timezone conversion entirely, so they can never shift.
+    const bareDateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+    if (bareDateMatch) return bareDateMatch[0]
     const d = new Date(value)
     if (Number.isNaN(d.getTime())) return null
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
