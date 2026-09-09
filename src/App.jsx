@@ -128,9 +128,12 @@ function App() {
           goals={data.goals}
           goalInput={data.goalInput}
           setGoalInput={data.setGoalInput}
+          goalDueDate={data.goalDueDate}
+          setGoalDueDate={data.setGoalDueDate}
           saving={data.saving}
           addGoal={data.addGoal}
           updateGoal={data.updateGoal}
+          updateGoalDueDate={data.updateGoalDueDate}
           deleteGoal={data.deleteGoal}
         />
       )

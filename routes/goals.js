@@ -9,7 +9,7 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   try {
-    const { title, progress } = req.body
+    const { title, progress, dueDate } = req.body
     if (!title?.trim()) {
       return res.status(400).json({ error: 'Goal title is required' })
     }
@@ -18,6 +18,9 @@ router.post('/', (req, res) => {
       id: Date.now().toString(),
       title: title.trim(),
       progress: Number(progress) || 0,
+      // Optional — a goal with no deadline just never shows on the
+      // calendar, same as before this existed.
+      dueDate: dueDate || null,
       createdAt: new Date().toISOString(),
     }
     goals.push(goal)

@@ -2,9 +2,12 @@ export default function GoalsPage({
   goals,
   goalInput,
   setGoalInput,
+  goalDueDate,
+  setGoalDueDate,
   saving,
   addGoal,
   updateGoal,
+  updateGoalDueDate,
   deleteGoal,
 }) {
   return (
@@ -24,6 +27,14 @@ export default function GoalsPage({
           value={goalInput}
           onChange={(event) => setGoalInput(event.target.value)}
           placeholder="What is your goal?"
+        />
+
+        <input
+          type="date"
+          className="goal-due-date-input"
+          value={goalDueDate}
+          onChange={(event) => setGoalDueDate(event.target.value)}
+          title="Target date (optional) — shows this goal on the Calendar page"
         />
 
         <button onClick={addGoal} disabled={saving || !goalInput.trim()}>
@@ -50,6 +61,15 @@ export default function GoalsPage({
                     style={{ width: `${goal.progress}%` }}
                   />
                 </div>
+
+                <label className="goal-due-date-row">
+                  Target date (shows on Calendar)
+                  <input
+                    type="date"
+                    value={goal.dueDate ? goal.dueDate.slice(0, 10) : ''}
+                    onChange={(event) => updateGoalDueDate(goal, event.target.value)}
+                  />
+                </label>
 
                 <div className="goal-controls">
                   <button onClick={() => updateGoal(goal, -10)}>−10%</button>

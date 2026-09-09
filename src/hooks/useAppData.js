@@ -46,6 +46,7 @@ export function useAppData() {
   const [testDate, setTestDate] = useState('')
 
   const [goalInput, setGoalInput] = useState('')
+  const [goalDueDate, setGoalDueDate] = useState('')
   const [noteInput, setNoteInput] = useState('')
   const [memoryInput, setMemoryInput] = useState('')
   const [memorySuggestion, setMemorySuggestion] = useState('')
@@ -822,10 +823,14 @@ export function useAppData() {
         body: JSON.stringify({
           title: goalInput.trim(),
           progress: 0,
+          // Optional target date — this is what lets a goal show up on
+          // the Calendar page at all; a goal with no date just never did.
+          dueDate: goalDueDate || null,
         }),
       })
 
       setGoalInput('')
+      setGoalDueDate('')
 
       await loadData()
 
@@ -852,6 +857,22 @@ export function useAppData() {
       if (justCompleted) {
         pushToast({ kind: 'goal', title: 'GOAL COMPLETE', message: goal.title })
       }
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // Set or clear a goal's target date after the fact — separate from
+  // updateGoal (which only ever adjusts progress) since this is a
+  // different kind of edit with its own UI control on the goal card.
+  async function updateGoalDueDate(goal, dueDate) {
+    try {
+      await request(`/goals/${goal.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ dueDate: dueDate || null }),
+      })
+
+      await loadData()
     } catch (error) {
       showError(error.message)
     }
@@ -1076,8 +1097,11 @@ export function useAppData() {
     goals,
     goalInput,
     setGoalInput,
+    goalDueDate,
+    setGoalDueDate,
     addGoal,
     updateGoal,
+    updateGoalDueDate,
     deleteGoal,
 
     // notes

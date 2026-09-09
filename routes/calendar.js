@@ -266,6 +266,24 @@ router.get('/month', async (req, res) => {
     })
   }
 
+  // --- Goals with a target date. Goals aren't tied to any single life
+  // area (a goal can span several), so they get their own dedicated
+  // 'goals' calendar color instead of borrowing one of the 9 life areas.
+  for (const goal of loadData('goals')) {
+    const key = dayKey(goal.dueDate)
+    if (!inRange(key)) continue
+    items.push({
+      id: `goal-${goal.id}`,
+      kind: 'goal',
+      mode: 'goals',
+      title: goal.title,
+      date: key,
+      time: null,
+      meta: `${goal.progress}% complete`,
+      done: Number(goal.progress) >= 100,
+    })
+  }
+
   // --- Tasks with a due date.
   for (const task of loadData('tasks')) {
     const key = dayKey(task.dueDate)

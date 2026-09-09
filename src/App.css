@@ -1578,6 +1578,30 @@ footer {
   transition: width 0.35s ease;
 }
 
+.goal-due-date-input {
+  max-width: 160px;
+}
+
+.goal-due-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.goal-due-date-row input {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-input);
+  color: inherit;
+  font: inherit;
+  font-size: 0.72rem;
+}
+
 .goal-controls {
   display: flex;
   gap: 7px;
@@ -4244,6 +4268,7 @@ button:disabled:active {
   --cal-discipline: 239, 68, 68;
   --cal-family: 244, 114, 143;
   --cal-calendar: 129, 90, 224;
+  --cal-goals: 236, 72, 153;
 }
 
 .calendar-toolbar {
@@ -4385,6 +4410,7 @@ button:disabled:active {
 .cal-mode-discipline { --chip-rgb: var(--cal-discipline); }
 .cal-mode-family { --chip-rgb: var(--cal-family); }
 .cal-mode-calendar { --chip-rgb: var(--cal-calendar); }
+.cal-mode-goals { --chip-rgb: var(--cal-goals); }
 
 .calendar-agenda {
   margin-top: 22px;
