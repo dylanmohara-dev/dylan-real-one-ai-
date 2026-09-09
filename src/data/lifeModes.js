@@ -59,6 +59,36 @@ export const DESIGN_SYSTEMS = [
     tagline: 'Comic red + yellow, always',
     description: "Overrides every mode's color with bold comic red/yellow. Thick black ink-line borders, halftone dots, heavy Anton headings, and buttons that bounce when you hover them.",
   },
+  {
+    key: 'newsprint',
+    name: 'Newsprint',
+    tagline: 'Black + one red, always',
+    description: "Overrides every mode's color with black ink and a single deep red. Serif masthead headings, a fine halftone dot texture, hard offset drop-shadows instead of glows, and zero motion — the deliberately quiet, serious option.",
+  },
+  {
+    key: 'vapor-bloom',
+    name: 'Vapor Bloom',
+    tagline: 'Purple, pink, teal, always',
+    description: "Overrides every mode's color with a soft purple/pink/teal gradient. Rounded Comfortaa headings, pill-shaped cards, and two blurred color blobs that slowly drift behind the page.",
+  },
+  {
+    key: 'blueprint',
+    name: 'Blueprint',
+    tagline: 'Navy + amber, always',
+    description: "Overrides every mode's color with drafting-table navy and amber. Graph-paper grid lines, dashed dimension-style borders, and corner registration marks on every card.",
+  },
+  {
+    key: 'handwritten-journal',
+    name: 'Handwritten Journal',
+    tagline: 'Ink blue + aged gold, always',
+    description: "Overrides every mode's color with a warm, low-lit journal palette — ink blue and aged gold on dark leather-brown. Caveat handwriting for headings, wavy hand-drawn underlines, and a jagged torn-paper edge on every card.",
+  },
+  {
+    key: 'holographic-chrome',
+    name: 'Holographic Chrome',
+    tagline: 'Shifting rainbow chrome, always',
+    description: "Overrides every mode's color with cool chrome silver plus a slowly hue-shifting rainbow sheen. Angular sheared panels, glossy metallic highlights, and a short glitch flicker when you hover.",
+  },
 ]
 
 // A third, independent global "skin" dimension: mood/intensity applied on
