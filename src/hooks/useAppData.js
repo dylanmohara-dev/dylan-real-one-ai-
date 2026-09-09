@@ -122,14 +122,40 @@ export function useAppData() {
     localStorage.setItem('dylan-ai-chat-threads', JSON.stringify(chatThreads))
   }, [chatThreads])
 
-  async function request(endpoint, options = {}) {
-    const response = await fetch(`${API}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-      },
-      ...options,
-    })
+  /*
+    Every request is time-bounded. Without this, a backend that never
+    responds (a stalled Ollama call, a hung integration) meant the await
+    below never settled, so the `finally { setLoading(false) }` in
+    sendMessage never ran and the thinking animation span forever with no
+    way to recover except reloading the page. 150s is deliberately longer
+    than the server's own 120s AI timeout, so when the AI is the slow part
+    the server's specific error wins the race and Dylan sees the real
+    reason instead of a generic client-side timeout.
+  */
+  async function request(endpoint, options = {}, timeoutMs = 150000) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+    let response
+    try {
+      response = await fetch(`${API}${endpoint}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {}),
+        },
+        signal: controller.signal,
+        ...options,
+      })
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error(
+          `The request took longer than ${Math.round(timeoutMs / 1000)}s and was cancelled. The backend may be stuck — check the terminal running \`npm run dev\`.`
+        )
+      }
+      throw error
+    } finally {
+      clearTimeout(timer)
+    }
 
     const data = await response.json().catch(() => ({}))
 
@@ -324,19 +350,29 @@ export function useAppData() {
         Direct commands from server.js return skipMemoryCheck: true.
       */
 
+      /*
+        Deliberately NOT awaited. This is a second, separate round-trip to
+        the model, and awaiting it here meant the reply was already on
+        screen while `finally { setLoading(false) }` still hadn't run — so
+        the thinking animation kept going and the input stayed locked for
+        the length of an entire extra model call. On a local 3B model that
+        is most of the "it's very slow" feeling. Let it resolve whenever it
+        resolves and update the suggestion then; the chat is done the
+        moment the reply lands.
+      */
       if (settings.memorySuggestions && !chatResult.skipMemoryCheck) {
-        try {
-          const memoryResult = await request('/memory-check', {
-            method: 'POST',
-            body: JSON.stringify({ message: trimmed }),
+        request('/memory-check', {
+          method: 'POST',
+          body: JSON.stringify({ message: trimmed }),
+        })
+          .then((memoryResult) => {
+            if (memoryResult?.shouldSuggest) {
+              setMemorySuggestion(memoryResult.memory || '')
+            }
           })
-
-          if (memoryResult.shouldSuggest) {
-            setMemorySuggestion(memoryResult.memory || '')
-          }
-        } catch {
-          // Memory suggestion errors do not interrupt chat.
-        }
+          .catch(() => {
+            // Memory suggestion errors do not interrupt chat.
+          })
       }
     } catch (error) {
       showError(error.message)

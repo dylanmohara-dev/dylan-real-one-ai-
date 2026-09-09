@@ -17,6 +17,34 @@ const MODEL = 'llama3.2:3b'
 // rather than silently doing nothing.
 const VISION_MODEL = 'llava'
 
+// Every outbound call in this file used to be a bare fetch() with no timeout.
+// That is why chat could sit on the "thinking" animation forever instead of
+// failing: a stalled socket never rejects, so the route never returned, the
+// client never got a response, and its spinner had nothing to turn off. A
+// hang is strictly worse than an error — an error at least tells you what to
+// fix. Everything below is now bounded.
+const OLLAMA_TIMEOUT_MS = 120000 // generation: slow is fine, forever is not
+const OLLAMA_PING_TIMEOUT_MS = 4000 // just listing installed models
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = OLLAMA_TIMEOUT_MS, label = 'The local AI') {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...options, signal: controller.signal })
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(
+        `${label} did not respond within ${Math.round(timeoutMs / 1000)}s. ` +
+        `Ollama may be loading the model, stuck, or not running — check it with \`ollama list\`, ` +
+        `and restart it with \`ollama serve\` if needed.`
+      )
+    }
+    throw error
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 // Each life area gets its own voice AND its own answer structure, not just a
 // different accent color in the UI — this is what actually shows up in the
 // text the model writes. Pushed harder (session 8) after Dylan reported the
@@ -126,7 +154,7 @@ router.post('/chat', async (req, res) => {
       // the OpenAI-compat endpoint) is what lists installed models.
       let installedModels = []
       try {
-        const tagsResponse = await fetch('http://127.0.0.1:11434/api/tags')
+        const tagsResponse = await fetchWithTimeout('http://127.0.0.1:11434/api/tags', {}, OLLAMA_PING_TIMEOUT_MS, 'Ollama')
         if (tagsResponse.ok) {
           const tagsData = await tagsResponse.json()
           installedModels = (tagsData.models || []).map((m) => m.name)
@@ -155,7 +183,7 @@ router.post('/chat', async (req, res) => {
       const visionPersona = personaFraming(modeLabelForImage)
       const visionSystemPrompt = `You are Dylan AI. Dylan sent an image${modeLabelForImage ? ` while in his "${modeLabelForImage}" area` : ''}. ${visionPersona ? `${visionPersona} ` : ''}Describe what's relevant in it and answer his message about it directly and plainly. No JSON, no code fences.`
 
-      const visionResponse = await fetch(OLLAMA_URL, {
+      const visionResponse = await fetchWithTimeout(OLLAMA_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -217,7 +245,7 @@ ${personaFraming(modeLabel) ? `${personaFraming(modeLabel)}
 ` : ''}` : ''}
 Dylan asked you to write, draft, plan, explain, or brainstorm something. Write the complete answer as plain text — no JSON, no code fences, no markdown headers or asterisks. Use plain dashes for lists and blank lines between sections. This is a single response, not a conversation — write the whole thing now and stop; never simulate additional turns, progress updates, or "steps completed."
 `
-      const contentResponse = await fetch(OLLAMA_URL, {
+      const contentResponse = await fetchWithTimeout(OLLAMA_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -341,7 +369,7 @@ Never claim an action happened unless the application actually performed it.
 ${context}
 `
 
-    const response = await fetch(OLLAMA_URL, {
+    const response = await fetchWithTimeout(OLLAMA_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -407,7 +435,7 @@ router.post('/memory-check', async (req, res) => {
       return res.json({ shouldSuggest: false, memory: '' })
     }
 
-    const response = await fetch(OLLAMA_URL, {
+    const response = await fetchWithTimeout(OLLAMA_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
