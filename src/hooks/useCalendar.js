@@ -3,18 +3,45 @@ import { useCallback, useState } from 'react'
 const API = 'http://localhost:3001/api/calendar'
 
 async function request(endpoint, options = {}) {
-  const response = await fetch(`${API}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    ...options,
-  })
+  let response
+  try {
+    response = await fetch(`${API}${endpoint}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+      ...options,
+    })
+  } catch (networkErr) {
+    // The request never even reached a server -- backend not running,
+    // wrong port, no network. Distinct from a server-side error, and a
+    // completely different fix, so say so instead of falling into the
+    // same generic "Something went wrong." as everything else below.
+    throw new Error(`Could not reach the server (${networkErr.message}). Is the backend running?`, {
+      cause: networkErr,
+    })
+  }
 
-  const data = await response.json().catch(() => ({}))
+  const rawText = await response.text()
+  let data
+  try {
+    data = rawText ? JSON.parse(rawText) : {}
+  } catch (parseErr) {
+    // Response wasn't JSON at all -- almost always an Express default
+    // error page (a crash, a body-size limit, something thrown outside
+    // a route's own try/catch). Surfacing the status + a body snippet
+    // here is the whole difference between "Something went wrong." (a
+    // dead end) and an actual lead to fix -- same lesson as the
+    // server-swallowing-its-own-errors bug found in an earlier session,
+    // just on the frontend's side of the same mistake this time.
+    throw new Error(
+      `Server returned a non-JSON response (status ${response.status}): ${rawText.slice(0, 200) || '(empty body)'}`,
+      { cause: parseErr }
+    )
+  }
 
   if (!response.ok) {
-    throw new Error(data.error || 'Something went wrong.')
+    throw new Error(data.error || `Request failed (status ${response.status}).`)
   }
 
   return data
