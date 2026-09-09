@@ -69,6 +69,7 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
   const [choosingTarget, setChoosingTarget] = useState(false)
   const [mappingMode, setMappingMode] = useState(null)
   const [mapError, setMapError] = useState('')
+  const [refreshingCalendars, setRefreshingCalendars] = useState(false)
 
   useEffect(() => {
     if (calendarConnected) {
@@ -76,6 +77,22 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calendarConnected])
+
+  // Manual refresh: the calendar list only auto-loads once, on mount --
+  // creating a NEW calendar in the real Apple Calendar app while this page
+  // is already open (exactly what happens the first time someone sets this
+  // up) never shows up until this fires, since nothing else re-triggers it.
+  async function handleRefreshCalendars() {
+    setRefreshingCalendars(true)
+    setTargetError('')
+    try {
+      await loadCalendars()
+    } catch (err) {
+      setTargetError(err.message)
+    } finally {
+      setRefreshingCalendars(false)
+    }
+  }
 
   async function handleChooseTarget(url) {
     setChoosingTarget(true)
@@ -335,7 +352,20 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
       </div>
 
       <div className="classic-tools">
-        <span className="eyebrow">CALENDAR — WRITE TARGET</span>
+        <div className="classic-tools-heading-row">
+          <span className="eyebrow">CALENDAR — WRITE TARGET</span>
+          {calendarConnected && (
+            <button
+              className="calendar-refresh-button"
+              onClick={handleRefreshCalendars}
+              disabled={refreshingCalendars || calendarsLoading}
+              title="Just created or renamed a calendar in Apple Calendar? Click this to make it show up here."
+            >
+              <RotateCcw size={13} strokeWidth={2.25} />
+              {refreshingCalendars ? 'Refreshing...' : 'Refresh calendars'}
+            </button>
+          )}
+        </div>
         <p className="classic-tools-note">
           {calendarConnected
             ? "Pick which iCloud calendar Dylan AI writes new/edited/deleted events into. Only this one calendar is ever touched — everything else in your account is read-only to this app."

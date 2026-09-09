@@ -2267,6 +2267,36 @@ footer {
   max-width: 780px;
 }
 
+.classic-tools-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.calendar-refresh-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: var(--surface-input);
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.calendar-refresh-button:hover:not(:disabled) {
+  border-color: rgb(var(--mode-accent-rgb));
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.calendar-refresh-button:disabled {
+  opacity: 0.6;
+}
+
 .classic-tools-note {
   margin: 8px 0 16px;
   max-width: 560px;
