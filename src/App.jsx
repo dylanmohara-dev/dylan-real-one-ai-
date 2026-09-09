@@ -276,11 +276,17 @@ function App() {
         <GymPage
           gymExercises={data.gymExercises}
           gymLogs={data.gymLogs}
+          gymRoutines={data.gymRoutines}
+          gymWeekPlan={data.gymWeekPlan}
           saving={data.saving}
           addGymExercise={data.addGymExercise}
           deleteGymExercise={data.deleteGymExercise}
           addGymLog={data.addGymLog}
           deleteGymLog={data.deleteGymLog}
+          addGymRoutine={data.addGymRoutine}
+          updateGymRoutine={data.updateGymRoutine}
+          deleteGymRoutine={data.deleteGymRoutine}
+          setGymWeekPlanDay={data.setGymWeekPlanDay}
           assistantContext={assistantContext}
           openChat={openChat}
         />

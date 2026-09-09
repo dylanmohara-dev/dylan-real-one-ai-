@@ -23,6 +23,8 @@ export function useAppData() {
   const [skills, setSkills] = useState([])
   const [gymExercises, setGymExercises] = useState([])
   const [gymLogs, setGymLogs] = useState([])
+  const [gymRoutines, setGymRoutines] = useState([])
+  const [gymWeekPlan, setGymWeekPlan] = useState({})
   const [toasts, setToasts] = useState([])
 
   const [taskInput, setTaskInput] = useState('')
@@ -184,6 +186,8 @@ export function useAppData() {
         skillsData,
         gymExerciseData,
         gymLogData,
+        gymRoutineData,
+        gymWeekPlanData,
       ] = await Promise.all([
         request('/tasks'),
         request('/goals'),
@@ -197,6 +201,8 @@ export function useAppData() {
         request('/skills'),
         request('/gym/exercises'),
         request('/gym/logs'),
+        request('/gym/routines'),
+        request('/gym/week-plan'),
       ])
 
       setTasks(taskData.tasks || [])
@@ -213,6 +219,8 @@ export function useAppData() {
       setSkills(skillsData.skills || [])
       setGymExercises(gymExerciseData.exercises || [])
       setGymLogs(gymLogData.logs || [])
+      setGymRoutines(gymRoutineData.routines || [])
+      setGymWeekPlan(gymWeekPlanData.weekPlan || {})
 
       return { skills: skillsData.skills || [], goals: goalData.goals || [] }
     } catch (error) {
@@ -402,6 +410,58 @@ export function useAppData() {
       await request(`/gym/logs/${id}`, { method: 'DELETE' })
       await loadData()
       showSuccess('Log deleted.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function addGymRoutine(name, exerciseIds) {
+    if (!name?.trim()) return
+    setSaving(true)
+    try {
+      await request('/gym/routines', {
+        method: 'POST',
+        body: JSON.stringify({ name: name.trim(), exerciseIds: exerciseIds || [] }),
+      })
+      await loadData()
+      showSuccess('Routine saved.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function updateGymRoutine(id, updates) {
+    try {
+      await request(`/gym/routines/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function deleteGymRoutine(id) {
+    try {
+      await request(`/gym/routines/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Routine deleted.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // day is 'monday'..'sunday'; routineId is a routine id or null ("rest").
+  async function setGymWeekPlanDay(day, routineId) {
+    try {
+      await request('/gym/week-plan', {
+        method: 'POST',
+        body: JSON.stringify({ [day]: routineId }),
+      })
+      await loadData()
     } catch (error) {
       showError(error.message)
     }
@@ -1288,10 +1348,16 @@ export function useAppData() {
     // gym
     gymExercises,
     gymLogs,
+    gymRoutines,
+    gymWeekPlan,
     addGymExercise,
     deleteGymExercise,
     addGymLog,
     deleteGymLog,
+    addGymRoutine,
+    updateGymRoutine,
+    deleteGymRoutine,
+    setGymWeekPlanDay,
 
     // overview
     overviewCards,

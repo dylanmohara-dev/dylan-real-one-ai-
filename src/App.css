@@ -5590,3 +5590,215 @@ button:disabled:active {
   vertical-align: -2px;
   color: rgb(var(--mode-accent-rgb, 249, 115, 22));
 }
+
+/* ---------- Gym mode: tabs, Today view, Routines ---------- */
+
+.gym-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.gym-tabs button {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 8px 4px;
+  margin-right: 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.gym-tabs button:hover {
+  color: var(--text-primary);
+}
+
+.gym-tabs button.active {
+  color: rgb(var(--mode-accent-rgb, 249, 115, 22));
+  border-bottom-color: rgb(var(--mode-accent-rgb, 249, 115, 22));
+}
+
+.gym-today-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 16px;
+}
+
+.gym-today-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.gym-today-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gym-exercise-logger {
+  border-radius: calc(14px * var(--mode-radius-scale, 1));
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.gym-exercise-logger-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+  cursor: default;
+}
+
+.gym-exercise-logger-header.collapsible {
+  cursor: pointer;
+}
+
+.gym-exercise-logger-header.collapsible:hover {
+  background: var(--surface-strong);
+}
+
+.gym-exercise-logger-last {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.gym-exercise-logger-body {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gym-exercise-logger-body .form-card {
+  margin: 0;
+}
+
+.gym-routines {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.gym-routine-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gym-routine-exercise-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 10px 2px;
+}
+
+.gym-routine-exercise-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.gym-routine-exercise-option input {
+  width: auto;
+}
+
+.gym-routine-empty-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.gym-routine-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gym-routine-card {
+  padding: 14px 16px;
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+}
+
+.gym-routine-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.gym-routine-card-header strong {
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.gym-routine-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gym-routine-edit-toggle {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+}
+
+.gym-routine-edit-toggle:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.gym-routine-card-exercises {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.gym-week-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.gym-week-plan-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.gym-week-plan-row:last-child {
+  border-bottom: none;
+}
+
+.gym-week-plan-day {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 90px;
+}
+
+.gym-week-plan-row select {
+  flex: 1;
+  max-width: 220px;
+}
