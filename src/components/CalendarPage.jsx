@@ -215,7 +215,7 @@ export default function CalendarPage({ calendar }) {
         </div>
 
         <div className="calendar-header-actions">
-          <button onClick={() => { loadEvents(); loadMonth(viewYear, viewMonth + 1) }} disabled={loading || monthLoading}>
+          <button onClick={() => loadMonth(viewYear, viewMonth + 1)} disabled={monthLoading}>
             <RefreshCw size={14} strokeWidth={2.25} />
             Refresh
           </button>

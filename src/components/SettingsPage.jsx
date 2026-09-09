@@ -35,7 +35,9 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
   const [choosingTarget, setChoosingTarget] = useState(false)
 
   useEffect(() => {
-    if (calendarConnected) loadCalendars()
+    if (calendarConnected) {
+      loadCalendars().catch((err) => setTargetError(err.message))
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calendarConnected])
 

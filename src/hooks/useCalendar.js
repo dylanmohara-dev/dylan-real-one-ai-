@@ -62,13 +62,19 @@ export function useCalendar() {
     try {
       const status = await request('/status')
       setConnected(status.connected)
-      if (status.connected) await loadEvents()
+      // Used to also call loadEvents() here to populate the old flat event
+      // list. That list was replaced by the month grid (loadMonth), but this
+      // call was left behind — so a flaky/failing hit to the OLD /events
+      // endpoint was throwing a scary "Something went wrong" banner over a
+      // page that was otherwise working fine via /calendar/month. Nothing
+      // in the UI reads `events` anymore; not calling it is the fix, not
+      // hardening the call.
     } catch (err) {
       setError(err.message)
     } finally {
       setChecked(true)
     }
-  }, [loadEvents])
+  }, [])
 
   // Unlike Gmail/Drive/Slack, there's no OAuth redirect here — CalDAV is
   // Basic Auth, so "connecting" means submitting a form with the Apple ID
@@ -117,11 +123,15 @@ export function useCalendar() {
       const data = await request('/calendars')
       setCalendars(data.calendars || [])
       setTargetCalendarUrlState(data.targetCalendarUrl || null)
-    } catch (err) {
-      setError(err.message)
     } finally {
       setCalendarsLoading(false)
     }
+    // Deliberately NOT catching here (unlike checkStatus/connect above):
+    // this used to swallow into the shared `error` state, which Settings
+    // never reads — so a failed fetch and a genuinely empty calendar list
+    // rendered the exact same "No calendars found" message, one of them a
+    // lie. Letting it throw means the caller (Settings) can tell those two
+    // states apart and show what actually happened.
   }, [])
 
   async function chooseTargetCalendar(url) {
