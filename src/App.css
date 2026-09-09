@@ -3960,23 +3960,31 @@ button:disabled:active {
    multipliers stay predictable across every mode's hue. Vivid (default) is
    intentionally a no-op — it's today's look. */
 
+/* Pushed much further apart (session 8, round 2) after Dylan reported the
+   first pass "not dramatic enough" once actually tested live. Still no
+   hue-rotate (see the note above this section) — the spread now comes from
+   pushing saturate/brightness/contrast much closer to their real limits
+   instead of timid middle values. */
 .app-shell.palette-muted {
-  --palette-saturate: 0.6;
+  --palette-saturate: 0.28;
+  --palette-brightness: 0.96;
+  --palette-contrast: 0.94;
 }
 
 .app-shell.palette-rich {
-  --palette-saturate: 1.15;
-  --palette-brightness: 0.94;
-  --palette-contrast: 1.08;
+  --palette-saturate: 1.55;
+  --palette-brightness: 0.8;
+  --palette-contrast: 1.25;
 }
 
 .app-shell.palette-pastel {
-  --palette-saturate: 0.7;
-  --palette-brightness: 1.1;
-  --palette-contrast: 0.95;
+  --palette-saturate: 0.42;
+  --palette-brightness: 1.28;
+  --palette-contrast: 0.82;
 }
 
 .app-shell.palette-high-contrast {
-  --palette-saturate: 1.25;
-  --palette-contrast: 1.2;
+  --palette-saturate: 1.65;
+  --palette-contrast: 1.4;
+  --palette-brightness: 1.04;
 }

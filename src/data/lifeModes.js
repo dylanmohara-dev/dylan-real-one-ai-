@@ -76,26 +76,26 @@ export const COLOR_PALETTES = [
   {
     key: 'muted',
     name: 'Muted',
-    tagline: 'Calmer, more professional',
-    description: 'Desaturated across the board — colors are still there, just quieter.',
+    tagline: 'Nearly grayscale',
+    description: "Pushed hard toward gray — colors are barely there anymore, just a whisper of hue. Not subtle.",
   },
   {
     key: 'rich',
     name: 'Rich',
-    tagline: 'Deeper, more premium',
-    description: 'Slightly more saturated and a touch darker, with extra contrast — colors feel heavier.',
+    tagline: 'Dark, saturated, heavy',
+    description: 'Colors pushed way up and brightness pulled way down — deep, almost jewel-toned, with real weight to it.',
   },
   {
     key: 'pastel',
     name: 'Pastel',
-    tagline: 'Soft and light',
-    description: 'Lower saturation, brighter, lower contrast — an airy, gentle version of every mode color.',
+    tagline: 'Washed-out and bright',
+    description: 'Saturation cut hard and brightness pushed way up — closer to an overexposed photo than a gentle tint.',
   },
   {
     key: 'high-contrast',
     name: 'High Contrast',
-    tagline: 'Punchy and bold',
-    description: 'Extra saturation and contrast pushed up — colors pop hard against the dark background.',
+    tagline: 'As loud as it gets',
+    description: 'Saturation and contrast both pushed to their real limits — colors hit as hard as this app can make them without breaking.',
   },
 ]
 
