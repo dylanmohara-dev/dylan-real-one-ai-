@@ -7,9 +7,15 @@ router.get('/', (req, res) => {
   res.json({ classes: loadData('classes') })
 })
 
+// level: 'regular' | 'honors' | 'ap' -- drives the GPA weighting bonus in
+// SchoolPage.jsx (Honors +0.5, AP/IB +1.0, the standard US convention).
+// Defaults to 'regular' so every existing class (created before this
+// field existed) reads the same as an explicitly-regular one.
+const VALID_LEVELS = ['regular', 'honors', 'ap']
+
 router.post('/', (req, res) => {
   try {
-    const { name } = req.body
+    const { name, level } = req.body
     if (!name?.trim()) {
       return res.status(400).json({ error: 'Class name is required' })
     }
@@ -17,6 +23,11 @@ router.post('/', (req, res) => {
     const schoolClass = {
       id: Date.now().toString(),
       name: name.trim(),
+      level: VALID_LEVELS.includes(level) ? level : 'regular',
+      // Non-academic periods (Study Hall, Lunch) can be created like any
+      // other class and then excluded from GPA math individually --
+      // simpler than a separate "is this even a class" concept.
+      excludeFromGpa: false,
       createdAt: new Date().toISOString(),
     }
     classes.push(schoolClass)
@@ -25,6 +36,32 @@ router.post('/', (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Could not save class' })
+  }
+})
+
+router.put('/:id', (req, res) => {
+  try {
+    const classes = loadData('classes')
+    const index = classes.findIndex((c) => c.id === req.params.id)
+    if (index === -1) {
+      return res.status(404).json({ error: 'Class not found' })
+    }
+    const updates = {}
+    if (typeof req.body.name === 'string' && req.body.name.trim()) {
+      updates.name = req.body.name.trim()
+    }
+    if (VALID_LEVELS.includes(req.body.level)) {
+      updates.level = req.body.level
+    }
+    if (typeof req.body.excludeFromGpa === 'boolean') {
+      updates.excludeFromGpa = req.body.excludeFromGpa
+    }
+    classes[index] = { ...classes[index], ...updates }
+    saveData('classes', classes)
+    res.json({ class: classes[index] })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not update class' })
   }
 })
 

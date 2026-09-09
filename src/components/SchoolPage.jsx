@@ -34,17 +34,45 @@ function classAverage(classId, assignments, tests) {
   return sum / graded.length
 }
 
-// Overall GPA is an unweighted mean of every class's own GPA points — no
-// credit-hour weighting yet (every class counts equally). Classes with
-// nothing graded yet are excluded rather than dragging the average down
-// as a phantom 0.0.
-function overallGPA(classes, assignments, tests) {
-  const points = classes
-    .map((c) => classAverage(c.id, assignments, tests))
-    .filter((avg) => avg !== null)
-    .map(gradeToGPA)
-  if (!points.length) return null
-  return points.reduce((a, b) => a + b, 0) / points.length
+// Grade weighting: the standard US high school convention — Honors gets
+// +0.5, AP/IB gets +1.0, regular/college-prep classes get the flat 4.0
+// scale. Dylan's own class list (AP History, Honors Chemistry, College
+// Prep Calculus, ...) is exactly what this is for. Every class defaults
+// to 'regular' (via classLevel below) so classes created before this
+// field existed read correctly without a data migration.
+const LEVEL_LABELS = { regular: 'Regular', honors: 'Honors', ap: 'AP / IB' }
+const WEIGHT_BONUS = { regular: 0, honors: 0.5, ap: 1.0 }
+
+function classLevel(schoolClass) {
+  return schoolClass?.level || 'regular'
+}
+
+function weightedClassGPA(percent, level) {
+  return gradeToGPA(percent) + (WEIGHT_BONUS[level] || 0)
+}
+
+// Computes BOTH the traditional unweighted GPA (every class flat on the
+// 4.0 scale) and the weighted GPA (Honors/AP bonus applied) in one pass.
+// A class explicitly marked excludeFromGpa (non-academic periods like
+// Study Hall or Lunch — real entries in Dylan's own class list) is
+// skipped from both entirely, same as an ungraded class: neither counts
+// as a phantom 0.0, and neither should drag down or pad the average.
+function computeGPAs(classes, assignments, tests) {
+  const graded = classes
+    .filter((c) => !c.excludeFromGpa)
+    .map((c) => ({ avg: classAverage(c.id, assignments, tests), level: classLevel(c) }))
+    .filter((entry) => entry.avg !== null)
+
+  if (!graded.length) return { weighted: null, unweighted: null, gradedCount: 0 }
+
+  const unweightedPoints = graded.map((entry) => gradeToGPA(entry.avg))
+  const weightedPoints = graded.map((entry) => weightedClassGPA(entry.avg, entry.level))
+
+  return {
+    weighted: weightedPoints.reduce((a, b) => a + b, 0) / weightedPoints.length,
+    unweighted: unweightedPoints.reduce((a, b) => a + b, 0) / unweightedPoints.length,
+    gradedCount: graded.length,
+  }
 }
 
 // Deadline dashboard: every incomplete assignment/test with a date,
@@ -126,6 +154,7 @@ export default function SchoolPage({
   saving,
   addClass,
   deleteClass,
+  updateClass,
   addAssignment,
   toggleAssignment,
   setAssignmentGrade,
@@ -140,7 +169,7 @@ export default function SchoolPage({
 }) {
   const classAssignments = (classId) => assignments.filter((a) => a.classId === classId)
   const classTests = (classId) => tests.filter((t) => t.classId === classId)
-  const currentGPA = overallGPA(classes, assignments, tests)
+  const { weighted: weightedGPA, unweighted: unweightedGPA, gradedCount } = computeGPAs(classes, assignments, tests)
   const deadlines = upcomingItems(classes, assignments, tests)
 
   if (!selectedClassId) {
@@ -159,12 +188,12 @@ export default function SchoolPage({
 
         <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />
 
-        {currentGPA !== null && (
+        {weightedGPA !== null && (
           <div className="school-gpa-banner">
-            <span className="school-gpa-label">Overall GPA</span>
-            <span className="school-gpa-value">{currentGPA.toFixed(2)}</span>
+            <span className="school-gpa-label">Weighted GPA</span>
+            <span className="school-gpa-value">{weightedGPA.toFixed(2)}</span>
             <span className="school-gpa-note">
-              Unweighted across {classes.filter((c) => classAverage(c.id, assignments, tests) !== null).length} graded class(es), standard 4.0 scale
+              Unweighted: {unweightedGPA.toFixed(2)} &middot; across {gradedCount} graded class{gradedCount === 1 ? '' : 'es'} &middot; Honors +0.5, AP/IB +1.0
             </span>
           </div>
         )}
@@ -210,6 +239,7 @@ export default function SchoolPage({
           {classes.length ? (
             classes.map((schoolClass) => {
               const avg = classAverage(schoolClass.id, assignments, tests)
+              const level = classLevel(schoolClass)
               return (
                 <div className="item-card" key={schoolClass.id}>
                   <div
@@ -217,13 +247,21 @@ export default function SchoolPage({
                     style={{ cursor: 'pointer' }}
                     onClick={() => setSelectedClassId(schoolClass.id)}
                   >
-                    <strong>{schoolClass.name}</strong>
+                    <strong>
+                      {schoolClass.name}
+                      {level !== 'regular' && <span className="school-level-badge">{LEVEL_LABELS[level]}</span>}
+                    </strong>
                     <div className="item-meta">
                       <span>{classAssignments(schoolClass.id).length} assignments</span>
                       <span> · {classTests(schoolClass.id).length} tests</span>
                       {avg !== null && (
-                        <span> · {avg.toFixed(1)}% ({gradeToGPA(avg).toFixed(1)} GPA)</span>
+                        <span>
+                          {' '}
+                          · {avg.toFixed(1)}% ({weightedClassGPA(avg, level).toFixed(1)} GPA
+                          {level !== 'regular' ? ', weighted' : ''})
+                        </span>
                       )}
+                      {schoolClass.excludeFromGpa && <span> · not counted in GPA</span>}
                     </div>
                   </div>
                   <button className="delete-button" onClick={() => deleteClass(schoolClass.id)}>
@@ -257,7 +295,10 @@ export default function SchoolPage({
           <h1 className="serif">{activeClass ? activeClass.name : 'Class'}</h1>
           <p>
             Assignments and tests for this class.
-            {classAvg !== null && ` Current average: ${classAvg.toFixed(1)}% (${gradeToGPA(classAvg).toFixed(1)} GPA).`}
+            {classAvg !== null &&
+              ` Current average: ${classAvg.toFixed(1)}% (${weightedClassGPA(classAvg, classLevel(activeClass)).toFixed(1)} GPA${
+                classLevel(activeClass) !== 'regular' ? ', weighted' : ''
+              }).`}
           </p>
         </div>
         <button onClick={() => setSelectedClassId(null)}>
@@ -266,6 +307,31 @@ export default function SchoolPage({
       </div>
 
       <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />
+
+      {activeClass && (
+        <div className="school-class-settings">
+          <div className="school-level-picker">
+            {['regular', 'honors', 'ap'].map((level) => (
+              <button
+                key={level}
+                type="button"
+                className={classLevel(activeClass) === level ? 'active' : ''}
+                onClick={() => updateClass(activeClass.id, { level })}
+              >
+                {LEVEL_LABELS[level]}
+              </button>
+            ))}
+          </div>
+          <label className="school-exclude-toggle">
+            <input
+              type="checkbox"
+              checked={Boolean(activeClass.excludeFromGpa)}
+              onChange={(event) => updateClass(activeClass.id, { excludeFromGpa: event.target.checked })}
+            />
+            Don't count this class in my GPA (e.g. Study Hall, Lunch)
+          </label>
+        </div>
+      )}
 
       <div className="dashboard-grid">
         <section className="dashboard-panel">

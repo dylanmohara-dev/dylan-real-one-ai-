@@ -1531,6 +1531,70 @@ footer {
   opacity: 0.6;
 }
 
+.school-level-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  background: rgba(var(--mode-accent-rgb), 0.16);
+  color: rgb(var(--mode-accent-rgb));
+  vertical-align: middle;
+}
+
+.school-class-settings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+}
+
+.school-level-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.school-level-picker button {
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+}
+
+.school-level-picker button:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.school-level-picker button.active {
+  color: rgb(var(--mode-accent-rgb));
+  border-color: rgb(var(--mode-accent-rgb));
+  background: rgba(var(--mode-accent-rgb), 0.1);
+}
+
+.school-exclude-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.school-exclude-toggle input {
+  width: auto;
+}
+
 .grade-input {
   flex-shrink: 0;
   width: 68px;

@@ -187,6 +187,7 @@ function App() {
           saving={data.saving}
           addClass={data.addClass}
           deleteClass={data.deleteClass}
+          updateClass={data.updateClass}
           addAssignment={data.addAssignment}
           toggleAssignment={data.toggleAssignment}
           setAssignmentGrade={data.setAssignmentGrade}

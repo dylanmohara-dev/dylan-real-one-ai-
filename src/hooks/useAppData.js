@@ -855,6 +855,22 @@ export function useAppData() {
     }
   }
 
+  // updates is a partial: { name?, level?, excludeFromGpa? } -- level
+  // drives the GPA weighting bonus (Honors +0.5, AP/IB +1.0), excludeFromGpa
+  // is for non-academic periods (Study Hall, Lunch) that shouldn't factor
+  // into GPA math at all.
+  async function updateClass(id, updates) {
+    try {
+      await request(`/classes/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
   async function addAssignment() {
     if (!assignmentInput.trim() || !selectedClassId) return
     setSaving(true)
@@ -1290,6 +1306,7 @@ export function useAppData() {
     setTestDate,
     addClass,
     deleteClass,
+    updateClass,
     addAssignment,
     toggleAssignment,
     setAssignmentGrade,
