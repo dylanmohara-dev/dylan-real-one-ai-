@@ -4417,6 +4417,80 @@ button:disabled:active {
   }
 }
 
+/* Settings page: backup & export */
+.backup-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+}
+
+.backup-card-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.backup-card-summary > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.backup-counts {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 2px 16px;
+  font-size: 0.78rem;
+  opacity: 0.75;
+}
+
+.backup-excluded-note {
+  margin-top: 10px;
+  font-size: 0.76rem;
+  opacity: 0.6;
+  max-width: 52ch;
+}
+
+.backup-last-export {
+  margin-top: 8px;
+  font-size: 0.72rem;
+  opacity: 0.55;
+}
+
+.backup-download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: calc(9px * var(--mode-radius-scale, 1));
+  background: rgb(var(--mode-accent-rgb));
+  color: var(--bg);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.backup-download-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .backup-card {
+    flex-direction: column;
+  }
+}
+
 /* Settings page: design-system picker cards */
 .design-system-grid {
   display: grid;

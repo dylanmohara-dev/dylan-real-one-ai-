@@ -1,6 +1,81 @@
+import { useEffect, useState } from 'react'
+import { Download, ShieldCheck } from 'lucide-react'
 import { DESIGN_SYSTEMS, COLOR_PALETTES } from '../data/lifeModes.js'
 
+const API = 'http://localhost:3001/api'
+
+const COLLECTION_LABELS = {
+  tasks: 'Tasks',
+  goals: 'Goals',
+  notes: 'Notes',
+  memories: 'Memories',
+  classes: 'Classes',
+  assignments: 'Assignments',
+  tests: 'Tests',
+  health: 'Health entries',
+  finance_accounts: 'Finance accounts',
+  finance_history: 'Finance history',
+  skills: 'Skills',
+  skill_sessions: 'Skill practice sessions',
+  skill_videos: 'Skill videos (metadata only)',
+  journal: 'Journal entries (stay encrypted)',
+  journal_meta: 'Journal setup',
+}
+
 export default function SettingsPage({ settings, setSettings, setActivePage, openChat }) {
+  const [backupSummary, setBackupSummary] = useState(null)
+  const [backupError, setBackupError] = useState('')
+  const [exporting, setExporting] = useState(false)
+  const [lastExportedAt, setLastExportedAt] = useState(
+    () => localStorage.getItem('dylan-ai-last-backup') || ''
+  )
+
+  useEffect(() => {
+    fetch(`${API}/backup/summary`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) throw new Error(data.error)
+        setBackupSummary(data)
+      })
+      .catch((err) => setBackupError(err.message))
+  }, [])
+
+  async function handleExport() {
+    setExporting(true)
+    setBackupError('')
+    try {
+      const response = await fetch(`${API}/backup/export`)
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body.error || 'Backup failed.')
+      }
+      const blob = await response.blob()
+      const disposition = response.headers.get('Content-Disposition') || ''
+      const match = disposition.match(/filename="([^"]+)"/)
+      const filename = match ? match[1] : 'dylan-ai-backup.json'
+
+      // Browser download via a throwaway object URL — no server-side file
+      // is left behind, and this works the same whether the app is opened
+      // over localhost or (once phone access exists) the LAN.
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+
+      const now = new Date().toISOString()
+      localStorage.setItem('dylan-ai-last-backup', now)
+      setLastExportedAt(now)
+    } catch (err) {
+      setBackupError(err.message)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div className="page">
       <div className="page-header">
@@ -66,6 +141,65 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
             Dylan AI currently stores your tasks, goals, notes, and memories
             locally in your app.
           </p>
+        </div>
+      </div>
+
+      <div className="classic-tools backup-section">
+        <span className="eyebrow">BACKUP & EXPORT</span>
+        <p className="classic-tools-note">
+          Everything above lives in local files on this Mac with nothing
+          protecting it if one corrupts or the laptop dies. One click bundles
+          it into a single JSON file you download and keep somewhere safe —
+          your Downloads folder, a drive, wherever.
+        </p>
+
+        <div className="backup-card">
+          <div className="backup-card-summary">
+            <ShieldCheck size={18} strokeWidth={2} />
+            <div>
+              {backupSummary ? (
+                <>
+                  <strong>
+                    {Object.values(backupSummary.counts).reduce((sum, n) => sum + n, 0)} items
+                    {' '}across {Object.keys(backupSummary.counts).length} categories
+                  </strong>
+                  <ul className="backup-counts">
+                    {Object.entries(backupSummary.counts)
+                      .filter(([, count]) => count > 0)
+                      .map(([key, count]) => (
+                        <li key={key}>
+                          {COLLECTION_LABELS[key] || key}: {count}
+                        </li>
+                      ))}
+                  </ul>
+                </>
+              ) : backupError ? (
+                <p className="journal-error">{backupError}</p>
+              ) : (
+                <p>Loading what's in your data...</p>
+              )}
+
+              <p className="backup-excluded-note">
+                Not included, on purpose: your Apple Calendar password and any
+                connected-account tokens (all reconnectable from Settings,
+                none of them worth putting in a downloadable file) and the
+                actual skill practice video files (only their titles/notes are
+                included — copy data/skill_videos in Finder for the clips
+                themselves).
+              </p>
+
+              {lastExportedAt && (
+                <p className="backup-last-export">
+                  Last downloaded: {new Date(lastExportedAt).toLocaleString()}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <button className="backup-download-button" onClick={handleExport} disabled={exporting}>
+            <Download size={16} strokeWidth={2.25} />
+            {exporting ? 'Preparing...' : 'Download backup'}
+          </button>
         </div>
       </div>
 
