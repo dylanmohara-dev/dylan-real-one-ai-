@@ -111,8 +111,8 @@ router.post('/calendars/map', (req, res) => {
 // nothing here is a local draft that can be silently discarded on failure.
 router.post('/events', async (req, res) => {
   try {
-    const { title, start, end, allDay, location, mode } = req.body
-    const result = await createEvent({ title, start, end, allDay, location, mode })
+    const { title, start, end, allDay, location, mode, recurrence } = req.body
+    const result = await createEvent({ title, start, end, allDay, location, mode, recurrence })
     res.json({ success: true, ...result })
   } catch (error) {
     logCalendarError('CREATE_EVENT_FAILED', error)

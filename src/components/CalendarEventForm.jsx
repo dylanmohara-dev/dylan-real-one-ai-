@@ -42,6 +42,16 @@ export default function CalendarEventForm({ initial, defaultDateKey, targetCalen
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // Repeat pattern — only offered on NEW events. Not supported on edit:
+  // an existing event's recurrence can't be changed from here (same
+  // standing limitation as everything else about recurring events in
+  // this app — see isRecurring elsewhere in the codebase).
+  const [repeatFreq, setRepeatFreq] = useState('')
+  const [repeatInterval, setRepeatInterval] = useState(1)
+  const [repeatEndType, setRepeatEndType] = useState('never')
+  const [repeatCount, setRepeatCount] = useState(10)
+  const [repeatUntil, setRepeatUntil] = useState('')
+
   // Fixed once an event exists — moving it to a different life area means
   // it lives on a different iCloud calendar, and this form doesn't move
   // events between calendars (see resolveCalendarForMode in
@@ -71,6 +81,19 @@ export default function CalendarEventForm({ initial, defaultDateKey, targetCalen
     const start = localInputToISO(startInput, allDay)
     const end = localInputToISO(endInput, allDay) || start
 
+    let recurrence = null
+    if (!isEdit && repeatFreq) {
+      recurrence = {
+        freq: repeatFreq,
+        interval: Math.max(1, Number(repeatInterval) || 1),
+      }
+      if (repeatEndType === 'count') {
+        recurrence.count = Math.max(1, Number(repeatCount) || 1)
+      } else if (repeatEndType === 'until' && repeatUntil) {
+        recurrence.until = localInputToISO(repeatUntil, true)
+      }
+    }
+
     setSaving(true)
     setError('')
     try {
@@ -84,6 +107,7 @@ export default function CalendarEventForm({ initial, defaultDateKey, targetCalen
         allDay,
         location: location.trim(),
         mode: mode || null,
+        recurrence,
       })
     } catch (err) {
       setError(err.message)
@@ -131,6 +155,87 @@ export default function CalendarEventForm({ initial, defaultDateKey, targetCalen
         value={location}
         onChange={(e) => setLocation(e.target.value)}
       />
+
+      {!isEdit && (
+        <div className="calendar-form-repeat">
+          <label>
+            Repeat
+            <select value={repeatFreq} onChange={(e) => setRepeatFreq(e.target.value)}>
+              <option value="">Does not repeat</option>
+              <option value="DAILY">Daily</option>
+              <option value="WEEKLY">Weekly</option>
+              <option value="MONTHLY">Monthly</option>
+              <option value="YEARLY">Yearly</option>
+            </select>
+          </label>
+
+          {repeatFreq && (
+            <>
+              <label className="calendar-form-repeat-interval">
+                Every
+                <input
+                  type="number"
+                  min="1"
+                  value={repeatInterval}
+                  onChange={(e) => setRepeatInterval(e.target.value)}
+                />
+                {repeatFreq === 'DAILY' && 'day(s)'}
+                {repeatFreq === 'WEEKLY' && 'week(s)'}
+                {repeatFreq === 'MONTHLY' && 'month(s)'}
+                {repeatFreq === 'YEARLY' && 'year(s)'}
+              </label>
+
+              <div className="calendar-form-repeat-end">
+                <label>
+                  <input
+                    type="radio"
+                    name="repeatEnd"
+                    checked={repeatEndType === 'never'}
+                    onChange={() => setRepeatEndType('never')}
+                  />
+                  Never ends
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="repeatEnd"
+                    checked={repeatEndType === 'count'}
+                    onChange={() => setRepeatEndType('count')}
+                  />
+                  After
+                  <input
+                    type="number"
+                    min="1"
+                    value={repeatCount}
+                    onChange={(e) => setRepeatCount(e.target.value)}
+                    disabled={repeatEndType !== 'count'}
+                  />
+                  times
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="repeatEnd"
+                    checked={repeatEndType === 'until'}
+                    onChange={() => setRepeatEndType('until')}
+                  />
+                  Until
+                  <input
+                    type="date"
+                    value={repeatUntil}
+                    onChange={(e) => setRepeatUntil(e.target.value)}
+                    disabled={repeatEndType !== 'until'}
+                  />
+                </label>
+              </div>
+
+              <span className="calendar-form-mode-hint">
+                Once created, a repeating event can only be edited or deleted from Apple Calendar directly — not from here.
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       <label className="calendar-form-mode">
         Life area
