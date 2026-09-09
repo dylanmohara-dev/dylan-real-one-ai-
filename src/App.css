@@ -1544,6 +1544,78 @@ footer {
   text-align: center;
 }
 
+/* School: deadline dashboard ("Coming up") */
+.school-deadlines {
+  margin-bottom: 18px;
+}
+
+.deadline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.deadline-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(10px * var(--mode-radius-scale, 1));
+  background: var(--surface-card);
+}
+
+.deadline-kind {
+  flex-shrink: 0;
+  width: 76px;
+  font-size: 0.65rem;
+  letter-spacing: var(--mode-tracking, 0.08em);
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.deadline-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.deadline-class {
+  font-size: 0.72rem;
+  opacity: 0.6;
+}
+
+.deadline-when {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.deadline-normal .deadline-when {
+  color: var(--text-secondary);
+}
+
+.deadline-soon {
+  border-color: rgba(var(--mode-accent-rgb), 0.5);
+  background: rgba(var(--mode-accent-rgb), 0.08);
+}
+
+.deadline-soon .deadline-when {
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.deadline-overdue {
+  border-color: rgba(239, 68, 68, 0.55);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.deadline-overdue .deadline-when {
+  color: rgb(239, 68, 68);
+}
+
 .check-button {
   width: 24px;
   height: 24px;

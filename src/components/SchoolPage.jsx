@@ -47,6 +47,66 @@ function overallGPA(classes, assignments, tests) {
   return points.reduce((a, b) => a + b, 0) / points.length
 }
 
+// Deadline dashboard: every incomplete assignment/test with a date,
+// across every class, sorted soonest-first. Overdue items sort first
+// (negative daysUntil), not hidden -- an overdue item is exactly the
+// thing you most need to see, not something to bury.
+//
+// Timezone-safe by construction: dueDate/date are bare "YYYY-MM-DD"
+// strings. "Today" is read from local date parts (so it matches the
+// calendar day the user is actually living in), then both sides are
+// compared as UTC-anchored day numbers -- never round-tripped through
+// `new Date(bareDateString)`, which is the exact bug that shifted goal/
+// assignment/test dates back a day earlier this session.
+function todayKey() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function daysBetween(fromKey, toKey) {
+  const [fy, fm, fd] = fromKey.split('-').map(Number)
+  const [ty, tm, td] = toKey.split('-').map(Number)
+  const from = Date.UTC(fy, fm - 1, fd)
+  const to = Date.UTC(ty, tm - 1, td)
+  return Math.round((to - from) / 86400000)
+}
+
+function deadlineLabel(daysUntil) {
+  if (daysUntil < 0) return `${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} overdue`
+  if (daysUntil === 0) return 'Due today'
+  if (daysUntil === 1) return 'Due tomorrow'
+  return `Due in ${daysUntil} days`
+}
+
+function upcomingItems(classes, assignments, tests) {
+  const today = todayKey()
+  const classNameById = Object.fromEntries(classes.map((c) => [c.id, c.name]))
+
+  const fromAssignments = assignments
+    .filter((a) => !a.completed && a.dueDate)
+    .map((a) => ({
+      id: `assignment-${a.id}`,
+      kind: 'Assignment',
+      title: a.title,
+      className: classNameById[a.classId] || 'Unknown class',
+      dueDate: a.dueDate,
+    }))
+
+  const fromTests = tests
+    .filter((t) => !t.completed && t.date)
+    .map((t) => ({
+      id: `test-${t.id}`,
+      kind: 'Test',
+      title: t.title,
+      className: classNameById[t.classId] || 'Unknown class',
+      dueDate: t.date,
+    }))
+
+  return [...fromAssignments, ...fromTests]
+    .map((item) => ({ ...item, daysUntil: daysBetween(today, item.dueDate) }))
+    .sort((a, b) => a.daysUntil - b.daysUntil)
+}
+
 export default function SchoolPage({
   classes,
   assignments,
@@ -81,6 +141,7 @@ export default function SchoolPage({
   const classAssignments = (classId) => assignments.filter((a) => a.classId === classId)
   const classTests = (classId) => tests.filter((t) => t.classId === classId)
   const currentGPA = overallGPA(classes, assignments, tests)
+  const deadlines = upcomingItems(classes, assignments, tests)
 
   if (!selectedClassId) {
     return (
@@ -107,6 +168,32 @@ export default function SchoolPage({
             </span>
           </div>
         )}
+
+        <div className="school-deadlines">
+          <div className="panel-heading">
+            <h2>Coming up</h2>
+          </div>
+          {deadlines.length ? (
+            <div className="deadline-list">
+              {deadlines.map((item) => {
+                const tone =
+                  item.daysUntil < 0 ? 'overdue' : item.daysUntil <= 2 ? 'soon' : 'normal'
+                return (
+                  <div className={`deadline-item deadline-${tone}`} key={item.id}>
+                    <span className="deadline-kind">{item.kind}</span>
+                    <div className="deadline-body">
+                      <strong>{item.title}</strong>
+                      <span className="deadline-class">{item.className}</span>
+                    </div>
+                    <span className="deadline-when">{deadlineLabel(item.daysUntil)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="mini-empty">Nothing due -- add a due date to an assignment or test to see it here.</div>
+          )}
+        </div>
 
         <div className="form-card">
           <input
