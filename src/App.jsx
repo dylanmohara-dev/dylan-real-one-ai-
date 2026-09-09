@@ -203,6 +203,7 @@ function App() {
           setSettings={data.setSettings}
           setActivePage={setActivePage}
           openChat={openChat}
+          calendar={calendar}
         />
       )
     }

@@ -103,6 +103,53 @@ export function useCalendar() {
     setEvents([])
   }
 
+  // --- Target calendar (Settings) + writes. Every one of these round-trips
+  // to real iCloud data — none of it is optimistic/local-first, on purpose:
+  // showing Dylan a change that then silently fails to actually save would
+  // be worse than a visible loading state.
+  const [calendars, setCalendars] = useState([])
+  const [targetCalendarUrl, setTargetCalendarUrlState] = useState(null)
+  const [calendarsLoading, setCalendarsLoading] = useState(false)
+
+  const loadCalendars = useCallback(async () => {
+    setCalendarsLoading(true)
+    try {
+      const data = await request('/calendars')
+      setCalendars(data.calendars || [])
+      setTargetCalendarUrlState(data.targetCalendarUrl || null)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCalendarsLoading(false)
+    }
+  }, [])
+
+  async function chooseTargetCalendar(url) {
+    await request('/calendars/target', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    })
+    setTargetCalendarUrlState(url)
+  }
+
+  async function createEvent(fields) {
+    await request('/events', { method: 'POST', body: JSON.stringify(fields) })
+  }
+
+  async function updateEvent(fields) {
+    await request('/events/update', { method: 'POST', body: JSON.stringify(fields) })
+  }
+
+  // The literal 'DELETE' confirm string is enforced again on the server —
+  // this isn't the only guard, it's the one that lets the UI ask "are you
+  // sure" without also having to re-derive server trust from a boolean.
+  async function deleteEvent({ url, etag }) {
+    await request('/events/delete', {
+      method: 'POST',
+      body: JSON.stringify({ url, etag, confirm: 'DELETE' }),
+    })
+  }
+
   return {
     checked,
     connected,
@@ -117,5 +164,13 @@ export function useCalendar() {
     loadEvents,
     connect,
     disconnect,
+    calendars,
+    calendarsLoading,
+    targetCalendarUrl,
+    loadCalendars,
+    chooseTargetCalendar,
+    createEvent,
+    updateEvent,
+    deleteEvent,
   }
 }

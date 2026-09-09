@@ -1,6 +1,18 @@
 import { Router } from 'express'
 import fs from 'fs'
-import { connect, listUpcomingEvents, listEventsInRange, isConnected, clearCredentials } from '../lib/appleCalendar.js'
+import {
+  connect,
+  listUpcomingEvents,
+  listEventsInRange,
+  listCalendars,
+  getTargetCalendarUrl,
+  setTargetCalendarUrl,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  isConnected,
+  clearCredentials,
+} from '../lib/appleCalendar.js'
 import { loadData } from '../lib/dataStore.js'
 
 const router = Router()
@@ -40,6 +52,72 @@ router.get('/events', async (req, res) => {
 router.post('/disconnect', (req, res) => {
   clearCredentials()
   res.json({ success: true })
+})
+
+// --- Target calendar (Settings picks which iCloud calendar writes go to).
+router.get('/calendars', async (req, res) => {
+  try {
+    const calendars = await listCalendars()
+    res.json({ calendars, targetCalendarUrl: getTargetCalendarUrl() })
+  } catch (error) {
+    logCalendarError('LIST_CALENDARS_FAILED', error)
+    res.status(400).json({ error: error.message })
+  }
+})
+
+router.post('/calendars/target', (req, res) => {
+  try {
+    const { url } = req.body
+    if (!url) return res.status(400).json({ error: 'url is required' })
+    setTargetCalendarUrl(url)
+    res.json({ success: true, targetCalendarUrl: url })
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+// --- Writes. Every one of these touches Dylan's real iCloud calendar —
+// nothing here is a local draft that can be silently discarded on failure.
+router.post('/events', async (req, res) => {
+  try {
+    const { title, start, end, allDay, location } = req.body
+    const result = await createEvent({ title, start, end, allDay, location })
+    res.json({ success: true, ...result })
+  } catch (error) {
+    logCalendarError('CREATE_EVENT_FAILED', error)
+    res.status(400).json({ error: error.message })
+  }
+})
+
+router.post('/events/update', async (req, res) => {
+  try {
+    const { url, etag, uid, title, start, end, allDay, location } = req.body
+    await updateEvent({ url, etag, uid, title, start, end, allDay, location })
+    res.json({ success: true })
+  } catch (error) {
+    logCalendarError('UPDATE_EVENT_FAILED', error)
+    res.status(400).json({ error: error.message })
+  }
+})
+
+// Deletion of a real iCloud event is irreversible from this app (no trash,
+// no undo — that's Apple's model, not this app's choice). The client is
+// expected to have already gotten explicit confirmation from Dylan; this
+// route additionally requires the literal string 'DELETE' in the body as a
+// second, cheap backstop against a stray click or a retried request firing
+// twice, matching the seriousness of what it actually does.
+router.post('/events/delete', async (req, res) => {
+  try {
+    const { url, etag, confirm } = req.body
+    if (confirm !== 'DELETE') {
+      return res.status(400).json({ error: 'Delete not confirmed.' })
+    }
+    await deleteEvent({ url, etag })
+    res.json({ success: true })
+  } catch (error) {
+    logCalendarError('DELETE_EVENT_FAILED', error)
+    res.status(400).json({ error: error.message })
+  }
 })
 
 
@@ -91,6 +169,21 @@ router.get('/month', async (req, res) => {
             ? null
             : new Date(event.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
           meta: event.calendar,
+          // Carried through so the client can offer edit/delete on THIS
+          // specific iCloud event without a second round-trip — but only
+          // for non-recurring ones (see isRecurring comment in
+          // mapObjectToEvents in lib/appleCalendar.js).
+          editable: !event.isRecurring,
+          isRecurring: event.isRecurring,
+          raw: {
+            uid: event.uid,
+            url: event.url,
+            etag: event.etag,
+            start: event.start,
+            end: event.end,
+            allDay: event.allDay,
+            location: event.location,
+          },
         })
       }
     } catch (error) {

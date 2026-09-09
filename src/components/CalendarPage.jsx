@@ -42,7 +42,8 @@ function buildMonthCells(year, monthIndex) {
   return cells
 }
 
-import { CalendarDays, ChevronLeft, ChevronRight, RefreshCw, Unlink } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, RefreshCw, Unlink } from 'lucide-react'
+import CalendarEventForm from './CalendarEventForm.jsx'
 
 function formatWhen(event) {
   const start = new Date(event.start)
@@ -62,6 +63,7 @@ export default function CalendarPage({ calendar }) {
   const {
     checked, connected, events, error, loading, checkStatus, loadEvents, connect, disconnect,
     monthItems, monthLoading, calendarError, loadMonth,
+    targetCalendarUrl, createEvent, updateEvent, deleteEvent,
   } = calendar
   const [appleId, setAppleId] = useState('')
   const [appPassword, setAppPassword] = useState('')
@@ -98,6 +100,36 @@ export default function CalendarPage({ calendar }) {
 
   const todayKey = dayKey(today.getFullYear(), today.getMonth(), today.getDate())
   const selectedItems = itemsByDay[selectedKey] || []
+
+  // Form state: null (closed), 'new', or the raw event object being edited.
+  const [formMode, setFormMode] = useState(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState(null)
+  const [actionError, setActionError] = useState('')
+
+  async function refreshMonth() {
+    await loadMonth(viewYear, viewMonth + 1)
+  }
+
+  async function handleSaveEvent(fields) {
+    if (fields.url) {
+      await updateEvent(fields)
+    } else {
+      await createEvent(fields)
+    }
+    setFormMode(null)
+    await refreshMonth()
+  }
+
+  async function handleConfirmDelete(item) {
+    setActionError('')
+    try {
+      await deleteEvent({ url: item.raw.url, etag: item.raw.etag })
+      setPendingDeleteId(null)
+      await refreshMonth()
+    } catch (err) {
+      setActionError(err.message)
+    }
+  }
 
   function shiftMonth(delta) {
     const next = new Date(viewYear, viewMonth + delta, 1)
@@ -253,11 +285,41 @@ export default function CalendarPage({ calendar }) {
       </div>
 
       <div className="calendar-agenda">
-        <h3>
-          {new Date(`${selectedKey}T00:00:00`).toLocaleDateString(undefined, {
-            weekday: 'long', month: 'long', day: 'numeric',
-          })}
-        </h3>
+        <div className="calendar-agenda-header">
+          <h3>
+            {new Date(`${selectedKey}T00:00:00`).toLocaleDateString(undefined, {
+              weekday: 'long', month: 'long', day: 'numeric',
+            })}
+          </h3>
+
+          {formMode === null && (
+            <button className="calendar-add-button" onClick={() => setFormMode('new')}>
+              <Plus size={14} strokeWidth={2.5} />
+              Add event
+            </button>
+          )}
+        </div>
+
+        {actionError && <p className="journal-error">{actionError}</p>}
+
+        {formMode === 'new' && (
+          <CalendarEventForm
+            defaultDateKey={selectedKey}
+            targetCalendarUrl={targetCalendarUrl}
+            onSave={handleSaveEvent}
+            onCancel={() => setFormMode(null)}
+          />
+        )}
+
+        {formMode && formMode !== 'new' && (
+          <CalendarEventForm
+            initial={formMode}
+            defaultDateKey={selectedKey}
+            targetCalendarUrl={targetCalendarUrl}
+            onSave={handleSaveEvent}
+            onCancel={() => setFormMode(null)}
+          />
+        )}
 
         {selectedItems.length ? (
           <div className="items-list">
@@ -267,8 +329,35 @@ export default function CalendarPage({ calendar }) {
                   <p className={item.done ? 'is-done' : ''}>{item.title}</p>
                   <span className="item-meta">
                     {[item.time, item.kind, item.meta].filter(Boolean).join(' · ')}
+                    {item.isRecurring ? ' · repeats (edit in Apple Calendar)' : ''}
                   </span>
                 </div>
+
+                {item.kind === 'event' && item.editable && (
+                  <div className="calendar-item-actions">
+                    {pendingDeleteId === item.id ? (
+                      <>
+                        <span className="calendar-confirm-label">Delete for good?</span>
+                        <button className="calendar-confirm-yes" onClick={() => handleConfirmDelete(item)}>
+                          Yes, delete
+                        </button>
+                        <button onClick={() => setPendingDeleteId(null)}>Cancel</button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          title="Edit"
+                          onClick={() => setFormMode({ ...item.raw, title: item.title })}
+                        >
+                          <Pencil size={13} strokeWidth={2.25} />
+                        </button>
+                        <button title="Delete" onClick={() => setPendingDeleteId(item.id)}>
+                          <Trash2 size={13} strokeWidth={2.25} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

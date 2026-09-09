@@ -22,7 +22,35 @@ const COLLECTION_LABELS = {
   journal_meta: 'Journal setup',
 }
 
-export default function SettingsPage({ settings, setSettings, setActivePage, openChat }) {
+export default function SettingsPage({ settings, setSettings, setActivePage, openChat, calendar }) {
+  const {
+    connected: calendarConnected,
+    calendars,
+    calendarsLoading,
+    targetCalendarUrl,
+    loadCalendars,
+    chooseTargetCalendar,
+  } = calendar
+  const [targetError, setTargetError] = useState('')
+  const [choosingTarget, setChoosingTarget] = useState(false)
+
+  useEffect(() => {
+    if (calendarConnected) loadCalendars()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calendarConnected])
+
+  async function handleChooseTarget(url) {
+    setChoosingTarget(true)
+    setTargetError('')
+    try {
+      await chooseTargetCalendar(url)
+    } catch (err) {
+      setTargetError(err.message)
+    } finally {
+      setChoosingTarget(false)
+    }
+  }
+
   const [backupSummary, setBackupSummary] = useState(null)
   const [backupError, setBackupError] = useState('')
   const [exporting, setExporting] = useState(false)
@@ -142,6 +170,48 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
             locally in your app.
           </p>
         </div>
+      </div>
+
+      <div className="classic-tools">
+        <span className="eyebrow">CALENDAR — WRITE TARGET</span>
+        <p className="classic-tools-note">
+          {calendarConnected
+            ? "Pick which iCloud calendar Dylan AI writes new/edited/deleted events into. Only this one calendar is ever touched — everything else in your account is read-only to this app."
+            : 'Connect Apple Calendar first (on the Calendar page) to choose a target calendar for writes.'}
+        </p>
+
+        {calendarConnected && (
+          <>
+            {calendarsLoading && <p className="mode-page-note">Loading your calendars...</p>}
+            {targetError && <p className="journal-error">{targetError}</p>}
+
+            {!calendarsLoading && calendars.length > 0 && (
+              <div className="target-calendar-list">
+                {calendars.map((cal) => (
+                  <button
+                    key={cal.url}
+                    className={`target-calendar-option ${targetCalendarUrl === cal.url ? 'active' : ''}`}
+                    onClick={() => handleChooseTarget(cal.url)}
+                    disabled={choosingTarget}
+                  >
+                    <span>{cal.displayName}</span>
+                    {targetCalendarUrl === cal.url && <span className="target-calendar-badge">Writing here</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {!calendarsLoading && calendars.length === 0 && !targetError && (
+              <p className="mode-page-note">No calendars found on your iCloud account.</p>
+            )}
+
+            {!targetCalendarUrl && !calendarsLoading && calendars.length > 0 && (
+              <p className="mode-page-note calendar-notice">
+                No target chosen yet — adding an event from the Calendar page will be blocked until you pick one.
+              </p>
+            )}
+          </>
+        )}
       </div>
 
       <div className="classic-tools backup-section">
