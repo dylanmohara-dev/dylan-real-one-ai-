@@ -2,20 +2,20 @@ import { Router } from 'express'
 import { loadData } from '../lib/dataStore.js'
 import { detectCommand, executeAction, looksLikeContentRequest } from '../lib/assistant.js'
 import { getLiveContextBlock } from '../lib/liveContext.js'
+import {
+  OLLAMA_HOST,
+  OLLAMA_URL,
+  MODEL,
+  VISION_MODEL,
+  OLLAMA_TIMEOUT_MS,
+  OLLAMA_PING_TIMEOUT_MS,
+  KEEP_ALIVE,
+} from '../lib/aiConfig.js'
 
 const router = Router()
 
-const OLLAMA_URL = 'http://127.0.0.1:11434/v1/chat/completions'
-const MODEL = 'llama3.2:3b'
 
-// Vision-capable model for image-attached messages. llama3.2:3b is
-// text-only, so any message with an attached image is routed to this model
-// instead. Not confirmed installed as of this writing — Dylan needs to run
-// `ollama pull llava` (or whichever vision model he prefers: moondream,
-// bakllava, llama3.2-vision) and update this constant to match the exact
-// name `ollama list` shows, or image messages will fail with a clear error
-// rather than silently doing nothing.
-const VISION_MODEL = 'llava'
+
 
 // Every outbound call in this file used to be a bare fetch() with no timeout.
 // That is why chat could sit on the "thinking" animation forever instead of
@@ -23,8 +23,6 @@ const VISION_MODEL = 'llava'
 // client never got a response, and its spinner had nothing to turn off. A
 // hang is strictly worse than an error — an error at least tells you what to
 // fix. Everything below is now bounded.
-const OLLAMA_TIMEOUT_MS = 120000 // generation: slow is fine, forever is not
-const OLLAMA_PING_TIMEOUT_MS = 4000 // just listing installed models
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = OLLAMA_TIMEOUT_MS, label = 'The local AI') {
   const controller = new AbortController()
@@ -135,6 +133,10 @@ function extractFirstJsonObject(text) {
 }
 
 router.post('/chat', async (req, res) => {
+  // Dylan asked to see how long the AI actually thought. Timed here rather
+  // than on the client so it measures real model work, not network jitter
+  // or React render time.
+  const startedAt = Date.now()
   try {
     const { messages, mode, image } = req.body
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -154,14 +156,14 @@ router.post('/chat', async (req, res) => {
       // the OpenAI-compat endpoint) is what lists installed models.
       let installedModels = []
       try {
-        const tagsResponse = await fetchWithTimeout('http://127.0.0.1:11434/api/tags', {}, OLLAMA_PING_TIMEOUT_MS, 'Ollama')
+        const tagsResponse = await fetchWithTimeout(`${OLLAMA_HOST}/api/tags`, {}, OLLAMA_PING_TIMEOUT_MS, 'Ollama')
         if (tagsResponse.ok) {
           const tagsData = await tagsResponse.json()
           installedModels = (tagsData.models || []).map((m) => m.name)
         }
       } catch {
         throw new Error(
-          "Could not reach Ollama at all (http://127.0.0.1:11434). Is it running? Try `ollama serve` " +
+          `Could not reach Ollama at all (${OLLAMA_HOST}). Is it running? Try \`ollama serve\` ` +
             'or open the Ollama app, then send the image again.'
         )
       }
@@ -188,6 +190,7 @@ router.post('/chat', async (req, res) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: VISION_MODEL,
+          keep_alive: KEEP_ALIVE,
           messages: [
             { role: 'system', content: visionSystemPrompt },
             {
@@ -214,7 +217,7 @@ router.post('/chat', async (req, res) => {
       const visionData = await visionResponse.json()
       const visionReply = visionData.choices?.[0]?.message?.content?.trim() || 'No response from Dylan AI.'
 
-      return res.json({ reply: visionReply, actionPerformed: false, skipMemoryCheck: true })
+      return res.json({ reply: visionReply, actionPerformed: false, skipMemoryCheck: true, thinkingMs: Date.now() - startedAt })
     }
 
     const directAction = detectCommand(latestMessage)
@@ -225,6 +228,7 @@ router.post('/chat', async (req, res) => {
         reply: actionResult.message || 'Command could not be completed.',
         actionPerformed: actionResult.performed,
         skipMemoryCheck: true,
+        thinkingMs: Date.now() - startedAt,
       })
     }
 
@@ -250,6 +254,8 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: MODEL,
+        keep_alive: KEEP_ALIVE,
+          keep_alive: KEEP_ALIVE,
           messages: [{ role: 'system', content: contentSystemPrompt }, ...messages],
           temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.4) : 0.4,
           max_tokens: 900,
@@ -267,6 +273,7 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
         reply: contentRaw || 'No response from Dylan AI.',
         actionPerformed: false,
         skipMemoryCheck: false,
+        thinkingMs: Date.now() - startedAt,
       })
     }
 
@@ -374,6 +381,7 @@ ${context}
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: MODEL,
+        keep_alive: KEEP_ALIVE,
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
         temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.2) : 0.2,
         max_tokens: 900,
@@ -410,6 +418,7 @@ ${context}
       reply: finalReply || 'No response from Dylan AI.',
       actionPerformed: actionResult.performed,
       skipMemoryCheck: actionResult.performed,
+      thinkingMs: Date.now() - startedAt,
     })
   } catch (error) {
     // This was the other half of the "real errors reach Dylan" fix from
@@ -420,7 +429,7 @@ ${context}
     // error message built into this route was silently thrown away here
     // until now.
     console.error('Chat failed:', error)
-    res.status(500).json({ error: error.message || 'Could not connect to the local AI.' })
+    res.status(500).json({ error: error.message || 'Could not connect to the local AI.', thinkingMs: Date.now() - startedAt })
   }
 })
 
@@ -440,6 +449,7 @@ router.post('/memory-check', async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: MODEL,
+        keep_alive: KEEP_ALIVE,
         messages: [
           {
             role: 'system',

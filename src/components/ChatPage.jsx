@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Image as ImageIcon, X, Sparkles } from 'lucide-react'
 import { LIFE_MODES } from '../data/lifeModes.js'
 
@@ -17,6 +17,34 @@ export default function ChatPage({
   const [attachedImage, setAttachedImage] = useState(null)
   const [attachedImageName, setAttachedImageName] = useState('')
   const fileInputRef = useRef(null)
+
+  /*
+    Live "thinking for Xs" counter. A spinner with no number gives you no way
+    to tell "working on it" apart from "hung" — which is exactly the state
+    the chat was stuck in before the timeout fixes. A ticking number makes
+    slowness legible instead of alarming.
+  */
+  const [elapsedMs, setElapsedMs] = useState(0)
+
+  useEffect(() => {
+    if (!loading) {
+      setElapsedMs(0)
+      return undefined
+    }
+    const startedAt = Date.now()
+    setElapsedMs(0)
+    const timer = setInterval(() => setElapsedMs(Date.now() - startedAt), 100)
+    return () => clearInterval(timer)
+  }, [loading])
+
+  const formatDuration = (ms) => {
+    if (!Number.isFinite(ms) || ms < 0) return null
+    if (ms < 1000) return `${ms}ms`
+    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+    const minutes = Math.floor(ms / 60000)
+    const seconds = Math.round((ms % 60000) / 1000)
+    return `${minutes}m ${seconds}s`
+  }
 
   const mode = modeKey ? LIFE_MODES.find((item) => item.key === modeKey) : null
   const AssistantIcon = mode?.icon || Sparkles
@@ -115,7 +143,14 @@ export default function ChatPage({
               {chat.role === 'user' ? 'D' : <AssistantIcon size={14} strokeWidth={2.25} />}
             </div>
 
-            <div className="message-bubble">{chat.content}</div>
+            <div className="message-content-wrap">
+              <div className="message-bubble">{chat.content}</div>
+              {chat.role === 'assistant' && formatDuration(chat.thinkingMs) && (
+                <span className="message-thinking-time">
+                  Thought for {formatDuration(chat.thinkingMs)}
+                </span>
+              )}
+            </div>
           </div>
         ))}
 
@@ -125,10 +160,15 @@ export default function ChatPage({
               <AssistantIcon size={14} strokeWidth={2.25} />
             </div>
 
-            <div className="message-bubble typing-dots">
-              <span className="dotPulse">•</span>
-              <span className="dotPulse">•</span>
-              <span className="dotPulse">•</span>
+            <div className="message-content-wrap">
+              <div className="message-bubble typing-dots">
+                <span className="dotPulse">•</span>
+                <span className="dotPulse">•</span>
+                <span className="dotPulse">•</span>
+              </div>
+              <span className="message-thinking-time is-live">
+                Thinking for {formatDuration(elapsedMs) || '0.0s'}
+              </span>
             </div>
           </div>
         )}

@@ -19,6 +19,7 @@ import skillsRouter from './routes/skills.js'
 import gmailRouter from './routes/gmail.js'
 import driveRouter from './routes/drive.js'
 import slackRouter from './routes/slack.js'
+import { startModelWarmup } from './lib/ollamaWarm.js'
 
 
 const app = express()
@@ -56,6 +57,9 @@ app.use('/api/slack', slackRouter)
 
 app.listen(port, () => {
   console.log(`Dylan AI server running on http://localhost:${port}`)
+  // Load the model into RAM now, so the first real message doesn't pay for
+  // a multi-second cold start, and keep it there while the app is running.
+  startModelWarmup()
 })
 
 // Defensive keep-alive: on this machine the listening socket alone hasn't

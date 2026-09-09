@@ -4201,6 +4201,27 @@ button:disabled:active {
   animation: holoGlitch 0.35s steps(2, end);
 }
 
+/* Thinking-time readout: live while the model works, final once it lands. */
+.message-content-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.message-thinking-time {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.message-thinking-time.is-live {
+  color: rgba(var(--mode-accent-rgb), 0.85);
+  opacity: 0.9;
+}
+
 /* Settings page: design-system picker cards */
 .design-system-grid {
   display: grid;

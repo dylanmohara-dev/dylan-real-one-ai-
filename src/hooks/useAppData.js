@@ -331,6 +331,8 @@ export function useAppData() {
           {
             role: 'assistant',
             content: chatResult.reply || 'No response from Dylan AI.',
+            // Measured server-side, so it reflects real model work.
+            thinkingMs: chatResult.thinkingMs,
           },
         ],
       }))
