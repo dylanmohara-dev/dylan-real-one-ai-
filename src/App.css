@@ -4742,6 +4742,34 @@ button:disabled:active {
   color: rgb(239, 68, 68);
 }
 
+.calendar-source-filter {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.calendar-source-filter-label {
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.calendar-source-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.calendar-source-option input {
+  width: auto;
+}
+
 @media (max-width: 720px) {
   .calendar-day {
     min-height: 74px;

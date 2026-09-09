@@ -199,6 +199,7 @@ router.get('/month', async (req, res) => {
   if (isConnected()) {
     try {
       const events = await listEventsInRange({ start: rangeStart, end: rangeEnd })
+      const dylanAiCalendarUrl = getTargetCalendarUrl()
       for (const event of events) {
         const key = dayKey(event.start)
         if (!inRange(key)) continue
@@ -213,6 +214,15 @@ router.get('/month', async (req, res) => {
           id: `event-${event.id}`,
           kind: 'event',
           mode: resolvedMode,
+          // Which side of the Apple-vs-Dylan-AI calendar switcher this
+          // event belongs to. 'dylan-ai' is specifically the one calendar
+          // chosen as this app's own write target (Settings -> "Calendar
+          // -- write target") -- every OTHER real iCloud calendar (Family,
+          // personal, shared, etc.) is 'apple'. Only real iCloud events get
+          // a source; the school/goal/task/etc. items below are internal
+          // app data, not iCloud events, and aren't affected by this
+          // toggle at all.
+          source: dylanAiCalendarUrl && event.calendarUrl === dylanAiCalendarUrl ? 'dylan-ai' : 'apple',
           title: event.title,
           date: key,
           time: event.allDay

@@ -70,6 +70,17 @@ function formatWeekRangeLabel(days) {
   return `${startStr} - ${endStr}`
 }
 
+// The Apple-vs-Dylan-AI calendar switcher only applies to real iCloud
+// events (kind 'event', tagged with a source in the /month route) --
+// every other item on the grid (assignments, tests, goals, tasks, skills,
+// health, journal) is this app's own internal data, not an iCloud
+// calendar, and always shows regardless of either toggle.
+function isItemVisible(item, showApple, showDylanAi) {
+  if (item.kind !== 'event') return true
+  if (item.source === 'dylan-ai') return showDylanAi
+  return showApple
+}
+
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, RefreshCw, Unlink } from 'lucide-react'
 import CalendarEventForm from './CalendarEventForm.jsx'
 
@@ -91,6 +102,8 @@ export default function CalendarPage({ calendar }) {
   // 'month' (default 6x7 grid) or 'week' (7 columns, denser, shows exact
   // times at a glance).
   const [viewMode, setViewMode] = useState('month')
+  const [showApple, setShowApple] = useState(true)
+  const [showDylanAi, setShowDylanAi] = useState(true)
 
   useEffect(() => {
     checkStatus()
@@ -162,6 +175,7 @@ export default function CalendarPage({ calendar }) {
     const map = {}
     for (const key of weekMonthKeys) {
       for (const item of weekItemsCache[key] || []) {
+        if (!isItemVisible(item, showApple, showDylanAi)) continue
         if (!map[item.date]) map[item.date] = []
         map[item.date].push(item)
       }
@@ -170,16 +184,17 @@ export default function CalendarPage({ calendar }) {
       list.sort((a, b) => (a.time || '').localeCompare(b.time || ''))
     }
     return map
-  }, [weekItemsCache, weekMonthKeys])
+  }, [weekItemsCache, weekMonthKeys, showApple, showDylanAi])
 
   const itemsByDay = useMemo(() => {
     const map = {}
     for (const item of monthItems || []) {
+      if (!isItemVisible(item, showApple, showDylanAi)) continue
       if (!map[item.date]) map[item.date] = []
       map[item.date].push(item)
     }
     return map
-  }, [monthItems])
+  }, [monthItems, showApple, showDylanAi])
 
   const todayKey = dayKey(today.getFullYear(), today.getMonth(), today.getDate())
   const selectedItems = itemsByDay[selectedKey] || []
@@ -335,6 +350,24 @@ export default function CalendarPage({ calendar }) {
           events into -- every "Add to calendar" will be blocked until you
           pick one. Go to Settings &rarr; "Calendar -- write target" and
           choose a calendar.
+        </div>
+      )}
+
+      {connected && (
+        <div className="calendar-source-filter">
+          <span className="calendar-source-filter-label">SHOW:</span>
+          <label className="calendar-source-option">
+            <input type="checkbox" checked={showApple} onChange={(event) => setShowApple(event.target.checked)} />
+            My Apple Calendar
+          </label>
+          <label className="calendar-source-option">
+            <input
+              type="checkbox"
+              checked={showDylanAi}
+              onChange={(event) => setShowDylanAi(event.target.checked)}
+            />
+            Dylan AI
+          </label>
         </div>
       )}
 
