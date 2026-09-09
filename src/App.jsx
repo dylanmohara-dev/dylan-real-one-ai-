@@ -333,6 +333,16 @@ function App() {
 
   return (
     <div className={`app-root ${themeClass}`}>
+      {/* Rendered outside .app-shell on purpose: .app-shell carries a CSS
+          `filter` (for the design-system/color-palette composition), and a
+          `filter` on an ancestor makes it the containing block for any
+          position:fixed descendant — so a toast nested inside .app-shell
+          would anchor to .app-shell's box instead of the viewport and could
+          end up clipped by its `overflow: hidden`. Keeping it here, outside
+          the filtered element, is what makes position:fixed behave like
+          fixed-to-viewport actually mean that. */}
+      <GameToast toasts={toasts} dismissToast={dismissToast} />
+
       {settings.signatureTransitions && settings.enterAnimation !== 'none' && (
         <ModeTransition
           flashKey={modeFlashKey}
@@ -344,8 +354,6 @@ function App() {
       <TopSettingsBar settings={settings} setSettings={data.setSettings} />
 
       <div className={`app-shell ${themeClass}`}>
-        <GameToast toasts={toasts} dismissToast={dismissToast} />
-
         <Sidebar
           activePage={activePage}
           setActivePage={setActivePage}
