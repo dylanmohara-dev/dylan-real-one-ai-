@@ -4222,6 +4222,201 @@ button:disabled:active {
   opacity: 0.9;
 }
 
+/* ============ CALENDAR: real month grid ============ */
+/*
+  Mode colours here are deliberately HARD-CODED rather than read from
+  --mode-accent-rgb. Nine of the ten design systems override that variable
+  with their own single signature colour — so if the calendar used it, every
+  chip in the grid would come out the same hue in Neon Arcade, Command Deck,
+  Retro Terminal and the rest, and colour-coding by life area (the entire
+  point of colouring them) would silently stop working outside Minimal
+  Glass. These are the nine mode accents, pinned so they survive whichever
+  design system is active.
+*/
+.calendar-page {
+  --cal-school: 244, 196, 48;
+  --cal-sports: 34, 197, 94;
+  --cal-gym: 249, 115, 22;
+  --cal-health: 45, 212, 191;
+  --cal-finance: 59, 130, 246;
+  --cal-skills: 168, 85, 247;
+  --cal-reading: 146, 100, 63;
+  --cal-discipline: 239, 68, 68;
+  --cal-family: 244, 114, 143;
+  --cal-calendar: 129, 90, 224;
+}
+
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.calendar-month-label {
+  font-family: var(--mode-heading-font, inherit);
+  font-size: 1.15rem;
+  margin: 0;
+  min-width: 190px;
+  text-align: center;
+}
+
+.calendar-nav,
+.calendar-today-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+  color: inherit;
+  cursor: pointer;
+}
+
+.calendar-today-button {
+  margin-left: auto;
+  padding: 7px 14px;
+  font-size: 0.8rem;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 0.7rem;
+  letter-spacing: var(--mode-tracking, 0.13em);
+  text-transform: uppercase;
+  opacity: 0.6;
+  padding-bottom: 4px;
+}
+
+.calendar-day {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-height: 104px;
+  padding: 6px;
+  text-align: left;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(10px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.calendar-day.is-outside {
+  opacity: 0.35;
+}
+
+.calendar-day.is-today {
+  border-color: rgba(var(--mode-accent-rgb), 0.9);
+  box-shadow: inset 0 0 0 1px rgba(var(--mode-accent-rgb), 0.45);
+}
+
+.calendar-day.is-selected {
+  background: rgba(var(--mode-accent-rgb), 0.12);
+}
+
+.calendar-day-number {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.calendar-day.is-today .calendar-day-number {
+  color: rgb(var(--mode-accent-rgb));
+  font-weight: 700;
+}
+
+.calendar-day-items {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.calendar-chip {
+  display: block;
+  font-size: 0.66rem;
+  line-height: 1.25;
+  padding: 2px 5px;
+  border-radius: calc(5px * var(--mode-radius-scale, 1));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(var(--chip-rgb, 148, 163, 184), 0.2);
+  border-left: 3px solid rgb(var(--chip-rgb, 148, 163, 184));
+}
+
+.calendar-chip em {
+  font-style: normal;
+  opacity: 0.75;
+  margin-right: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar-chip.is-done {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.calendar-more {
+  font-size: 0.62rem;
+  opacity: 0.6;
+  padding-left: 3px;
+}
+
+/* One rule per mode, feeding the shared --chip-rgb used above. */
+.cal-mode-school { --chip-rgb: var(--cal-school); }
+.cal-mode-sports { --chip-rgb: var(--cal-sports); }
+.cal-mode-gym { --chip-rgb: var(--cal-gym); }
+.cal-mode-health { --chip-rgb: var(--cal-health); }
+.cal-mode-finance { --chip-rgb: var(--cal-finance); }
+.cal-mode-skills { --chip-rgb: var(--cal-skills); }
+.cal-mode-reading { --chip-rgb: var(--cal-reading); }
+.cal-mode-discipline { --chip-rgb: var(--cal-discipline); }
+.cal-mode-family { --chip-rgb: var(--cal-family); }
+.cal-mode-calendar { --chip-rgb: var(--cal-calendar); }
+
+.calendar-agenda {
+  margin-top: 22px;
+}
+
+.calendar-agenda h3 {
+  font-family: var(--mode-heading-font, inherit);
+  margin: 0 0 10px;
+}
+
+.calendar-agenda .item-card {
+  border-left: 3px solid rgb(var(--chip-rgb, 148, 163, 184));
+}
+
+.calendar-agenda .item-content p.is-done {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.calendar-notice {
+  opacity: 0.75;
+}
+
+@media (max-width: 720px) {
+  .calendar-day {
+    min-height: 74px;
+  }
+  .calendar-chip {
+    font-size: 0.58rem;
+  }
+}
+
 /* Settings page: design-system picker cards */
 .design-system-grid {
   display: grid;

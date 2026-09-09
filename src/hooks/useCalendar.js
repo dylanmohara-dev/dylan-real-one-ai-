@@ -27,12 +27,34 @@ export function useCalendar() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // The month grid's data: every dated thing the app knows about for one
+  // month, from one request (see GET /calendar/month).
+  const [monthItems, setMonthItems] = useState([])
+  const [monthLoading, setMonthLoading] = useState(false)
+  const [calendarError, setCalendarError] = useState('')
+
   const loadEvents = useCallback(async () => {
     try {
       const data = await request('/events')
       setEvents(data.events || [])
     } catch (err) {
       setError(err.message)
+    }
+  }, [])
+
+  const loadMonth = useCallback(async (year, month) => {
+    setMonthLoading(true)
+    try {
+      const data = await request(`/month?year=${year}&month=${month}`)
+      setMonthItems(data.items || [])
+      // A failure to reach iCloud does NOT empty the month — local items
+      // still come back — so this is surfaced as a notice, not an error.
+      setCalendarError(data.calendarError || '')
+    } catch (err) {
+      setError(err.message)
+      setMonthItems([])
+    } finally {
+      setMonthLoading(false)
     }
   }, [])
 
@@ -85,6 +107,10 @@ export function useCalendar() {
     checked,
     connected,
     events,
+    monthItems,
+    monthLoading,
+    calendarError,
+    loadMonth,
     error,
     loading,
     checkStatus,
