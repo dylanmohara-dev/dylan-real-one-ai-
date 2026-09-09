@@ -26,9 +26,17 @@
      other the way two separate `filter:` declarations would. */
   --design-saturate: 1;
   --design-contrast: 1;
-  --palette-saturate: 1;
+  /* "Vivid" (Settings' name for this default, untouched-baseline state)
+     was applying a literal no-op filter — saturate/contrast/brightness
+     all at 1, i.e. zero boost, despite its own description saying "full
+     saturation, nothing dialed back." That mismatch between the label
+     and the actual math is why the default experience read as flatter
+     than intended. Modest, deliberately conservative bump here — well
+     short of Rich (1.55) or High Contrast (1.65) so those two keep their
+     own headroom and this doesn't start clashing with either. */
+  --palette-saturate: 1.14;
   --palette-brightness: 1;
-  --palette-contrast: 1;
+  --palette-contrast: 1.05;
 
   /* Fixed brand accent (avatar, send button, default eyebrow) */
   --chrome-rgb: 245, 158, 11;
@@ -4386,20 +4394,22 @@ button:disabled:active {
   display: flex;
   flex-direction: column;
   font-size: 0.7rem;
+  font-weight: 700;
   line-height: 1.3;
-  padding: 4px 6px;
+  padding: 5px 7px;
   border-radius: calc(6px * var(--mode-radius-scale, 1));
   white-space: normal;
   overflow-wrap: break-word;
-  background: rgba(var(--chip-rgb, 148, 163, 184), 0.2);
-  border-left: 3px solid rgb(var(--chip-rgb, 148, 163, 184));
+  background: rgb(var(--chip-rgb, 148, 163, 184));
+  color: rgba(10, 8, 6, 0.86);
 }
 
 .calendar-week-chip em {
   font-style: normal;
-  opacity: 0.75;
+  opacity: 0.7;
   font-size: 0.64rem;
   font-variant-numeric: tabular-nums;
+  color: inherit;
 }
 
 .calendar-week-chip.is-done {
@@ -4484,21 +4494,29 @@ button:disabled:active {
 .calendar-chip {
   display: block;
   font-size: 0.66rem;
+  font-weight: 700;
   line-height: 1.25;
-  padding: 2px 5px;
+  padding: 3px 6px;
   border-radius: calc(5px * var(--mode-radius-scale, 1));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: rgba(var(--chip-rgb, 148, 163, 184), 0.2);
-  border-left: 3px solid rgb(var(--chip-rgb, 148, 163, 184));
+  /* Was a 20%-opacity tint with a thin left border — read as flat and
+     washed-out no matter how saturated the underlying hue was. Bold
+     solid block instead: full-strength color, dark text for contrast
+     against every one of these hues (all of them are mid-to-bright,
+     so near-black reads cleanly on every single one rather than
+     needing a different text color per mode). */
+  background: rgb(var(--chip-rgb, 148, 163, 184));
+  color: rgba(10, 8, 6, 0.86);
 }
 
 .calendar-chip em {
   font-style: normal;
-  opacity: 0.75;
+  opacity: 0.7;
   margin-right: 4px;
   font-variant-numeric: tabular-nums;
+  color: inherit;
 }
 
 .calendar-chip.is-done {
