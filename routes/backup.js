@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { buildBackupPayload, backupFilename } from '../lib/backup.js'
+import { buildBackupPayload, backupFilename, previewBackupPayload, restoreFromPayload } from '../lib/backup.js'
 
 const router = Router()
 
@@ -31,6 +31,36 @@ router.get('/summary', (req, res) => {
   } catch (error) {
     console.error('Backup summary failed:', error)
     res.status(500).json({ error: error.message || 'Could not summarize backup.' })
+  }
+})
+
+// Preview only — never writes anything. Lets Settings show Dylan what a
+// file actually contains before he commits to overwriting current data.
+router.post('/preview', (req, res) => {
+  try {
+    const preview = previewBackupPayload(req.body)
+    res.json(preview)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
+// Restore requires the same explicit-confirmation-string pattern as
+// deleting a calendar event: the UI is expected to have already shown the
+// preview and gotten a real "yes, overwrite this" from Dylan, and this is
+// the server-side backstop against a stray or retried request doing it
+// again silently.
+router.post('/restore', (req, res) => {
+  try {
+    const { payload, confirm } = req.body
+    if (confirm !== 'RESTORE') {
+      return res.status(400).json({ error: 'Restore not confirmed.' })
+    }
+    const result = restoreFromPayload(payload)
+    res.json({ success: true, ...result })
+  } catch (error) {
+    console.error('Backup restore failed:', error)
+    res.status(500).json({ error: error.message || 'Could not restore backup.' })
   }
 })
 

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Download, ShieldCheck } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Download, ShieldCheck, RotateCcw } from 'lucide-react'
 import { DESIGN_SYSTEMS, COLOR_PALETTES } from '../data/lifeModes.js'
 
 const API = 'http://localhost:3001/api'
@@ -104,6 +104,90 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
     } finally {
       setExporting(false)
     }
+  }
+
+  // --- Restore from a backup file ---
+  // Two steps, matching the calendar-delete pattern elsewhere in this app:
+  // preview what the file contains first (no writes), then a separate
+  // explicit confirm before anything actually overwrites current data.
+  const fileInputRef = useRef(null)
+  const [restoreFile, setRestoreFile] = useState(null)
+  const [restorePreview, setRestorePreview] = useState(null)
+  const [restoreError, setRestoreError] = useState('')
+  const [restorePreviewing, setRestorePreviewing] = useState(false)
+  const [restoreConfirming, setRestoreConfirming] = useState(false)
+  const [restoring, setRestoring] = useState(false)
+  const [restoreResult, setRestoreResult] = useState(null)
+
+  async function handleFileSelected(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setRestoreError('')
+    setRestoreResult(null)
+    setRestorePreview(null)
+    setRestoreFile(null)
+    setRestoreConfirming(false)
+    setRestorePreviewing(true)
+    try {
+      const text = await file.text()
+      let parsed
+      try {
+        parsed = JSON.parse(text)
+      } catch {
+        throw new Error('That file is not valid JSON.')
+      }
+      const response = await fetch(`${API}/backup/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed),
+      })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.error || 'Could not read that file.')
+      setRestoreFile(parsed)
+      setRestorePreview(body)
+    } catch (err) {
+      setRestoreError(err.message)
+    } finally {
+      setRestorePreviewing(false)
+    }
+  }
+
+  async function handleRestore() {
+    setRestoring(true)
+    setRestoreError('')
+    try {
+      const response = await fetch(`${API}/backup/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload: restoreFile, confirm: 'RESTORE' }),
+      })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.error || 'Restore failed.')
+      setRestoreResult(body)
+      setRestoreConfirming(false)
+      setRestoreFile(null)
+      setRestorePreview(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      // Pull the summary card up to date with what was just restored.
+      fetch(`${API}/backup/summary`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.error) setBackupSummary(data)
+        })
+        .catch(() => {})
+    } catch (err) {
+      setRestoreError(err.message)
+    } finally {
+      setRestoring(false)
+    }
+  }
+
+  function cancelRestore() {
+    setRestoreFile(null)
+    setRestorePreview(null)
+    setRestoreConfirming(false)
+    setRestoreError('')
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   return (
@@ -272,6 +356,89 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
             <Download size={16} strokeWidth={2.25} />
             {exporting ? 'Preparing...' : 'Download backup'}
           </button>
+        </div>
+
+        <div className="restore-card">
+          <div className="restore-card-header">
+            <RotateCcw size={18} strokeWidth={2} />
+            <div>
+              <strong>Restore from a backup file</strong>
+              <p className="classic-tools-note">
+                Pick a Dylan AI backup JSON file. You'll see exactly what's
+                in it before anything is touched — nothing is overwritten
+                until you confirm. Your current data is snapshotted
+                automatically first, in case you change your mind.
+              </p>
+            </div>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleFileSelected}
+            disabled={restorePreviewing || restoring}
+            className="restore-file-input"
+          />
+
+          {restorePreviewing && <p className="mode-page-note">Reading file...</p>}
+
+          {restoreError && <p className="journal-error">{restoreError}</p>}
+
+          {restorePreview && !restoreResult && (
+            <div className="restore-preview">
+              <p>
+                Exported {new Date(restorePreview.exportedAt).toLocaleString()} —{' '}
+                {Object.values(restorePreview.counts).reduce((sum, n) => sum + n, 0)} items
+                {' '}across {Object.keys(restorePreview.counts).length} categories.
+              </p>
+
+              {restorePreview.unknownKeys?.length > 0 && (
+                <p className="backup-excluded-note">
+                  Ignoring unrecognized keys: {restorePreview.unknownKeys.join(', ')}
+                </p>
+              )}
+
+              <ul className="backup-counts">
+                {Object.entries(restorePreview.counts)
+                  .filter(([, count]) => count > 0)
+                  .map(([key, count]) => (
+                    <li key={key}>
+                      {COLLECTION_LABELS[key] || key}: {count}
+                    </li>
+                  ))}
+              </ul>
+
+              {restoreConfirming ? (
+                <div className="restore-confirm-row">
+                  <span className="calendar-confirm-label">
+                    This overwrites your current data with the file above. Continue?
+                  </span>
+                  <button className="calendar-confirm-yes" onClick={handleRestore} disabled={restoring}>
+                    {restoring ? 'Restoring...' : 'Yes, restore'}
+                  </button>
+                  <button onClick={cancelRestore} disabled={restoring}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="restore-confirm-row">
+                  <button className="backup-download-button" onClick={() => setRestoreConfirming(true)}>
+                    Restore this backup
+                  </button>
+                  <button onClick={cancelRestore}>Cancel</button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {restoreResult && (
+            <p className="backup-last-export">
+              Restored {restoreResult.restoredCollections.length} categories.
+              Your previous data was snapshotted first — ask me if you need
+              to find that file.
+            </p>
+          )}
         </div>
       </div>
 

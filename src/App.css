@@ -4668,6 +4668,51 @@ button:disabled:active {
   }
 }
 
+.restore-card {
+  margin-top: 14px;
+  padding: 16px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+}
+
+.restore-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.restore-card-header > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.restore-card-header p {
+  margin-top: 4px;
+  max-width: 60ch;
+}
+
+.restore-file-input {
+  margin-top: 12px;
+  font-size: 0.8rem;
+}
+
+.restore-preview {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: var(--mode-border-width, 1px) solid var(--border);
+  font-size: 0.85rem;
+}
+
+.restore-confirm-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
 /* Settings page: design-system picker cards */
 .design-system-grid {
   display: grid;
