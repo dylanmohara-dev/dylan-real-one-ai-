@@ -328,6 +328,16 @@ export default function CalendarPage({ calendar }) {
         </p>
       )}
 
+      {connected && !targetCalendarUrl && (
+        <div className="calendar-target-banner">
+          <strong>No calendar picked yet.</strong> Apple Calendar is connected,
+          but Dylan AI doesn't know which of your calendars to write new
+          events into -- every "Add to calendar" will be blocked until you
+          pick one. Go to Settings &rarr; "Calendar -- write target" and
+          choose a calendar.
+        </div>
+      )}
+
       <div className="calendar-toolbar">
         <div className="calendar-view-toggle">
           <button

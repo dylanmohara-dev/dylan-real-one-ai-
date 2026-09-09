@@ -4682,6 +4682,25 @@ button:disabled:active {
   opacity: 0.75;
 }
 
+/* Calendar: unmissable "no target calendar" banner -- top of the whole
+   page, not buried in the add-event form, since that's exactly what let
+   this hide for so long. Deliberately loud (solid warm-red fill, not a
+   subtle tint) since missing this silently blocks every event write. */
+.calendar-target-banner {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 2px solid rgb(239, 68, 68);
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.calendar-target-banner strong {
+  color: rgb(239, 68, 68);
+}
+
 @media (max-width: 720px) {
   .calendar-day {
     min-height: 74px;
