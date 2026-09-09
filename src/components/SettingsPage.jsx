@@ -4,6 +4,38 @@ import { DESIGN_SYSTEMS, COLOR_PALETTES, LIFE_MODES } from '../data/lifeModes.js
 
 const API = 'http://localhost:3001/api'
 
+// Extra keywords beyond the life area's own title to match against an
+// existing iCloud calendar's name, for the "suggested match" helper below
+// — e.g. a calendar literally named "Workouts" should still suggest Gym.
+const MODE_MATCH_KEYWORDS = {
+  school: ['school', 'class', 'academic', 'college'],
+  sports: ['sports', 'team', 'athletics'],
+  gym: ['gym', 'fitness', 'workout', 'lifting'],
+  health: ['health', 'wellness', 'medical', 'doctor'],
+  finance: ['finance', 'money', 'budget', 'bills'],
+  skills: ['skills', 'hobby', 'lessons', 'practice'],
+  reading: ['reading', 'books', 'book club'],
+  discipline: ['discipline', 'habits', 'routine'],
+  family: ['family', 'faith', 'church', 'kids', 'home'],
+}
+
+// Finds the first of Dylan's real iCloud calendars whose name plausibly
+// matches a given life area, by simple case-insensitive substring
+// matching against the area's title plus its keyword list above. This is
+// intentionally simple (no fuzzy/edit-distance matching) — a false
+// positive here would silently file real events under the wrong life
+// area, so it only suggests, never auto-applies.
+function suggestCalendarForMode(modeKey, modeTitle, calendars) {
+  const keywords = [modeTitle.toLowerCase(), ...(MODE_MATCH_KEYWORDS[modeKey] || [])]
+  return (
+    calendars.find((cal) => {
+      const name = (cal.displayName || '').toLowerCase()
+      if (!name) return false
+      return keywords.some((kw) => name.includes(kw) || kw.includes(name))
+    }) || null
+  )
+}
+
 const COLLECTION_LABELS = {
   tasks: 'Tasks',
   goals: 'Goals',
@@ -62,6 +94,24 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
     setMapError('')
     try {
       await mapModeToCalendar(mode, url)
+    } catch (err) {
+      setMapError(err.message)
+    } finally {
+      setMappingMode(null)
+    }
+  }
+
+  // Applies every currently-suggested match at once, so setting up all 9
+  // life areas isn't nine separate manual dropdown picks when Dylan's
+  // calendar names already line up with them (e.g. calendars literally
+  // named "School", "Gym", "Finance").
+  async function handleMapAllSuggested(suggestions) {
+    setMappingMode('__bulk__')
+    setMapError('')
+    try {
+      for (const { mode, calendarUrl } of suggestions) {
+        await mapModeToCalendar(mode, calendarUrl)
+      }
     } catch (err) {
       setMapError(err.message)
     } finally {
@@ -206,6 +256,16 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  // Recomputed each render (cheap — 9 life areas against a short calendar
+  // list) rather than memoized, since it needs to react to every mapping
+  // change immediately.
+  const suggestedMatches = calendars.length
+    ? LIFE_MODES.filter((m) => !calendarMap[m.key])
+        .map((m) => ({ mode: m.key, match: suggestCalendarForMode(m.key, m.title, calendars) }))
+        .filter((s) => s.match)
+        .map((s) => ({ mode: s.mode, calendarUrl: s.match.url, calendarName: s.match.displayName }))
+    : []
+
   return (
     <div className="page">
       <div className="page-header">
@@ -325,22 +385,50 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
                   up generically.
                 </p>
                 {mapError && <p className="journal-error">{mapError}</p>}
+
+                {suggestedMatches.length > 0 && (
+                  <button
+                    className="calendar-mode-bulk-suggest"
+                    onClick={() => handleMapAllSuggested(suggestedMatches)}
+                    disabled={mappingMode === '__bulk__'}
+                  >
+                    {mappingMode === '__bulk__'
+                      ? 'Mapping...'
+                      : `Map all ${suggestedMatches.length} suggested match${suggestedMatches.length === 1 ? '' : 'es'}`}
+                  </button>
+                )}
+
                 <div className="calendar-mode-rows">
-                  {LIFE_MODES.map((m) => (
-                    <div className="calendar-mode-row" key={m.key}>
-                      <span className={`calendar-mode-row-label cal-mode-${m.key}`}>{m.title}</span>
-                      <select
-                        value={calendarMap[m.key] || ''}
-                        onChange={(e) => handleMapMode(m.key, e.target.value || null)}
-                        disabled={mappingMode === m.key}
-                      >
-                        <option value="">Use default calendar</option>
-                        {calendars.map((cal) => (
-                          <option key={cal.url} value={cal.url}>{cal.displayName}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
+                  {LIFE_MODES.map((m) => {
+                    const suggestion = suggestedMatches.find((s) => s.mode === m.key)
+                    return (
+                      <div className="calendar-mode-row" key={m.key}>
+                        <span className={`calendar-mode-row-label cal-mode-${m.key}`}>{m.title}</span>
+                        <div className="calendar-mode-row-controls">
+                          <select
+                            value={calendarMap[m.key] || ''}
+                            onChange={(e) => handleMapMode(m.key, e.target.value || null)}
+                            disabled={mappingMode === m.key}
+                          >
+                            <option value="">Use default calendar</option>
+                            {calendars.map((cal) => (
+                              <option key={cal.url} value={cal.url}>{cal.displayName}</option>
+                            ))}
+                          </select>
+                          {suggestion && (
+                            <button
+                              className="calendar-mode-suggest-button"
+                              onClick={() => handleMapMode(m.key, suggestion.calendarUrl)}
+                              disabled={mappingMode === m.key}
+                              title={`Looks like it might match your "${suggestion.calendarName}" calendar`}
+                            >
+                              Use "{suggestion.calendarName}"?
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}

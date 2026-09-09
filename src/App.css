@@ -4674,6 +4674,14 @@ button:disabled:active {
   color: rgb(var(--chip-rgb));
 }
 
+.calendar-mode-row-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .calendar-mode-row select {
   padding: 6px 9px;
   border: 1px solid var(--border);
@@ -4683,6 +4691,43 @@ button:disabled:active {
   font: inherit;
   font-size: 0.78rem;
   max-width: 60%;
+}
+
+.calendar-mode-suggest-button {
+  padding: 5px 10px;
+  border: 1px dashed rgba(var(--mode-accent-rgb), 0.5);
+  border-radius: calc(7px * var(--mode-radius-scale, 1));
+  background: rgba(var(--mode-accent-rgb), 0.1);
+  color: rgb(var(--mode-accent-rgb));
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.calendar-mode-suggest-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.calendar-mode-bulk-suggest {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: calc(9px * var(--mode-radius-scale, 1));
+  background: rgb(var(--mode-accent-rgb));
+  color: var(--bg);
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.calendar-mode-bulk-suggest:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 /* Settings page: backup & export */
