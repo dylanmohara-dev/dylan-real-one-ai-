@@ -42,13 +42,41 @@ function buildMonthCells(year, monthIndex) {
   return cells
 }
 
+// Builds the 7 days (Sun-Sat) of the week containing dateKey, each with
+// its own Date and dayKey — used by the week view, which needs exact
+// dates (possibly spanning two different months) rather than a fixed
+// month grid.
+function buildWeekDays(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  const anchor = new Date(y, m - 1, d)
+  const startOfWeek = new Date(y, m - 1, d - anchor.getDay())
+  const days = []
+  for (let i = 0; i < 7; i += 1) {
+    const date = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + i)
+    days.push({ date, key: dayKey(date.getFullYear(), date.getMonth(), date.getDate()) })
+  }
+  return days
+}
+
+function formatWeekRangeLabel(days) {
+  const start = days[0].date
+  const end = days[6].date
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
+  const startStr = start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  const endStr = end.toLocaleDateString(
+    undefined,
+    sameMonth ? { day: 'numeric', year: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' }
+  )
+  return `${startStr} - ${endStr}`
+}
+
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, RefreshCw, Unlink } from 'lucide-react'
 import CalendarEventForm from './CalendarEventForm.jsx'
 
 export default function CalendarPage({ calendar }) {
   const {
     checked, connected, error, loading, checkStatus, connect, disconnect,
-    monthItems, monthLoading, calendarError, loadMonth,
+    monthItems, monthLoading, calendarError, loadMonth, fetchMonthItems,
     targetCalendarUrl, createEvent, updateEvent, deleteEvent,
   } = calendar
   const [appleId, setAppleId] = useState('')
@@ -60,6 +88,9 @@ export default function CalendarPage({ calendar }) {
   const [selectedKey, setSelectedKey] = useState(
     dayKey(today.getFullYear(), today.getMonth(), today.getDate())
   )
+  // 'month' (default 6x7 grid) or 'week' (7 columns, denser, shows exact
+  // times at a glance).
+  const [viewMode, setViewMode] = useState('month')
 
   useEffect(() => {
     checkStatus()
@@ -74,6 +105,72 @@ export default function CalendarPage({ calendar }) {
   }, [viewYear, viewMonth, loadMonth])
 
   const cells = useMemo(() => buildMonthCells(viewYear, viewMonth), [viewYear, viewMonth])
+
+  // --- Week view data. A week almost always straddles two different
+  // months (e.g. Aug 31 - Sep 6) — monthItems only ever holds ONE month,
+  // whichever viewYear/viewMonth currently is, so week view needs its own
+  // small cache keyed by "year-month" and fetches whichever month(s) the
+  // visible week touches that aren't already loaded, without disturbing
+  // the month view's own state.
+  const weekDays = useMemo(() => buildWeekDays(selectedKey), [selectedKey])
+  const weekMonthKeys = useMemo(
+    () => [...new Set(weekDays.map((d) => `${d.date.getFullYear()}-${d.date.getMonth() + 1}`))],
+    [weekDays]
+  )
+  const [weekItemsCache, setWeekItemsCache] = useState({})
+  const [weekLoading, setWeekLoading] = useState(false)
+
+  useEffect(() => {
+    if (viewMode !== 'week') return undefined
+    let cancelled = false
+
+    async function ensureMonthsLoaded() {
+      const missing = weekMonthKeys.filter((key) => !(key in weekItemsCache))
+      if (!missing.length) return
+      setWeekLoading(true)
+      for (const key of missing) {
+        const [y, m] = key.split('-').map(Number)
+        // The currently-viewed month is already loaded via loadMonth
+        // above — reuse it instead of fetching it a second time.
+        if (y === viewYear && m === viewMonth + 1) {
+          if (!cancelled) setWeekItemsCache((prev) => ({ ...prev, [key]: monthItems }))
+          continue
+        }
+        try {
+          const items = await fetchMonthItems(y, m)
+          if (!cancelled) setWeekItemsCache((prev) => ({ ...prev, [key]: items }))
+        } catch {
+          // Leave this month's slot unfilled — that day's column just
+          // shows nothing extra rather than erroring the whole week out.
+        }
+      }
+      if (!cancelled) setWeekLoading(false)
+    }
+
+    ensureMonthsLoaded()
+    return () => {
+      cancelled = true
+    }
+    // Deliberately not depending on weekItemsCache itself (would refetch
+    // every time it's set, since setting it is what this effect does) —
+    // only on what determines WHICH months are needed and which month's
+    // fresh data just came in from the month view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, weekMonthKeys, viewYear, viewMonth, monthItems])
+
+  const weekItemsByDay = useMemo(() => {
+    const map = {}
+    for (const key of weekMonthKeys) {
+      for (const item of weekItemsCache[key] || []) {
+        if (!map[item.date]) map[item.date] = []
+        map[item.date].push(item)
+      }
+    }
+    for (const list of Object.values(map)) {
+      list.sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+    }
+    return map
+  }, [weekItemsCache, weekMonthKeys])
 
   const itemsByDay = useMemo(() => {
     const map = {}
@@ -119,6 +216,18 @@ export default function CalendarPage({ calendar }) {
 
   function shiftMonth(delta) {
     const next = new Date(viewYear, viewMonth + delta, 1)
+    setViewYear(next.getFullYear())
+    setViewMonth(next.getMonth())
+  }
+
+  function shiftWeek(delta) {
+    const [y, m, d] = selectedKey.split('-').map(Number)
+    const next = new Date(y, m - 1, d + delta * 7)
+    setSelectedKey(dayKey(next.getFullYear(), next.getMonth(), next.getDate()))
+    // Keep the month-view state in sync with wherever weeks have
+    // navigated to, so switching back to month view lands somewhere
+    // relevant, and so the "reuse the current month's data" optimization
+    // above keeps working as weeks drift across month boundaries.
     setViewYear(next.getFullYear())
     setViewMonth(next.getMonth())
   }
@@ -220,18 +329,81 @@ export default function CalendarPage({ calendar }) {
       )}
 
       <div className="calendar-toolbar">
-        <button className="calendar-nav" onClick={() => shiftMonth(-1)} title="Previous month">
+        <div className="calendar-view-toggle">
+          <button
+            className={viewMode === 'month' ? 'active' : ''}
+            onClick={() => setViewMode('month')}
+          >
+            Month
+          </button>
+          <button
+            className={viewMode === 'week' ? 'active' : ''}
+            onClick={() => setViewMode('week')}
+          >
+            Week
+          </button>
+        </div>
+
+        <button
+          className="calendar-nav"
+          onClick={() => (viewMode === 'week' ? shiftWeek(-1) : shiftMonth(-1))}
+          title={viewMode === 'week' ? 'Previous week' : 'Previous month'}
+        >
           <ChevronLeft size={16} strokeWidth={2.25} />
         </button>
         <h2 className="calendar-month-label">
-          {MONTH_NAMES[viewMonth]} {viewYear}
+          {viewMode === 'week' ? formatWeekRangeLabel(weekDays) : `${MONTH_NAMES[viewMonth]} ${viewYear}`}
         </h2>
-        <button className="calendar-nav" onClick={() => shiftMonth(1)} title="Next month">
+        <button
+          className="calendar-nav"
+          onClick={() => (viewMode === 'week' ? shiftWeek(1) : shiftMonth(1))}
+          title={viewMode === 'week' ? 'Next week' : 'Next month'}
+        >
           <ChevronRight size={16} strokeWidth={2.25} />
         </button>
         <button className="calendar-today-button" onClick={goToToday}>Today</button>
       </div>
 
+      {viewMode === 'week' && weekLoading && (
+        <p className="mode-page-note">Loading the rest of this week...</p>
+      )}
+
+      {viewMode === 'week' ? (
+        <div className="calendar-week-grid">
+          {weekDays.map((day) => {
+            const dayItems = weekItemsByDay[day.key] || []
+            const classes = [
+              'calendar-week-day',
+              day.key === todayKey ? 'is-today' : '',
+              day.key === selectedKey ? 'is-selected' : '',
+            ].filter(Boolean).join(' ')
+
+            return (
+              <button className={classes} key={day.key} onClick={() => setSelectedKey(day.key)}>
+                <span className="calendar-week-day-header">
+                  {WEEKDAYS[day.date.getDay()]} {day.date.getDate()}
+                </span>
+                <span className="calendar-week-day-items">
+                  {dayItems.length ? (
+                    dayItems.map((item) => (
+                      <span
+                        className={`calendar-week-chip cal-mode-${item.mode}${item.done ? ' is-done' : ''}`}
+                        key={item.id}
+                        title={`${item.title}${item.meta ? ` · ${item.meta}` : ''}`}
+                      >
+                        {item.time && <em>{item.time}</em>}
+                        {item.title}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="calendar-week-empty">Nothing</span>
+                  )}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      ) : (
       <div className="calendar-grid">
         {WEEKDAYS.map((weekday) => (
           <div className="calendar-weekday" key={weekday}>{weekday}</div>
@@ -269,6 +441,7 @@ export default function CalendarPage({ calendar }) {
           )
         })}
       </div>
+      )}
 
       <div className="calendar-agenda">
         <div className="calendar-agenda-header">

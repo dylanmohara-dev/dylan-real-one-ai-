@@ -66,6 +66,15 @@ export function useCalendar() {
     }
   }, [])
 
+  // Fetches one month's items WITHOUT touching monthItems/monthLoading —
+  // used by the week view when the visible week straddles a month
+  // boundary and needs a second month's data alongside the one already
+  // loaded for the month view, without clobbering that shared state.
+  const fetchMonthItems = useCallback(async (year, month) => {
+    const data = await request(`/month?year=${year}&month=${month}`)
+    return data.items || []
+  }, [])
+
   const checkStatus = useCallback(async () => {
     try {
       const status = await request('/status')
@@ -198,6 +207,7 @@ export function useCalendar() {
     monthLoading,
     calendarError,
     loadMonth,
+    fetchMonthItems,
     error,
     loading,
     checkStatus,
