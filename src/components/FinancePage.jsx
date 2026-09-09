@@ -10,6 +10,7 @@ import {
   Plus,
   X,
 } from 'lucide-react'
+import ModeChatLauncher from './ModeChatLauncher.jsx'
 
 const TYPE_META = {
   checking: { label: 'Checking', icon: Wallet, debt: false },
@@ -105,7 +106,7 @@ function AccountRow({ account, onUpdateBalance, onDelete, saving }) {
   )
 }
 
-export default function FinancePage({ accounts, netWorth, history, saving, addAccount, updateBalance, deleteAccount }) {
+export default function FinancePage({ accounts, netWorth, history, saving, addAccount, updateBalance, deleteAccount, assistantContext, openChat }) {
   const [name, setName] = useState('')
   const [type, setType] = useState('checking')
   const [balance, setBalance] = useState('')
@@ -125,6 +126,8 @@ export default function FinancePage({ accounts, netWorth, history, saving, addAc
           <p>Every account, one number, tracked over time.</p>
         </div>
       </div>
+
+      <ModeChatLauncher assistantContext={assistantContext} modeKey="finance" openChat={openChat} />
 
       <div className="finance-hero">
         <div className="finance-hero-figure">

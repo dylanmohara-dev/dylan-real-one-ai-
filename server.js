@@ -20,11 +20,21 @@ import gmailRouter from './routes/gmail.js'
 import driveRouter from './routes/drive.js'
 import slackRouter from './routes/slack.js'
 
+
 const app = express()
 const port = 3001
 
 app.use(cors())
-app.use(express.json())
+// Default express.json() body limit is 100kb — a base64-encoded photo from
+// a phone camera or a screenshot is routinely several MB once encoded, so
+// every real image-chat attempt was hitting Express's body-parser limit
+// BEFORE it ever reached routes/chat.js. That failure happens in
+// middleware, outside any route's own try/catch, so Express's default
+// handler sent back an HTML error page instead of JSON — which is why the
+// client saw a garbled generic error instead of anything specific. This was
+// almost certainly the real reason image-chat "just didn't work," separate
+// from (and probably more common than) the vision-model question.
+app.use(express.json({ limit: '20mb' }))
 
 app.use('/api/tasks', tasksRouter)
 app.use('/api/goals', goalsRouter)
@@ -47,3 +57,9 @@ app.use('/api/slack', slackRouter)
 app.listen(port, () => {
   console.log(`Dylan AI server running on http://localhost:${port}`)
 })
+
+// Defensive keep-alive: on this machine the listening socket alone hasn't
+// reliably kept the event loop alive (confirmed via process 'beforeExit'
+// tracing — it was exiting with no signal and no error). This guarantees
+// the process never goes idle-empty regardless of the underlying cause.
+setInterval(() => {}, 1 << 30)

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { CalendarDays, RefreshCw, Unlink } from 'lucide-react'
 
 function formatWhen(event) {
@@ -16,14 +16,16 @@ function formatWhen(event) {
 }
 
 export default function CalendarPage({ calendar }) {
-  const { configured, connected, events, error, loading, checkStatus, loadEvents, connect, disconnect } = calendar
+  const { checked, connected, events, error, loading, checkStatus, loadEvents, connect, disconnect } = calendar
+  const [appleId, setAppleId] = useState('')
+  const [appPassword, setAppPassword] = useState('')
 
   useEffect(() => {
     checkStatus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (configured === null) {
+  if (!checked) {
     return (
       <div className="page calendar-page">
         <div className="page-header">
@@ -37,47 +39,49 @@ export default function CalendarPage({ calendar }) {
     )
   }
 
-  if (!configured) {
-    return (
-      <div className="page calendar-page">
-        <div className="page-header">
-          <div>
-            <span className="eyebrow">EVERYTHING, ONE PLACE</span>
-            <h1 className="serif">Calendar</h1>
-            <p>
-              Google Calendar sync isn't set up yet. This needs a one-time
-              Google Cloud OAuth client — Dylan walked you through creating
-              one and it goes in the server's <code>.env</code> file as{' '}
-              <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code>.
-              Restart the server after adding it.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   if (!connected) {
+    async function handleSubmit(e) {
+      e.preventDefault()
+      const ok = await connect(appleId, appPassword)
+      if (ok) setAppPassword('') // don't leave it sitting in the field after a successful connect
+    }
+
     return (
       <div className="page calendar-page">
         <div className="page-header">
           <div>
             <span className="eyebrow">EVERYTHING, ONE PLACE</span>
             <h1 className="serif">Connect your calendar</h1>
-            <p>Pull in everything from Google Calendar so it lives alongside the rest of your life here.</p>
+            <p>Pull in everything from your Apple/iCloud Calendar so it lives alongside the rest of your life here.</p>
           </div>
         </div>
 
-        <div className="form-card calendar-connect">
+        <form className="form-card calendar-connect" onSubmit={handleSubmit}>
           {error && <p className="journal-error">{error}</p>}
-          <button onClick={connect} disabled={loading}>
+          <input
+            type="email"
+            placeholder="Apple ID (e.g. you@icloud.com)"
+            value={appleId}
+            onChange={(e) => setAppleId(e.target.value)}
+            autoComplete="username"
+          />
+          <input
+            type="password"
+            placeholder="App-specific password"
+            value={appPassword}
+            onChange={(e) => setAppPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+          <button type="submit" disabled={loading}>
             <CalendarDays size={14} strokeWidth={2.25} />
-            Connect Google Calendar
+            Connect Apple Calendar
           </button>
           <p className="mode-page-note">
-            This opens a Google sign-in tab. Approve read-only calendar access, then come back here.
+            Not your regular Apple ID password — generate an app-specific one at{' '}
+            <code>appleid.apple.com</code> under Sign-In and Security. It's only used to talk to
+            iCloud's calendar servers directly from your own machine.
           </p>
-        </div>
+        </form>
       </div>
     )
   }
@@ -117,11 +121,6 @@ export default function CalendarPage({ calendar }) {
                   {event.calendar ? ` · ${event.calendar}` : ''}
                 </span>
               </div>
-              {event.htmlLink && (
-                <a className="calendar-event-link" href={event.htmlLink} target="_blank" rel="noreferrer">
-                  Open
-                </a>
-              )}
             </div>
           ))
         ) : (

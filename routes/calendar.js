@@ -1,32 +1,29 @@
 import { Router } from 'express'
-import { getConfig, buildAuthUrl, exchangeCodeForTokens, listUpcomingEvents, isConnected, clearTokens } from '../lib/googleCalendar.js'
+import fs from 'fs'
+import { connect, listUpcomingEvents, isConnected, clearCredentials } from '../lib/appleCalendar.js'
 
 const router = Router()
 
+function logCalendarError(label, error) {
+  const line = `${new Date().toISOString()} ${label}: ${error?.stack || error?.message || JSON.stringify(error)}\n\n`
+  console.error(line)
+  try {
+    fs.appendFileSync(new URL('../calendar-error.log', import.meta.url), line)
+  } catch {}
+}
+
 router.get('/status', (req, res) => {
-  const { configured } = getConfig()
-  res.json({ configured, connected: configured && isConnected() })
+  res.json({ connected: isConnected() })
 })
 
-router.get('/auth-url', (req, res) => {
+router.post('/connect', async (req, res) => {
   try {
-    res.json({ url: buildAuthUrl() })
+    const { appleId, appPassword } = req.body
+    const result = await connect({ appleId, appPassword })
+    res.json({ success: true, ...result })
   } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-})
-
-// Google redirects the browser here after the user approves access.
-router.get('/oauth2callback', async (req, res) => {
-  const { code, error } = req.query
-  if (error) return res.status(400).send(`Google Calendar connection failed: ${error}. Close this tab and try again.`)
-  if (!code) return res.status(400).send('Missing authorization code.')
-  try {
-    await exchangeCodeForTokens(code)
-    res.send('<html><body style="font-family:sans-serif;padding:2rem"><h2>Google Calendar connected.</h2><p>You can close this tab and go back to Dylan AI.</p></body></html>')
-  } catch (err) {
-    console.error(err)
-    res.status(500).send(`Could not finish connecting Google Calendar: ${err.message}`)
+    logCalendarError('CONNECT_FAILED', error)
+    res.status(400).json({ error: error?.message || 'Connection failed — check the server log.' })
   }
 })
 
@@ -40,7 +37,7 @@ router.get('/events', async (req, res) => {
 })
 
 router.post('/disconnect', (req, res) => {
-  clearTokens()
+  clearCredentials()
   res.json({ success: true })
 })
 

@@ -1,3 +1,5 @@
+import ModeChatLauncher from './ModeChatLauncher.jsx'
+
 export default function SchoolPage({
   classes,
   assignments,
@@ -24,6 +26,8 @@ export default function SchoolPage({
   toggleTest,
   deleteTest,
   setActivePage,
+  assistantContext,
+  openChat,
 }) {
   const classAssignments = (classId) => assignments.filter((a) => a.classId === classId)
   const classTests = (classId) => tests.filter((t) => t.classId === classId)
@@ -41,6 +45,8 @@ export default function SchoolPage({
             ← Back to Overview
           </button>
         </div>
+
+        <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />
 
         <div className="form-card">
           <input
@@ -101,6 +107,8 @@ export default function SchoolPage({
           ← Back to Classes
         </button>
       </div>
+
+      <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />
 
       <div className="dashboard-grid">
         <section className="dashboard-panel">

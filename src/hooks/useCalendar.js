@@ -21,8 +21,8 @@ async function request(endpoint, options = {}) {
 }
 
 export function useCalendar() {
-  const [configured, setConfigured] = useState(null) // null = still checking
   const [connected, setConnected] = useState(false)
+  const [checked, setChecked] = useState(false) // false until the first status check resolves
   const [events, setEvents] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -39,26 +39,32 @@ export function useCalendar() {
   const checkStatus = useCallback(async () => {
     try {
       const status = await request('/status')
-      setConfigured(status.configured)
       setConnected(status.connected)
-
-      if (status.connected) {
-        await loadEvents()
-      }
+      if (status.connected) await loadEvents()
     } catch (err) {
       setError(err.message)
+    } finally {
+      setChecked(true)
     }
   }, [loadEvents])
 
-  async function connect() {
+  // Unlike Gmail/Drive/Slack, there's no OAuth redirect here — CalDAV is
+  // Basic Auth, so "connecting" means submitting a form with the Apple ID
+  // and an app-specific password directly.
+  async function connect(appleId, appPassword) {
     setError('')
     setLoading(true)
-
     try {
-      const { url } = await request('/auth-url')
-      window.open(url, '_blank', 'noopener,noreferrer')
+      await request('/connect', {
+        method: 'POST',
+        body: JSON.stringify({ appleId, appPassword }),
+      })
+      setConnected(true)
+      await loadEvents()
+      return true
     } catch (err) {
       setError(err.message)
+      return false
     } finally {
       setLoading(false)
     }
@@ -76,7 +82,7 @@ export function useCalendar() {
   }
 
   return {
-    configured,
+    checked,
     connected,
     events,
     error,

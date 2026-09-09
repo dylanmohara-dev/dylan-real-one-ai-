@@ -1,3 +1,5 @@
+import { DESIGN_SYSTEMS, COLOR_PALETTES } from '../data/lifeModes.js'
+
 export default function SettingsPage({ settings, setSettings, setActivePage, openChat }) {
   return (
     <div className="page">
@@ -64,6 +66,56 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
             Dylan AI currently stores your tasks, goals, notes, and memories
             locally in your app.
           </p>
+        </div>
+      </div>
+
+      <div className="classic-tools">
+        <span className="eyebrow">DESIGN & THEME</span>
+        <p className="classic-tools-note">
+          Pick the visual system for the whole app — chrome font, corner
+          sharpness, and background texture. Your 9 life-mode colors stay
+          the same no matter which one you pick.
+        </p>
+
+        <div className="design-system-grid">
+          {DESIGN_SYSTEMS.map((system) => (
+            <button
+              key={system.key}
+              className={`design-system-card ${settings.designSystem === system.key ? 'active' : ''}`}
+              onClick={() =>
+                setSettings((prev) => ({ ...prev, designSystem: system.key }))
+              }
+            >
+              <h4>{system.name}</h4>
+              <span className="design-system-tagline">{system.tagline}</span>
+              <p>{system.description}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="classic-tools">
+        <span className="eyebrow">COLOR PALETTE</span>
+        <p className="classic-tools-note">
+          A mood/intensity dial on top of everything else — your 9 mode
+          colors and whichever design system you picked above stay exactly
+          the same, this just turns them up or down.
+        </p>
+
+        <div className="design-system-grid">
+          {COLOR_PALETTES.map((palette) => (
+            <button
+              key={palette.key}
+              className={`design-system-card ${settings.colorPalette === palette.key ? 'active' : ''}`}
+              onClick={() =>
+                setSettings((prev) => ({ ...prev, colorPalette: palette.key }))
+              }
+            >
+              <h4>{palette.name}</h4>
+              <span className="design-system-tagline">{palette.tagline}</span>
+              <p>{palette.description}</p>
+            </button>
+          ))}
         </div>
       </div>
 

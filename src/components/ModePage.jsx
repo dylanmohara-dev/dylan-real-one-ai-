@@ -1,6 +1,7 @@
 import { LIFE_MODES } from '../data/lifeModes.js'
+import ModeChatLauncher from './ModeChatLauncher.jsx'
 
-export default function ModePage({ modeKey, setActivePage }) {
+export default function ModePage({ modeKey, setActivePage, assistantContext, openChat }) {
   const mode = LIFE_MODES.find((item) => item.key === modeKey)
 
   if (!mode) return null
@@ -26,6 +27,8 @@ export default function ModePage({ modeKey, setActivePage }) {
           ← Back to Overview
         </button>
       </div>
+
+      <ModeChatLauncher assistantContext={assistantContext} modeKey={modeKey} openChat={openChat} />
 
       <div className="mode-page-card">
         <div className="mode-card-top">

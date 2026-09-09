@@ -1,9 +1,10 @@
-import { Router } from 'express'
-import { loadData, saveData } from '../lib/dataStore.js'
+import express, { Router } from 'express'
+import fs from 'fs'
+import path from 'path'
+import { loadData, saveData, dataDirectory } from '../lib/dataStore.js'
 
 const router = Router()
 
-const MAX_ACTIVE_SKILLS = 3
 const STREAK_BADGES = [3, 7, 30, 100]
 const LEVEL_BADGES = [5, 10, 25]
 
@@ -94,6 +95,29 @@ function computeBadges(level, maxStreak) {
   return badges
 }
 
+const VIDEO_DIR = path.join(dataDirectory, 'skill_videos')
+const MAX_VIDEO_BYTES = 150 * 1024 * 1024 // 150MB
+
+const EXT_BY_MIME = {
+  'video/mp4': '.mp4',
+  'video/quicktime': '.mov',
+  'video/webm': '.webm',
+  'video/x-m4v': '.m4v',
+  'video/ogg': '.ogv',
+}
+
+function extensionFor(mimeType) {
+  return EXT_BY_MIME[mimeType] || '.mp4'
+}
+
+function skillVideos(skillId) {
+  const videos = loadData('skill_videos')
+  return videos
+    .filter((v) => v.skillId === skillId)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .map(({ filePath, ...meta }) => meta) // never leak the on-disk path to the client
+}
+
 function enrichSkill(skill, allSessions) {
   const sessions = allSessions
     .filter((s) => s.skillId === skill.id)
@@ -114,6 +138,7 @@ function enrichSkill(skill, allSessions) {
     todayQuantity: totals[todayKey()] || 0,
     badges: computeBadges(level, maxStreak),
     sessions: sessions.slice(0, 20),
+    videos: skillVideos(skill.id),
   }
 }
 
@@ -124,7 +149,6 @@ function buildPayload() {
 
   return {
     skills: active.map((skill) => enrichSkill(skill, sessions)),
-    maxActiveSkills: MAX_ACTIVE_SKILLS,
   }
 }
 
@@ -141,12 +165,6 @@ router.post('/', (req, res) => {
     const trimmedUnit = (unit?.toString().trim() || 'reps').toLowerCase()
 
     const skills = loadData('skills')
-    const activeCount = skills.filter((s) => s.active).length
-    if (activeCount >= MAX_ACTIVE_SKILLS) {
-      return res.status(400).json({
-        error: `You're already tracking ${MAX_ACTIVE_SKILLS} skills. Remove one before adding another.`,
-      })
-    }
 
     const duplicate = skills.find(
       (s) => s.active && s.name.toLowerCase() === trimmedName.toLowerCase()
@@ -235,6 +253,84 @@ router.delete('/sessions/:id', (req, res) => {
       skill.xp = Math.max(0, (skill.xp || 0) - Number(session.quantity || 0))
       saveData('skills', skills)
     }
+  }
+
+  res.json(buildPayload())
+})
+
+// Raw-body upload — no multer needed, Express parses the video bytes
+// directly. The label travels as a query param since the body is pure
+// binary, not multipart or JSON.
+router.post(
+  '/:id/videos',
+  (req, res, next) => {
+    // Only treat this route's body as raw video bytes; every other route
+    // keeps using express.json() from server.js.
+    if (!req.is('video/*')) {
+      return res.status(400).json({ error: 'Content-Type must be a video/* mime type' })
+    }
+    return express.raw({ type: 'video/*', limit: MAX_VIDEO_BYTES })(req, res, next)
+  },
+  (req, res) => {
+    try {
+      const skills = loadData('skills')
+      const skill = skills.find((s) => s.id === req.params.id && s.active)
+      if (!skill) return res.status(404).json({ error: 'Skill not found' })
+
+      if (!Buffer.isBuffer(req.body) || !req.body.length) {
+        return res.status(400).json({ error: 'No video data received' })
+      }
+
+      const label = (req.query.label || '').toString().trim() || 'Untitled clip'
+      const mimeType = req.headers['content-type']
+      const ext = extensionFor(mimeType)
+      const id = Date.now().toString()
+
+      const skillDir = path.join(VIDEO_DIR, skill.id)
+      fs.mkdirSync(skillDir, { recursive: true })
+      const fileName = `${id}${ext}`
+      const filePath = path.join(skillDir, fileName)
+      fs.writeFileSync(filePath, req.body)
+
+      const videos = loadData('skill_videos')
+      videos.push({
+        id,
+        skillId: skill.id,
+        label,
+        mimeType,
+        bytes: req.body.length,
+        fileName,
+        filePath,
+        createdAt: new Date().toISOString(),
+      })
+      saveData('skill_videos', videos)
+
+      res.json(buildPayload())
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ error: 'Could not save video' })
+    }
+  }
+)
+
+router.get('/videos/:videoId/file', (req, res) => {
+  const videos = loadData('skill_videos')
+  const video = videos.find((v) => v.id === req.params.videoId)
+  if (!video || !fs.existsSync(video.filePath)) {
+    return res.status(404).json({ error: 'Video not found' })
+  }
+  res.setHeader('Content-Type', video.mimeType || 'video/mp4')
+  fs.createReadStream(video.filePath).pipe(res)
+})
+
+router.delete('/videos/:videoId', (req, res) => {
+  const videos = loadData('skill_videos')
+  const video = videos.find((v) => v.id === req.params.videoId)
+  const remaining = videos.filter((v) => v.id !== req.params.videoId)
+  saveData('skill_videos', remaining)
+
+  if (video?.filePath && fs.existsSync(video.filePath)) {
+    fs.unlinkSync(video.filePath)
   }
 
   res.json(buildPayload())

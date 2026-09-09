@@ -18,7 +18,86 @@ export const DEFAULT_SETTINGS = {
   signatureTransitions: true,
   enterAnimation: 'wipe',
   onboardingComplete: false,
+  designSystem: 'minimal-glass',
+  colorPalette: 'vivid',
 }
+
+// Global "skin" layer, independent of the 9 per-mode color themes above.
+// A mode theme still controls accent color, glow color, and content
+// texture; a design system controls how the whole app is built around that
+// color — chrome font, corner sharpness, border weight, and an overlay
+// texture. Selected in Settings; applied as an extra `design-{key}` class
+// alongside the mode's `theme-{key}` class (see App.jsx's themeClass).
+export const DESIGN_SYSTEMS = [
+  {
+    key: 'minimal-glass',
+    name: 'Minimal Glass',
+    tagline: "Today's look, your 9 mode colors",
+    description: 'Glassmorphism, high legibility, nothing fighting for attention. The only option where School stays gold, Gym stays orange, etc. — every other option below has its own fixed color instead.',
+  },
+  {
+    key: 'neon-arcade',
+    name: 'Neon Arcade',
+    tagline: 'Magenta + cyan, always',
+    description: "Overrides every mode's color with the same hot magenta/cyan neon regardless of which life area you're in. Orbitron headings, a pulsing glow on the sidebar, a scanning grid behind everything.",
+  },
+  {
+    key: 'command-deck',
+    name: 'Command Deck',
+    tagline: 'Cyan HUD, always',
+    description: "Overrides every mode's color with cockpit cyan/blue. Monospace readouts, corners that are cut at an angle instead of rounded — not a subtle shape tweak, actual clipped panel geometry.",
+  },
+  {
+    key: 'retro-terminal',
+    name: 'Retro Terminal',
+    tagline: 'Phosphor green, always',
+    description: "Overrides every mode's color with classic phosphor green on near-black. Monospace everywhere, CRT scanlines, a blinking cursor after every page title.",
+  },
+  {
+    key: 'comic-pop',
+    name: 'Comic Pop',
+    tagline: 'Comic red + yellow, always',
+    description: "Overrides every mode's color with bold comic red/yellow. Thick black ink-line borders, halftone dots, heavy Anton headings, and buttons that bounce when you hover them.",
+  },
+]
+
+// A third, independent global "skin" dimension: mood/intensity applied on
+// top of whichever mode color and design system are active, via saturation/
+// brightness/contrast multipliers (see the COLOR PALETTES section in
+// App.css) rather than swapping hues — so it never fights the 9 mode colors
+// or the 5 design systems, it just turns the whole thing up or down.
+export const COLOR_PALETTES = [
+  {
+    key: 'vivid',
+    name: 'Vivid',
+    tagline: "Today's look",
+    description: 'Full saturation, nothing dialed back. The default.',
+  },
+  {
+    key: 'muted',
+    name: 'Muted',
+    tagline: 'Calmer, more professional',
+    description: 'Desaturated across the board — colors are still there, just quieter.',
+  },
+  {
+    key: 'rich',
+    name: 'Rich',
+    tagline: 'Deeper, more premium',
+    description: 'Slightly more saturated and a touch darker, with extra contrast — colors feel heavier.',
+  },
+  {
+    key: 'pastel',
+    name: 'Pastel',
+    tagline: 'Soft and light',
+    description: 'Lower saturation, brighter, lower contrast — an airy, gentle version of every mode color.',
+  },
+  {
+    key: 'high-contrast',
+    name: 'High Contrast',
+    tagline: 'Punchy and bold',
+    description: 'Extra saturation and contrast pushed up — colors pop hard against the dark background.',
+  },
+]
 
 export const ONBOARDING_PROMPTS = {
   school: "List your classes this term, and anything big due soon.",
@@ -35,6 +114,8 @@ export const ONBOARDING_PROMPTS = {
 export const LIFE_MODES = [
   {
     key: 'school',
+    assistantName: 'The Professor',
+    assistantTitle: 'Academic strategist',
     icon: BookOpen,
     title: 'School',
     rgb: '244, 196, 48',
@@ -49,6 +130,8 @@ export const LIFE_MODES = [
   },
   {
     key: 'sports',
+    assistantName: 'The Coach',
+    assistantTitle: 'Performance coach',
     icon: Volleyball,
     title: 'Sports',
     rgb: '34, 197, 94',
@@ -63,6 +146,8 @@ export const LIFE_MODES = [
   },
   {
     key: 'gym',
+    assistantName: 'The Trainer',
+    assistantTitle: 'Strength coach',
     icon: Dumbbell,
     title: 'Gym',
     rgb: '249, 115, 22',
@@ -77,6 +162,8 @@ export const LIFE_MODES = [
   },
   {
     key: 'health',
+    assistantName: 'The Physician',
+    assistantTitle: 'Wellness expert',
     icon: Activity,
     title: 'Health',
     rgb: '45, 212, 191',
@@ -91,6 +178,8 @@ export const LIFE_MODES = [
   },
   {
     key: 'finance',
+    assistantName: 'The Analyst',
+    assistantTitle: 'Financial strategist',
     icon: TrendingUp,
     title: 'Finance',
     rgb: '59, 130, 246',
@@ -105,6 +194,8 @@ export const LIFE_MODES = [
   },
   {
     key: 'skills',
+    assistantName: 'The Mentor',
+    assistantTitle: 'Skill acquisition expert',
     icon: Star,
     title: 'Skills',
     rgb: '168, 85, 247',
@@ -119,6 +210,8 @@ export const LIFE_MODES = [
   },
   {
     key: 'reading',
+    assistantName: 'The Librarian',
+    assistantTitle: 'Literary expert',
     icon: Columns3,
     title: 'Reading',
     rgb: '244, 63, 94',
@@ -133,6 +226,8 @@ export const LIFE_MODES = [
   },
   {
     key: 'discipline',
+    assistantName: 'The Enforcer',
+    assistantTitle: 'Accountability expert',
     icon: CheckCircle2,
     title: 'Discipline',
     rgb: '239, 68, 68',
@@ -147,6 +242,8 @@ export const LIFE_MODES = [
   },
   {
     key: 'family',
+    assistantName: 'The Anchor',
+    assistantTitle: 'Family relationships expert',
     icon: Users,
     title: 'Family',
     rgb: '99, 102, 241',

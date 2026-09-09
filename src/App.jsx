@@ -29,6 +29,7 @@ import CalendarPage from './components/CalendarPage.jsx'
 import ConnectionsPage from './components/ConnectionsPage.jsx'
 import ChatOverlay from './components/ChatOverlay.jsx'
 import OnboardingWizard from './components/OnboardingWizard.jsx'
+import GameToast from './components/GameToast.jsx'
 
 function App() {
   const data = useAppData()
@@ -66,6 +67,8 @@ function App() {
     setMessage,
     sendMessage,
     settings,
+    toasts,
+    dismissToast,
   } = data
 
   function renderPage() {
@@ -187,6 +190,8 @@ function App() {
           toggleTest={data.toggleTest}
           deleteTest={data.deleteTest}
           setActivePage={setActivePage}
+          assistantContext={assistantContext}
+          openChat={openChat}
         />
       )
     }
@@ -221,6 +226,8 @@ function App() {
           saving={data.saving}
           addHealthEntry={data.addHealthEntry}
           deleteHealthEntry={data.deleteHealthEntry}
+          assistantContext={assistantContext}
+          openChat={openChat}
         />
       )
     }
@@ -235,6 +242,8 @@ function App() {
           addAccount={data.addFinanceAccount}
           updateBalance={data.updateFinanceBalance}
           deleteAccount={data.deleteFinanceAccount}
+          assistantContext={assistantContext}
+          openChat={openChat}
         />
       )
     }
@@ -243,17 +252,20 @@ function App() {
       return (
         <SkillsPage
           skills={data.skills}
-          maxActiveSkills={data.maxActiveSkills}
           saving={data.saving}
           addSkill={data.addSkill}
           removeSkill={data.removeSkill}
           deleteSkillSession={data.deleteSkillSession}
+          uploadSkillVideo={data.uploadSkillVideo}
+          deleteSkillVideo={data.deleteSkillVideo}
+          assistantContext={assistantContext}
+          openChat={openChat}
         />
       )
     }
 
     if (LIFE_MODES.some((mode) => mode.key === activePage)) {
-      return <ModePage modeKey={activePage} setActivePage={setActivePage} />
+      return <ModePage modeKey={activePage} setActivePage={setActivePage} assistantContext={assistantContext} openChat={openChat} />
     }
 
     return (
@@ -272,11 +284,15 @@ function App() {
   const assistantContext = activeMode
     ? {
         title: activeMode.title,
+        assistantName: activeMode.assistantName || 'Life assistant',
+        assistantTitle: activeMode.assistantTitle || '',
         message: activeMode.assistantMessage,
         prompts: activeMode.prompts,
       }
     : {
         title: 'Overview',
+        assistantName: 'Dylan AI',
+        assistantTitle: 'General assistant',
         message: OVERVIEW_ASSISTANT_MESSAGE,
         prompts: OVERVIEW_PROMPTS,
       }
@@ -303,13 +319,17 @@ function App() {
     return <OnboardingWizard onComplete={completeOnboarding} />
   }
 
-  const themeClass = activeMode
+  const modeThemeClass = activeMode
     ? `theme-${activeMode.key}`
     : activePage === 'Journal'
     ? 'theme-journal'
     : activePage === 'Calendar'
     ? 'theme-calendar'
     : ''
+
+  const designClass = `design-${settings.designSystem || 'minimal-glass'}`
+  const paletteClass = `palette-${settings.colorPalette || 'vivid'}`
+  const themeClass = `${modeThemeClass} ${designClass} ${paletteClass}`.trim()
 
   return (
     <div className={`app-root ${themeClass}`}>
@@ -324,12 +344,15 @@ function App() {
       <TopSettingsBar settings={settings} setSettings={data.setSettings} />
 
       <div className={`app-shell ${themeClass}`}>
+        <GameToast toasts={toasts} dismissToast={dismissToast} />
+
         <Sidebar
           activePage={activePage}
           setActivePage={setActivePage}
           userInitial={userInitial}
           userName={settings.userName}
           assistantContext={assistantContext}
+          modeKey={activeMode ? activeMode.key : null}
           chatMessages={data.chatMessages}
           message={message}
           setMessage={setMessage}
@@ -355,7 +378,9 @@ function App() {
         <ChatOverlay
           open={chatOverlayOpen}
           onClose={() => setChatOverlayOpen(false)}
-          contextTitle={activeMode ? `${activeMode.title} assistant` : 'Dylan AI — General'}
+          contextTitle={assistantContext.assistantName}
+          assistantContext={assistantContext}
+          modeKey={activeMode ? activeMode.key : null}
           chatMessages={data.chatMessages}
           loading={loading}
           memorySuggestion={data.memorySuggestion}

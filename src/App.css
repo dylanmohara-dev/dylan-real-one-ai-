@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Lora:wght@500;600;700&family=Bebas+Neue&family=Anton&family=Quicksand:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&family=Poppins:wght@500;600;700&family=Crimson+Pro:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Fredoka:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Oswald:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Lora:wght@500;600;700&family=Bebas+Neue&family=Anton&family=Quicksand:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&family=Poppins:wght@500;600;700&family=Crimson+Pro:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Fredoka:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Oswald:wght@400;500;600&family=Orbitron:wght@500;600;700;800&display=swap');
 
 * {
   box-sizing: border-box;
@@ -17,6 +17,18 @@
   --mode-radius-scale: 1;
   --mode-border-width: 1px;
   --mode-tracking: 0.13em;
+
+  /* Compositing knobs for the two independent global "skin" layers —
+     design system (font/shape, session 7) and color palette (session 8).
+     Each layer sets only its own namespaced variable; a single shared
+     filter rule on .app-shell multiplies them together, so picking a
+     design system AND a color palette never has one silently clobber the
+     other the way two separate `filter:` declarations would. */
+  --design-saturate: 1;
+  --design-contrast: 1;
+  --palette-saturate: 1;
+  --palette-brightness: 1;
+  --palette-contrast: 1;
 
   /* Fixed brand accent (avatar, send button, default eyebrow) */
   --chrome-rgb: 245, 158, 11;
@@ -141,6 +153,10 @@ select option {
   min-height: 0;
   display: flex;
   width: 100%;
+  filter:
+    saturate(calc(var(--design-saturate, 1) * var(--palette-saturate, 1)))
+    contrast(calc(var(--design-contrast, 1) * var(--palette-contrast, 1)))
+    brightness(var(--palette-brightness, 1));
   overflow: hidden;
   font-family: var(--mode-body-font, var(--font-sans));
   background:
@@ -267,14 +283,14 @@ select option {
 }
 
 .app-shell.theme-reading {
-  --mode-accent-rgb: 244, 63, 94;
-  --mode-accent2-rgb: 236, 72, 153;
+  --mode-accent-rgb: 146, 100, 63;
+  --mode-accent2-rgb: 196, 149, 92;
   --mode-heading-font: 'Crimson Pro', Georgia, serif;
   --mode-radius-scale: 1.3;
   --mode-border-width: 1px;
-  --bg-glow-1: rgba(244, 63, 94, 0.22);
-  --bg-glow-2: rgba(244, 63, 94, 0.13);
-  --bg: #1c0512;
+  --bg-glow-1: rgba(146, 100, 63, 0.22);
+  --bg-glow-2: rgba(146, 100, 63, 0.13);
+  --bg: #1a1208;
   --mode-tracking: 0.05em;
   --mode-body-font: 'Crimson Pro', Georgia, serif;
   --surface: rgba(var(--mode-accent-rgb), 0.055);
@@ -305,14 +321,14 @@ select option {
 }
 
 .app-shell.theme-family {
-  --mode-accent-rgb: 99, 102, 241;
-  --mode-accent2-rgb: 59, 130, 246;
+  --mode-accent-rgb: 244, 114, 143;
+  --mode-accent2-rgb: 251, 165, 175;
   --mode-heading-font: 'Fredoka', sans-serif;
   --mode-radius-scale: 1.8;
   --mode-border-width: 1px;
-  --bg-glow-1: rgba(99, 102, 241, 0.22);
-  --bg-glow-2: rgba(99, 102, 241, 0.13);
-  --bg: #0d0a1c;
+  --bg-glow-1: rgba(244, 114, 143, 0.22);
+  --bg-glow-2: rgba(244, 114, 143, 0.13);
+  --bg: #1c0f13;
   --mode-tracking: 0.04em;
   --mode-body-font: 'Fredoka', sans-serif;
   --surface: rgba(var(--mode-accent-rgb), 0.055);
@@ -385,19 +401,114 @@ select option {
 .app-root.theme-skills {  --mode-accent-rgb: 168, 85, 247;  --mode-accent2-rgb: 139, 92, 246;  --mode-heading-font: 'Poppins', sans-serif;  --mode-radius-scale: 1.15;  --mode-border-width: 1px;  --bg-glow-1: rgba(168, 85, 247, 0.22);  --bg-glow-2: rgba(168, 85, 247, 0.13);  --bg: #140a1c;  --mode-tracking: 0.15em;  --mode-body-font: 'Poppins', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.055);  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);  --surface-input: rgba(var(--mode-accent-rgb), 0.065);  --surface-strong: rgba(43, 28, 59, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.18);  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
 }
 
-.app-root.theme-reading {  --mode-accent-rgb: 244, 63, 94;  --mode-accent2-rgb: 236, 72, 153;  --mode-heading-font: 'Crimson Pro', Georgia, serif;  --mode-radius-scale: 1.3;  --mode-border-width: 1px;  --bg-glow-1: rgba(244, 63, 94, 0.22);  --bg-glow-2: rgba(244, 63, 94, 0.13);  --bg: #1c0512;  --mode-tracking: 0.05em;  --mode-body-font: 'Crimson Pro', Georgia, serif;  --surface: rgba(var(--mode-accent-rgb), 0.055);  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);  --surface-input: rgba(var(--mode-accent-rgb), 0.065);  --surface-strong: rgba(57, 24, 32, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.18);  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
+.app-root.theme-reading {  --mode-accent-rgb: 146, 100, 63;  --mode-accent2-rgb: 196, 149, 92;  --mode-heading-font: 'Crimson Pro', Georgia, serif;  --mode-radius-scale: 1.3;  --mode-border-width: 1px;  --bg-glow-1: rgba(146, 100, 63, 0.22);  --bg-glow-2: rgba(146, 100, 63, 0.13);  --bg: #1a1208;  --mode-tracking: 0.05em;  --mode-body-font: 'Crimson Pro', Georgia, serif;  --surface: rgba(var(--mode-accent-rgb), 0.055);  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);  --surface-input: rgba(var(--mode-accent-rgb), 0.065);  --surface-strong: rgba(48, 38, 24, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.18);  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
 }
 
 .app-root.theme-discipline {  --mode-accent-rgb: 239, 68, 68;  --mode-accent2-rgb: 220, 38, 38;  --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;  --mode-radius-scale: 0.25;  --mode-border-width: 2px;  --bg-glow-1: rgba(239, 68, 68, 0.22);  --bg-glow-2: rgba(239, 68, 68, 0.13);  --bg: #100707;  --mode-tracking: 0.30em;  --mode-body-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;  --surface: rgba(var(--mode-accent-rgb), 0.055);  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);  --surface-input: rgba(var(--mode-accent-rgb), 0.065);  --surface-strong: rgba(56, 25, 27, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.18);  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
 }
 
-.app-root.theme-family {  --mode-accent-rgb: 99, 102, 241;  --mode-accent2-rgb: 59, 130, 246;  --mode-heading-font: 'Fredoka', sans-serif;  --mode-radius-scale: 1.8;  --mode-border-width: 1px;  --bg-glow-1: rgba(99, 102, 241, 0.22);  --bg-glow-2: rgba(99, 102, 241, 0.13);  --bg: #0d0a1c;  --mode-tracking: 0.04em;  --mode-body-font: 'Fredoka', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.055);  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);  --surface-input: rgba(var(--mode-accent-rgb), 0.065);  --surface-strong: rgba(31, 31, 58, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.18);  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
+.app-root.theme-family {  --mode-accent-rgb: 244, 114, 143;  --mode-accent2-rgb: 251, 165, 175;  --mode-heading-font: 'Fredoka', sans-serif;  --mode-radius-scale: 1.8;  --mode-border-width: 1px;  --bg-glow-1: rgba(244, 114, 143, 0.22);  --bg-glow-2: rgba(244, 114, 143, 0.13);  --bg: #1c0f13;  --mode-tracking: 0.04em;  --mode-body-font: 'Fredoka', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.055);  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);  --surface-input: rgba(var(--mode-accent-rgb), 0.065);  --surface-strong: rgba(58, 31, 38, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.18);  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
 }
 
 .app-root.theme-journal {  --mode-accent-rgb: 129, 90, 224;  --mode-accent2-rgb: 49, 39, 99;  --mode-heading-font: 'Cormorant Garamond', Georgia, serif;  --mode-radius-scale: 1.3;  --mode-border-width: 1px;  --bg-glow-1: rgba(129, 90, 224, 0.22);  --bg-glow-2: rgba(129, 90, 224, 0.13);  --bg: #100a1c;  --mode-tracking: 0.09em;  --mode-body-font: 'Cormorant Garamond', Georgia, serif;  --surface: rgba(var(--mode-accent-rgb), 0.055);  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);  --surface-input: rgba(var(--mode-accent-rgb), 0.065);  --surface-strong: rgba(36, 29, 55, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.18);  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
 }
 
 .app-root.theme-calendar {  --mode-accent-rgb: 6, 182, 212;  --mode-accent2-rgb: 8, 89, 130;  --mode-heading-font: 'Manrope', sans-serif;  --mode-radius-scale: 0.8;  --mode-border-width: 1px;  --bg-glow-1: rgba(6, 182, 212, 0.22);  --bg-glow-2: rgba(6, 182, 212, 0.13);  --bg: #04171c;  --mode-tracking: 0.12em;  --mode-body-font: 'Manrope', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.055);  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);  --surface-input: rgba(var(--mode-accent-rgb), 0.065);  --surface-strong: rgba(14, 46, 53, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.18);  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
+}
+
+
+/* ============ CHROME TEXTURE (sidebar + top bar), per mode ============ */
+/* Same pattern used on .main-content, reapplied to the persistent chrome so
+   texture isn't limited to page content — full commitment per Dylan's ask. */
+
+.app-shell.theme-school .sidebar {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 25px, rgba(var(--mode-accent-rgb), 0.088) 27px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+}
+
+.app-shell.theme-sports .sidebar {
+  background-image: repeating-linear-gradient(115deg, rgba(var(--mode-accent-rgb), 0.088) 0px, rgba(var(--mode-accent-rgb), 0.088) 5px, transparent 5px, transparent 42px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+}
+
+.app-shell.theme-gym .sidebar {
+  background-image: repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.11) 0px, rgba(var(--mode-accent-rgb), 0.11) 13px, transparent 13px, transparent 32px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+}
+
+.app-shell.theme-health .sidebar {
+  background-image: radial-gradient(circle at 18% 22%, rgba(var(--mode-accent-rgb), 0.22), transparent 42%), radial-gradient(circle at 82% 68%, rgba(var(--mode-accent2-rgb), 0.18), transparent 48%), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.4), transparent 65%);
+}
+
+.app-shell.theme-finance .sidebar {
+  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.165) 1.6px, transparent 2px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+  background-size: 20px 20px, auto;
+}
+
+.app-shell.theme-skills .sidebar {
+  background-image: radial-gradient(circle at 28% 8%, rgba(var(--mode-accent-rgb), 0.26), transparent 38%), radial-gradient(circle at 78% 62%, rgba(var(--mode-accent2-rgb), 0.22), transparent 42%), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.4), transparent 65%);
+}
+
+.app-shell.theme-reading .sidebar {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(var(--mode-accent-rgb), 0.083) 34px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+}
+
+.app-shell.theme-discipline .sidebar {
+  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+}
+
+.app-shell.theme-family .sidebar {
+  background-image: radial-gradient(circle at 14% 82%, rgba(var(--mode-accent-rgb), 0.24), transparent 42%), radial-gradient(circle at 86% 14%, rgba(var(--mode-accent2-rgb), 0.20), transparent 44%), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.4), transparent 65%);
+}
+
+.app-shell.theme-journal .sidebar {
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.28), transparent 58%), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.4), transparent 65%);
+}
+
+.app-shell.theme-calendar .sidebar {
+  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+}
+
+.app-root.theme-school .top-settings-bar {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 25px, rgba(var(--mode-accent-rgb), 0.088) 27px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+}
+
+.app-root.theme-sports .top-settings-bar {
+  background-image: repeating-linear-gradient(115deg, rgba(var(--mode-accent-rgb), 0.088) 0px, rgba(var(--mode-accent-rgb), 0.088) 5px, transparent 5px, transparent 42px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+}
+
+.app-root.theme-gym .top-settings-bar {
+  background-image: repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.11) 0px, rgba(var(--mode-accent-rgb), 0.11) 13px, transparent 13px, transparent 32px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+}
+
+.app-root.theme-health .top-settings-bar {
+  background-image: radial-gradient(circle at 18% 22%, rgba(var(--mode-accent-rgb), 0.22), transparent 42%), radial-gradient(circle at 82% 68%, rgba(var(--mode-accent2-rgb), 0.18), transparent 48%), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.34), transparent 75%);
+}
+
+.app-root.theme-finance .top-settings-bar {
+  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.165) 1.6px, transparent 2px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+  background-size: 20px 20px, auto;
+}
+
+.app-root.theme-skills .top-settings-bar {
+  background-image: radial-gradient(circle at 28% 8%, rgba(var(--mode-accent-rgb), 0.26), transparent 38%), radial-gradient(circle at 78% 62%, rgba(var(--mode-accent2-rgb), 0.22), transparent 42%), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.34), transparent 75%);
+}
+
+.app-root.theme-reading .top-settings-bar {
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(var(--mode-accent-rgb), 0.083) 34px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+}
+
+.app-root.theme-discipline .top-settings-bar {
+  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+}
+
+.app-root.theme-family .top-settings-bar {
+  background-image: radial-gradient(circle at 14% 82%, rgba(var(--mode-accent-rgb), 0.24), transparent 42%), radial-gradient(circle at 86% 14%, rgba(var(--mode-accent2-rgb), 0.20), transparent 44%), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.34), transparent 75%);
+}
+
+.app-root.theme-journal .top-settings-bar {
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.28), transparent 58%), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.34), transparent 75%);
+}
+
+.app-root.theme-calendar .top-settings-bar {
+  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
 }
 
 /* ============ TOP SETTINGS BAR ============ */
@@ -411,11 +522,11 @@ select option {
   gap: 26px;
   padding: 0 22px;
   border-bottom: 1px solid var(--border);
-  background:
-    linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.34), transparent 75%),
-    var(--surface-strong);
+  background-color: var(--surface-strong);
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.34), transparent 75%);
   backdrop-filter: blur(20px);
-  transition: background 0.6s ease, border-color 0.4s ease;
+  font-family: var(--mode-body-font, var(--font-sans));
+  transition: background-image 0.6s ease, border-color 0.4s ease, font-family 0.3s ease;
 }
 
 .top-settings-group {
@@ -426,10 +537,12 @@ select option {
 
 .top-settings-group label {
   color: var(--text-muted);
+  font-family: var(--mode-heading-font, inherit);
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  transition: font-family 0.3s ease;
 }
 
 .top-settings-name {
@@ -472,11 +585,11 @@ select option {
   flex-direction: column;
   padding: 18px 14px 14px;
   border-right: 1px solid var(--border);
-  background:
-    radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.4), transparent 65%),
-    var(--surface-strong);
+  background-color: var(--surface-strong);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.4), transparent 65%);
   backdrop-filter: blur(24px);
-  transition: border-color 0.4s ease, background 0.6s ease;
+  font-family: var(--mode-body-font, var(--font-sans));
+  transition: border-color 0.4s ease, background-image 0.6s ease, font-family 0.3s ease;
 }
 
 .sidebar-avatar-row {
@@ -633,8 +746,10 @@ select option {
 
 .assistant-header strong {
   display: block;
+  font-family: var(--mode-heading-font, inherit);
   font-size: 12.5px;
   color: var(--text-primary);
+  transition: font-family 0.3s ease;
 }
 
 .assistant-subtitle {
@@ -664,6 +779,21 @@ select option {
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
+}
+
+.assistant-bubble-expand {
+  display: block;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--mode-accent-rgb));
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.assistant-bubble-expand:hover {
+  text-decoration: underline;
 }
 
 .assistant-pills {
@@ -772,15 +902,15 @@ select option {
 /* ============ PER-MODE BACKGROUND TEXTURE ============ */
 
 .app-shell.theme-school .main-content {
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 25px, rgba(var(--mode-accent-rgb), 0.16) 27px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 25px, rgba(var(--mode-accent-rgb), 0.088) 27px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
 }
 
 .app-shell.theme-sports .main-content {
-  background-image: repeating-linear-gradient(115deg, rgba(var(--mode-accent-rgb), 0.16) 0px, rgba(var(--mode-accent-rgb), 0.16) 5px, transparent 5px, transparent 42px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-image: repeating-linear-gradient(115deg, rgba(var(--mode-accent-rgb), 0.088) 0px, rgba(var(--mode-accent-rgb), 0.088) 5px, transparent 5px, transparent 42px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
 }
 
 .app-shell.theme-gym .main-content {
-  background-image: repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.20) 0px, rgba(var(--mode-accent-rgb), 0.20) 13px, transparent 13px, transparent 32px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-image: repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.11) 0px, rgba(var(--mode-accent-rgb), 0.11) 13px, transparent 13px, transparent 32px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
 }
 
 .app-shell.theme-health .main-content {
@@ -788,7 +918,7 @@ select option {
 }
 
 .app-shell.theme-finance .main-content {
-  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.30) 1.6px, transparent 2px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.165) 1.6px, transparent 2px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
   background-size: 20px 20px, auto;
 }
 
@@ -797,11 +927,11 @@ select option {
 }
 
 .app-shell.theme-reading .main-content {
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(var(--mode-accent-rgb), 0.15) 34px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(var(--mode-accent-rgb), 0.083) 34px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
 }
 
 .app-shell.theme-discipline .main-content {
-  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.18) 0px, rgba(var(--mode-accent-rgb), 0.18) 1.5px, transparent 1.5px, transparent 30px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.18) 0px, rgba(var(--mode-accent-rgb), 0.18) 1.5px, transparent 1.5px, transparent 30px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
 }
 
 .app-shell.theme-family .main-content {
@@ -813,7 +943,7 @@ select option {
 }
 
 .app-shell.theme-calendar .main-content {
-  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.17) 0px, rgba(var(--mode-accent-rgb), 0.17) 1.5px, transparent 1.5px, transparent 62px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.17) 0px, rgba(var(--mode-accent-rgb), 0.17) 1.5px, transparent 1.5px, transparent 62px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
 }
 
 /* ============ OVERVIEW MODE-CARD IDENTITY ============
@@ -925,6 +1055,7 @@ footer {
   font-weight: 700;
   letter-spacing: var(--mode-tracking, 0.13em);
   text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   transition: color 0.4s ease, letter-spacing 0.3s ease;
 }
 
@@ -945,12 +1076,14 @@ footer {
   color: var(--text-primary);
   font-size: clamp(24px, 3.4vw, 32px);
   letter-spacing: -0.5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .page-header p {
   margin: 0;
   color: var(--text-secondary);
   font-size: 13px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .page-header > button {
@@ -1748,6 +1881,73 @@ footer {
   filter: brightness(1.2);
 }
 
+.chat-image-file-input {
+  display: none;
+}
+
+.chat-attach-button {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.chat-attach-button:hover {
+  color: rgb(var(--mode-accent-rgb));
+  background: rgba(var(--mode-accent-rgb), 0.12);
+}
+
+.chat-image-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.chat-image-preview img {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.chat-image-preview span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+}
+
+.chat-image-preview button {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.chat-image-preview button:hover {
+  color: #ff7272;
+}
+
 .chat-composer {
   flex-shrink: 0;
   min-height: 58px;
@@ -2134,31 +2334,27 @@ footer {
   inset: 0;
   z-index: 1500;
   display: flex;
-  justify-content: flex-end;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(2px);
+  background: var(--bg);
   animation: fadeUp 0.18s ease;
 }
 
 .chat-overlay-panel {
-  width: min(480px, 94vw);
+  width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg);
-  border-left: 1px solid var(--border);
-  box-shadow: -20px 0 50px rgba(0, 0, 0, 0.35);
-  animation: chatSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: chatFadeIn 0.2s ease;
 }
 
-@keyframes chatSlideIn {
+@keyframes chatFadeIn {
   from {
-    transform: translateX(24px);
     opacity: 0;
+    transform: scale(0.99);
   }
   to {
-    transform: translateX(0);
     opacity: 1;
+    transform: scale(1);
   }
 }
 
@@ -2202,8 +2398,14 @@ footer {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
   padding: 16px 18px 0;
   overflow: hidden;
+}
+
+.chat-overlay-body .chat-page {
+  width: 100%;
+  max-width: 780px;
 }
 
 .chat-overlay-body .chat-page {
@@ -3020,6 +3222,108 @@ footer {
   font-weight: 600;
 }
 
+.skill-video-section {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.skill-recent-heading svg {
+  position: relative;
+  top: 2px;
+  margin-right: 3px;
+}
+
+.skill-video-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+
+.skill-video-item video {
+  width: 100%;
+  aspect-ratio: 9 / 12;
+  object-fit: cover;
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: #000;
+}
+
+.skill-video-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.skill-video-item-footer span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.skill-video-item-footer button {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.skill-video-item-footer button:hover {
+  color: #ff7272;
+}
+
+.skill-video-uploader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skill-video-file-input {
+  display: none;
+}
+
+.skill-video-uploader input[type="text"],
+.skill-video-uploader input:not([type]) {
+  flex: 1;
+  min-width: 140px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: var(--surface-input);
+  color: var(--text-primary);
+  font-size: 11.5px;
+}
+
+.skill-video-uploader button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  color: var(--text-on-accent);
+  background: linear-gradient(135deg, rgb(var(--mode-accent-rgb)), rgb(var(--mode-accent2-rgb)));
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.skill-video-uploader button:disabled {
+  opacity: 0.4;
+}
+
 .skill-recent {
   display: flex;
   flex-direction: column;
@@ -3146,4 +3450,533 @@ footer {
   margin: 0;
   font-size: 1rem;
   flex: 1;
+}
+
+/* ============ GAME FEEL: toasts + button/action "juice" ============ */
+/* Dylan asked for the app to feel like a videogame — concretely, motion and
+   feedback on actions (XP bars filling, level-up flashes, unlock toasts),
+   not a visual re-skin (that's the separate design-system layer below). */
+
+.game-toast-stack {
+  position: fixed;
+  top: 22px;
+  right: 22px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.game-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+  max-width: 320px;
+  padding: 10px 16px 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  background: var(--surface-strong);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  cursor: pointer;
+  text-align: left;
+  animation: toastPopIn 0.32s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.game-toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.game-toast-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.game-toast-copy strong {
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  font-weight: 700;
+}
+
+.game-toast-copy span:last-child {
+  font-size: 12.5px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-toast-levelup .game-toast-icon,
+.game-toast-levelup .game-toast-copy strong {
+  color: #fbbf24;
+}
+.game-toast-levelup .game-toast-icon {
+  background: rgba(251, 191, 36, 0.16);
+}
+
+.game-toast-badge .game-toast-icon,
+.game-toast-badge .game-toast-copy strong {
+  color: #a855f7;
+}
+.game-toast-badge .game-toast-icon {
+  background: rgba(168, 85, 247, 0.16);
+}
+
+.game-toast-task .game-toast-icon,
+.game-toast-task .game-toast-copy strong {
+  color: #22c55e;
+}
+.game-toast-task .game-toast-icon {
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.game-toast-goal .game-toast-icon,
+.game-toast-goal .game-toast-copy strong {
+  color: rgb(var(--mode-accent-rgb, 96, 165, 250));
+}
+.game-toast-goal .game-toast-icon {
+  background: rgba(var(--mode-accent-rgb, 96, 165, 250), 0.16);
+}
+
+@keyframes toastPopIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* Global press-down feedback — every clickable control gets a satisfying
+   "pressed" micro-interaction instead of just a hover color change. */
+button,
+.assistant-pill,
+.assistant-send,
+.icon-nav-button,
+.skill-pill,
+.chat-attach-button {
+  transition: transform 0.12s ease, filter 0.12s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+button:active,
+.assistant-pill:active,
+.assistant-send:active,
+.icon-nav-button:active,
+.skill-pill:active,
+.chat-attach-button:active {
+  transform: scale(0.94);
+}
+
+button:disabled:active {
+  transform: none;
+}
+
+/* Skill XP bar: more "fill up" bounce than a flat linear ease, plus a soft
+   glow so leveling up reads as an event, not just a number changing. */
+.skill-xp-bar-fill {
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 10px rgba(var(--mode-accent-rgb), 0.55);
+}
+
+/* ============ DESIGN SYSTEMS (global skin, independent of mode color) ============ */
+/* A mode theme (.theme-{key}) still owns accent color, glow color, and
+   content texture. A design system (.design-{key}) owns HOW the app is
+   built around that color: chrome font, corner sharpness, border weight,
+   and a background atmosphere texture. Both classes sit on the same
+   element (see App.jsx themeClass), so these rules intentionally only set
+   properties the mode rules don't, and are ordered after the THEME section
+   so they win ties on the properties they do share (font/radius/border). */
+
+/* Minimal Glass is the default and deliberately has no overrides here —
+   it IS today's look. Nothing to add. */
+
+/* --- Neon Arcade --- */
+.app-shell.design-neon-arcade,
+.app-root.design-neon-arcade {
+  /* Signature color — overrides whichever of the 9 modes is active, on
+     purpose. This design system IS a magenta/cyan arcade cabinet no matter
+     which life area you're in; mode identity still shows up in which icon
+     is highlighted and what the AI talks about, just not in hue here. */
+  --mode-accent-rgb: 255, 0, 200;
+  --mode-accent2-rgb: 0, 229, 255;
+  --bg-glow-1: rgba(255, 0, 200, 0.28);
+  --bg-glow-2: rgba(0, 229, 255, 0.18);
+  --bg: #0a0014;
+  --mode-heading-font: 'Orbitron', var(--font-sans);
+  --mode-body-font: 'Space Grotesk', var(--font-sans);
+  --mode-radius-scale: 1.1;
+  --mode-border-width: 2px;
+  --mode-tracking: 0.12em;
+}
+
+@keyframes neonPulse {
+  0%, 100% { box-shadow: inset 0 0 36px rgba(var(--mode-accent-rgb), 0.14), 0 0 18px rgba(var(--mode-accent2-rgb), 0.1); }
+  50% { box-shadow: inset 0 0 52px rgba(var(--mode-accent-rgb), 0.26), 0 0 30px rgba(var(--mode-accent2-rgb), 0.22); }
+}
+
+.app-shell.design-neon-arcade .main-content {
+  position: relative;
+}
+
+.app-shell.design-neon-arcade .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.05) 0px, rgba(var(--mode-accent-rgb), 0.05) 1px, transparent 1px, transparent 46px),
+    repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.05) 0px, rgba(var(--mode-accent-rgb), 0.05) 1px, transparent 1px, transparent 46px);
+}
+
+.app-shell.design-neon-arcade .sidebar,
+.app-shell.design-neon-arcade .top-settings-bar {
+  animation: neonPulse 3.2s ease-in-out infinite;
+}
+
+.app-shell.design-neon-arcade .icon-nav-button.active {
+  box-shadow: 0 0 0 1px rgba(var(--mode-accent2-rgb), 0.6), 0 0 16px rgba(var(--mode-accent2-rgb), 0.5);
+}
+
+.app-shell.design-neon-arcade .assistant-panel,
+.app-shell.design-neon-arcade .mode-card,
+.app-shell.design-neon-arcade .settings-card,
+.app-shell.design-neon-arcade .skill-card,
+.app-shell.design-neon-arcade .goal-card {
+  box-shadow: 0 0 0 1px rgba(var(--mode-accent-rgb), 0.3), 0 0 18px rgba(var(--mode-accent-rgb), 0.18);
+}
+
+/* --- Command Deck --- */
+.app-shell.design-command-deck,
+.app-root.design-command-deck {
+  /* Signature color — cockpit cyan/blue regardless of mode, same reasoning
+     as Neon Arcade's magenta override above. */
+  --mode-accent-rgb: 34, 211, 238;
+  --mode-accent2-rgb: 59, 130, 246;
+  --bg-glow-1: rgba(34, 211, 238, 0.2);
+  --bg-glow-2: rgba(59, 130, 246, 0.14);
+  --bg: #030b14;
+  --mode-heading-font: 'JetBrains Mono', monospace;
+  --mode-body-font: 'JetBrains Mono', monospace;
+  --mode-radius-scale: 0.15;
+  --mode-border-width: 2px;
+  --mode-tracking: 0.08em;
+}
+
+/* Angular, corner-notched panels instead of rounded ones — the single
+   biggest "this is different software" signal for a HUD aesthetic. Applied
+   via clip-path rather than border-radius, since the whole point is that
+   these corners are CUT, not curved. */
+.app-shell.design-command-deck .mode-card,
+.app-shell.design-command-deck .settings-card,
+.app-shell.design-command-deck .skill-card,
+.app-shell.design-command-deck .goal-card,
+.app-shell.design-command-deck .form-card {
+  clip-path: polygon(
+    14px 0%, 100% 0%, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0% 100%, 0% 14px
+  );
+}
+
+.app-shell.design-command-deck .main-content {
+  position: relative;
+}
+
+.app-shell.design-command-deck .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(var(--mode-accent-rgb), 0.05) 0px,
+    rgba(var(--mode-accent-rgb), 0.05) 1px,
+    transparent 1px,
+    transparent 5px
+  );
+}
+
+.app-shell.design-command-deck .sidebar,
+.app-shell.design-command-deck .top-settings-bar {
+  border-color: rgba(var(--mode-accent-rgb), 0.45);
+  box-shadow: 0 0 14px rgba(var(--mode-accent-rgb), 0.16);
+}
+
+.app-shell.design-command-deck .assistant-panel,
+.app-shell.design-command-deck .mode-card,
+.app-shell.design-command-deck .settings-card,
+.app-shell.design-command-deck .skill-card,
+.app-shell.design-command-deck .goal-card {
+  border-color: rgba(var(--mode-accent-rgb), 0.4);
+}
+
+/* --- Retro Terminal --- */
+.app-shell.design-retro-terminal,
+.app-root.design-retro-terminal {
+  /* Signature color — classic phosphor green on near-black, regardless of
+     mode. This is the whole point of a terminal aesthetic: one color. */
+  --mode-accent-rgb: 51, 255, 51;
+  --mode-accent2-rgb: 0, 204, 68;
+  --bg-glow-1: rgba(51, 255, 51, 0.14);
+  --bg-glow-2: rgba(51, 255, 51, 0.08);
+  --bg: #000603;
+  --mode-heading-font: 'JetBrains Mono', monospace;
+  --mode-body-font: 'JetBrains Mono', monospace;
+  --mode-radius-scale: 0.1;
+  --mode-border-width: 1px;
+  --mode-tracking: 0.04em;
+}
+
+@keyframes terminalBlink {
+  0%, 45% { opacity: 1; }
+  50%, 95% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.app-shell.design-retro-terminal .page-header h1::after {
+  content: '_';
+  display: inline-block;
+  margin-left: 4px;
+  animation: terminalBlink 1s step-end infinite;
+}
+
+.app-shell.design-retro-terminal {
+  --design-saturate: 0.85;
+  --design-contrast: 1.06;
+}
+
+.app-shell.design-retro-terminal .main-content {
+  position: relative;
+}
+
+.app-shell.design-retro-terminal .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.16) 0px,
+    rgba(0, 0, 0, 0.16) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.app-shell.design-retro-terminal .sidebar,
+.app-shell.design-retro-terminal .top-settings-bar {
+  border-color: rgba(var(--mode-accent-rgb), 0.5);
+}
+
+/* --- Comic Pop --- */
+.app-shell.design-comic-pop,
+.app-root.design-comic-pop {
+  /* Signature color — comic-primary red/yellow regardless of mode. Kept the
+     background dark rather than flipping to comic-book "paper" white: a
+     full light-mode inversion would need every text-color token re-derived
+     too (they're keyed to the dark/light appearance setting, not mode or
+     design system), and getting that wrong risks exactly the "text is
+     unreadable" bug from last session. Ink-black borders + bold color +
+     halftone gets most of the comic feeling without that risk. */
+  --mode-accent-rgb: 255, 59, 48;
+  --mode-accent2-rgb: 255, 204, 0;
+  --bg-glow-1: rgba(255, 59, 48, 0.18);
+  --bg-glow-2: rgba(255, 204, 0, 0.12);
+  --bg: #140d05;
+  --mode-heading-font: 'Anton', var(--font-sans);
+  --mode-body-font: 'Fredoka', var(--font-sans);
+  --mode-radius-scale: 1.4;
+  --mode-border-width: 3px;
+  --mode-tracking: 0.02em;
+}
+
+.app-shell.design-comic-pop button,
+.app-shell.design-comic-pop .mode-chat-launcher,
+.app-shell.design-comic-pop .assistant-pill {
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.12s ease, background 0.15s ease;
+}
+
+.app-shell.design-comic-pop button:hover,
+.app-shell.design-comic-pop .mode-chat-launcher:hover,
+.app-shell.design-comic-pop .assistant-pill:hover {
+  transform: rotate(-1deg) scale(1.03);
+}
+
+.app-shell.design-comic-pop .main-content {
+  position: relative;
+}
+
+.app-shell.design-comic-pop .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.16) 1.6px, transparent 1.6px);
+  background-size: 14px 14px;
+}
+
+.app-shell.design-comic-pop .sidebar,
+.app-shell.design-comic-pop .top-settings-bar {
+  border-color: rgba(10, 8, 4, 0.9);
+  box-shadow: 0 3px 0 rgba(var(--mode-accent2-rgb), 0.7);
+}
+
+.app-shell.design-comic-pop .assistant-panel,
+.app-shell.design-comic-pop .mode-card,
+.app-shell.design-comic-pop .settings-card,
+.app-shell.design-comic-pop .skill-card,
+.app-shell.design-comic-pop .goal-card,
+.app-shell.design-comic-pop .mode-chat-launcher {
+  border-color: rgba(10, 8, 4, 0.85);
+  box-shadow: 3px 3px 0 rgba(var(--mode-accent2-rgb), 0.55);
+}
+
+/* Settings page: design-system picker cards */
+.design-system-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.design-system-card {
+  text-align: left;
+  padding: 16px;
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+}
+
+.design-system-card:hover {
+  background: var(--surface-hover);
+}
+
+.design-system-card:active {
+  transform: scale(0.98);
+}
+
+.design-system-card.active {
+  border-color: rgb(var(--mode-accent-rgb));
+  background: rgba(var(--mode-accent-rgb), 0.1);
+}
+
+.design-system-card h4 {
+  margin: 0 0 2px;
+  font-size: 14px;
+}
+
+.design-system-card .design-system-tagline {
+  display: block;
+  font-size: 11px;
+  color: rgb(var(--mode-accent-rgb));
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.design-system-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ============ MODE CHAT LAUNCHER (dedicated per-mode chat entry point) ============ */
+.mode-chat-launcher {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin: 18px 0 8px;
+  padding: 14px 18px;
+  border-radius: calc(14px * var(--mode-radius-scale, 1));
+  border: var(--mode-border-width, 1px) solid var(--border);
+  background: linear-gradient(135deg, rgba(var(--mode-accent-rgb), 0.12), rgba(var(--mode-accent2-rgb), 0.06));
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.mode-chat-launcher:hover {
+  border-color: rgba(var(--mode-accent-rgb), 0.45);
+  background: linear-gradient(135deg, rgba(var(--mode-accent-rgb), 0.18), rgba(var(--mode-accent2-rgb), 0.09));
+}
+
+.mode-chat-launcher-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  color: rgb(var(--mode-accent-rgb));
+  background: rgba(var(--mode-accent-rgb), 0.15);
+}
+
+.mode-chat-launcher-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mode-chat-launcher-copy strong {
+  font-size: 14.5px;
+  font-family: var(--mode-heading-font, inherit);
+  color: var(--text-primary);
+}
+
+.mode-chat-launcher-copy span {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.mode-chat-launcher-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgb(var(--mode-accent-rgb));
+  flex-shrink: 0;
+}
+
+/* ============ COLOR PALETTES (global saturation/brightness mood, session 8) ============ */
+/* A third independent "skin" dimension, alongside mode (color identity) and
+   design system (font/shape). Deliberately NOT hue-rotation — shifting hue
+   by one fixed amount lands differently on each of the 9 modes' base colors
+   and produces muddy, unpredictable results. Saturation/brightness/contrast
+   multipliers stay predictable across every mode's hue. Vivid (default) is
+   intentionally a no-op — it's today's look. */
+
+.app-shell.palette-muted {
+  --palette-saturate: 0.6;
+}
+
+.app-shell.palette-rich {
+  --palette-saturate: 1.15;
+  --palette-brightness: 0.94;
+  --palette-contrast: 1.08;
+}
+
+.app-shell.palette-pastel {
+  --palette-saturate: 0.7;
+  --palette-brightness: 1.1;
+  --palette-contrast: 0.95;
+}
+
+.app-shell.palette-high-contrast {
+  --palette-saturate: 1.25;
+  --palette-contrast: 1.2;
 }

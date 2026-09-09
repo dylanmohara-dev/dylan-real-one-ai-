@@ -8,19 +8,68 @@ const router = Router()
 const OLLAMA_URL = 'http://127.0.0.1:11434/v1/chat/completions'
 const MODEL = 'llama3.2:3b'
 
+// Vision-capable model for image-attached messages. llama3.2:3b is
+// text-only, so any message with an attached image is routed to this model
+// instead. Not confirmed installed as of this writing — Dylan needs to run
+// `ollama pull llava` (or whichever vision model he prefers: moondream,
+// bakllava, llama3.2-vision) and update this constant to match the exact
+// name `ollama list` shows, or image messages will fail with a clear error
+// rather than silently doing nothing.
+const VISION_MODEL = 'llava'
+
 // Each life area gets its own voice AND its own answer structure, not just a
 // different accent color in the UI — this is what actually shows up in the
-// text the model writes.
+// text the model writes. Pushed harder (session 8) after Dylan reported the
+// modes still sounded too similar to each other — each entry now names what
+// NOT to sound like, not just what to sound like, since a single positive
+// instruction is easy for a 3B model to drift away from.
 const MODE_STYLE = {
-  school: 'Answer like a study coach: short numbered steps or a checklist. Call out deadlines when Dylan mentions them.',
-  sports: 'Answer like a coach: brief and energetic. A short drill list or a quick plan, not long paragraphs.',
-  gym: 'Answer like a trainer: sets/reps/rest broken onto their own lines when relevant. Short and direct, no fluff.',
-  health: 'Keep it short and supportive: a quick summary of what was logged, plus one small, concrete next step.',
-  finance: 'Answer like a numbers-first analyst: concrete figures, short line items, and one bottom-line takeaway at the end.',
-  skills: 'Answer like a practice coach: one focused suggestion at a time, framed around today\'s practice session.',
-  reading: 'Write in a more reflective, literary tone. Slightly longer sentences are fine here — this is the one area that rewards it.',
-  discipline: 'Be blunt and short, like a checklist being read out loud. No hedging, no encouragement fluff.',
-  family: 'Write warmly and briefly. This is about people, not tasks or metrics.',
+  school: 'Answer like a sharp study coach: short numbered steps or a checklist, always call out deadlines. Never write flowing paragraphs here — if it is not a step or a list item, cut it.',
+  sports: 'Answer like a loud, energetic coach mid-practice: short punchy sentences, imperative verbs ("Run it back", "Push the pace"). A drill list or a quick plan, never a reflective or analytical tone.',
+  gym: 'Answer like a strength coach: sets/reps/rest on their own lines, numbers first. Zero fluff, zero motivational filler — just the program.',
+  health: 'Keep it short, warm, and clinical-lite: one line summarizing what was logged, one small concrete next step. No jargon, no lecturing.',
+  finance: 'Answer like a numbers-first analyst: concrete figures, short line items, one bottom-line takeaway at the end. Cold and precise — no encouragement, no hedging, just the math and the call.',
+  skills: 'Answer like a practice coach: one focused suggestion at a time, framed around today\'s practice session. Forward-looking and specific — never generic "keep practicing" filler.',
+  reading: 'Write in a genuinely literary, reflective register — longer, more considered sentences are welcome here, the only area that rewards them. Never reduce this to a checklist or bullet points.',
+  discipline: 'Be blunt, short, almost cold — like a drill sergeant reading a checklist aloud. No hedging, no encouragement, no "great job," just what was done and what is next.',
+  family: 'Write warmly, briefly, and personally — like a thoughtful friend, not a task manager. Never talk about people in terms of metrics or completion percentages.',
+}
+
+// Small per-mode temperature spread so the actual sampling behavior differs
+// too, not just the wording of the instructions — Discipline/Finance stay
+// tight and repeatable, Reading/Family get more room to vary phrasing.
+const MODE_TEMPERATURE = {
+  school: 0.2,
+  sports: 0.35,
+  gym: 0.2,
+  health: 0.25,
+  finance: 0.1,
+  skills: 0.25,
+  reading: 0.55,
+  discipline: 0.1,
+  family: 0.45,
+}
+
+// Named expert persona per life area — this is what actually makes each
+// mode feel like a different specialist rather than the same assistant with
+// a tone tweak. Keep these names in sync with assistantName/assistantTitle
+// in src/data/lifeModes.js so the UI and the model agree on who's talking.
+const MODE_PERSONA = {
+  school: { name: 'The Professor', expertise: 'a world-class academic strategist and study coach who has helped students master tough coursework and hit deadlines' },
+  sports: { name: 'The Coach', expertise: 'an elite athletic performance coach who has trained competitive athletes on technique, conditioning, and game plans' },
+  gym: { name: 'The Trainer', expertise: 'a strength and conditioning expert who programs serious training splits and knows sets, reps, and recovery cold' },
+  health: { name: 'The Physician', expertise: 'a health and wellness expert versed in sleep, nutrition, and recovery science — not a replacement for real medical care, and you say so when something sounds like it needs a doctor' },
+  finance: { name: 'The Analyst', expertise: 'a sharp financial analyst who thinks in concrete numbers, risk, and net worth, the way a top investor would' },
+  skills: { name: 'The Mentor', expertise: 'an expert in deliberate practice and skill acquisition who knows how to turn daily reps into real mastery' },
+  reading: { name: 'The Librarian', expertise: 'a well-read literary expert with sharp taste who talks about books with real insight, not surface-level summary' },
+  discipline: { name: 'The Enforcer', expertise: 'a no-excuses accountability expert who cares about follow-through above everything else' },
+  family: { name: 'The Anchor', expertise: 'an expert in family relationships, communication, and staying genuinely connected' },
+}
+
+function personaFraming(modeLabel) {
+  const persona = modeLabel ? MODE_PERSONA[modeLabel] : null
+  if (!persona) return ''
+  return `For this conversation you are "${persona.name}" — ${persona.expertise}. Let that expertise show in the substance and confidence of your answers; don't announce your own name or title back to Dylan every message.`
 }
 
 // Ollama sometimes appends stray text after the JSON object, or (rarely, on
@@ -59,12 +108,87 @@ function extractFirstJsonObject(text) {
 
 router.post('/chat', async (req, res) => {
   try {
-    const { messages, mode } = req.body
+    const { messages, mode, image } = req.body
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'Messages are required' })
     }
 
     const latestMessage = messages[messages.length - 1]?.content || ''
+
+    // Image-attached messages are a completely separate path — isolated the
+    // same way content requests are, so this new (and currently unverified,
+    // pending a vision model actually being installed) behavior can't affect
+    // the existing text-only chat flow at all.
+    if (image) {
+      // Check what's actually installed BEFORE spending a request on a model
+      // that isn't there — this turns "some HTTP error came back" into an
+      // unmistakable, specific instruction. Ollama's native /api/tags (not
+      // the OpenAI-compat endpoint) is what lists installed models.
+      let installedModels = []
+      try {
+        const tagsResponse = await fetch('http://127.0.0.1:11434/api/tags')
+        if (tagsResponse.ok) {
+          const tagsData = await tagsResponse.json()
+          installedModels = (tagsData.models || []).map((m) => m.name)
+        }
+      } catch {
+        throw new Error(
+          "Could not reach Ollama at all (http://127.0.0.1:11434). Is it running? Try `ollama serve` " +
+            'or open the Ollama app, then send the image again.'
+        )
+      }
+
+      const hasVisionModel = installedModels.some(
+        (name) => name === VISION_MODEL || name.startsWith(`${VISION_MODEL}:`)
+      )
+
+      if (!hasVisionModel) {
+        throw new Error(
+          `No vision model installed. Dylan AI is currently set to look for "${VISION_MODEL}", but ` +
+            `\`ollama list\` shows: ${installedModels.length ? installedModels.join(', ') : '(nothing installed at all)'}. ` +
+            `Run \`ollama pull ${VISION_MODEL}\` (or pull a different vision model like moondream or llama3.2-vision and ` +
+            'tell me its exact name so I can update VISION_MODEL in routes/chat.js to match).'
+        )
+      }
+
+      const modeLabelForImage = mode && mode !== 'general' ? mode : null
+      const visionPersona = personaFraming(modeLabelForImage)
+      const visionSystemPrompt = `You are Dylan AI. Dylan sent an image${modeLabelForImage ? ` while in his "${modeLabelForImage}" area` : ''}. ${visionPersona ? `${visionPersona} ` : ''}Describe what's relevant in it and answer his message about it directly and plainly. No JSON, no code fences.`
+
+      const visionResponse = await fetch(OLLAMA_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: VISION_MODEL,
+          messages: [
+            { role: 'system', content: visionSystemPrompt },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: latestMessage || 'What do you see in this image?' },
+                { type: 'image_url', image_url: { url: image } },
+              ],
+            },
+          ],
+          temperature: 0.4,
+          max_tokens: 700,
+        }),
+      })
+
+      if (!visionResponse.ok) {
+        const bodyText = await visionResponse.text().catch(() => '')
+        throw new Error(
+          `Local AI returned ${visionResponse.status} for the vision model "${VISION_MODEL}". ` +
+            `Make sure it's pulled (\`ollama pull ${VISION_MODEL}\`) and the name matches \`ollama list\` exactly. ${bodyText.slice(0, 200)}`
+        )
+      }
+
+      const visionData = await visionResponse.json()
+      const visionReply = visionData.choices?.[0]?.message?.content?.trim() || 'No response from Dylan AI.'
+
+      return res.json({ reply: visionReply, actionPerformed: false, skipMemoryCheck: true })
+    }
+
     const directAction = detectCommand(latestMessage)
 
     if (directAction) {
@@ -88,7 +212,8 @@ router.post('/chat', async (req, res) => {
       const contentSystemPrompt = `
 You are Dylan AI, Dylan's personal AI operating system.
 ${modeLabel ? `You are currently in Dylan's "${modeLabel}" area — keep it relevant to ${modeLabel} unless Dylan clearly asks about something else.
-${modeStyle ? `Style for this area: ${modeStyle}
+${personaFraming(modeLabel) ? `${personaFraming(modeLabel)}
+` : ''}${modeStyle ? `Style for this area: ${modeStyle}
 ` : ''}` : ''}
 Dylan asked you to write, draft, plan, explain, or brainstorm something. Write the complete answer as plain text — no JSON, no code fences, no markdown headers or asterisks. Use plain dashes for lists and blank lines between sections. This is a single response, not a conversation — write the whole thing now and stop; never simulate additional turns, progress updates, or "steps completed."
 `
@@ -98,7 +223,7 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
         body: JSON.stringify({
           model: MODEL,
           messages: [{ role: 'system', content: contentSystemPrompt }, ...messages],
-          temperature: 0.4,
+          temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.4) : 0.4,
           max_tokens: 900,
         }),
       })
@@ -142,7 +267,7 @@ ${liveContext}
 
     const systemPrompt = `
 You are Dylan AI, Dylan's personal AI operating system.
-${modeLabel ? `\nYou are currently in Dylan's "${modeLabel}" area — keep your focus and suggestions relevant to ${modeLabel} unless Dylan clearly asks about something else.\n${modeStyle ? `Style for this area: ${modeStyle}\n` : ''}` : ''}
+${modeLabel ? `\nYou are currently in Dylan's "${modeLabel}" area — keep your focus and suggestions relevant to ${modeLabel} unless Dylan clearly asks about something else.\n${personaFraming(modeLabel) ? `${personaFraming(modeLabel)}\n` : ''}${modeStyle ? `Style for this area: ${modeStyle}\n` : ''}` : ''}
 You have access to Dylan's tasks, goals, notes, and memories, plus live data from any of Gmail, Google Drive, and Slack that Dylan has connected (shown below under CURRENT DYLAN AI DATA when connected). If a section like GMAIL or SLACK is missing entirely, that integration is not connected — say so plainly rather than guessing at its contents.
 
 Be concise, useful, organized and action-oriented.
@@ -222,7 +347,7 @@ ${context}
       body: JSON.stringify({
         model: MODEL,
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        temperature: 0.2,
+        temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.2) : 0.2,
         max_tokens: 900,
       }),
     })
@@ -259,8 +384,15 @@ ${context}
       skipMemoryCheck: actionResult.performed,
     })
   } catch (error) {
+    // This was the other half of the "real errors reach Dylan" fix from
+    // last session — the CLIENT side was fixed to show error.message
+    // instead of a generic string, but the SERVER was still discarding
+    // every specific error (including the vision pre-flight checks above)
+    // and always sending back this one hardcoded string. Every specific
+    // error message built into this route was silently thrown away here
+    // until now.
     console.error('Chat failed:', error)
-    res.status(500).json({ error: 'Could not connect to the local AI.' })
+    res.status(500).json({ error: error.message || 'Could not connect to the local AI.' })
   }
 })
 

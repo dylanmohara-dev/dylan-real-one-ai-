@@ -21,7 +21,7 @@ export function useAppData() {
   const [financeNetWorth, setFinanceNetWorth] = useState(0)
   const [financeHistory, setFinanceHistory] = useState([])
   const [skills, setSkills] = useState([])
-  const [maxActiveSkills, setMaxActiveSkills] = useState(3)
+  const [toasts, setToasts] = useState([])
 
   const [taskInput, setTaskInput] = useState('')
   const [taskPriority, setTaskPriority] = useState('medium')
@@ -178,9 +178,11 @@ export function useAppData() {
       setFinanceNetWorth(financeData.netWorth || 0)
       setFinanceHistory(financeData.history || [])
       setSkills(skillsData.skills || [])
-      setMaxActiveSkills(skillsData.maxActiveSkills || 3)
+
+      return { skills: skillsData.skills || [], goals: goalData.goals || [] }
     } catch (error) {
       setErrorMessage(error.message)
+      return null
     }
   }
 
@@ -202,13 +204,76 @@ export function useAppData() {
     }, 4000)
   }
 
-  async function sendMessage(text = message) {
+  // "Game feel" layer: short-lived celebration toasts for level-ups, badge
+  // unlocks, and completions — stacked independently of the single-line
+  // success/error banner above, since those are status messages and these
+  // are meant to feel like a reward, not a system notice.
+  function pushToast(toast) {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    setToasts((prev) => [...prev, { id, kind: 'info', ...toast }])
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((item) => item.id !== id))
+    }, toast.duration || 3400)
+  }
+
+  function dismissToast(id) {
+    setToasts((prev) => prev.filter((item) => item.id !== id))
+  }
+
+  function detectSkillMilestones(previousSkills, nextSkills) {
+    if (!Array.isArray(nextSkills)) return
+
+    for (const nextSkill of nextSkills) {
+      const prevSkill = (previousSkills || []).find((item) => item.id === nextSkill.id)
+      const prevLevel = prevSkill?.level || 1
+      const prevBadgeCount = prevSkill?.badges?.length || 0
+
+      if (nextSkill.level > prevLevel) {
+        pushToast({
+          kind: 'levelup',
+          title: 'LEVEL UP',
+          message: `${nextSkill.name} reached Level ${nextSkill.level}`,
+        })
+      }
+
+      const newBadges = (nextSkill.badges || []).slice(prevBadgeCount)
+      newBadges.forEach((badge) => {
+        pushToast({
+          kind: 'badge',
+          title: 'BADGE UNLOCKED',
+          message: badge.label,
+        })
+      })
+    }
+  }
+
+  function detectGoalMilestones(previousGoals, nextGoals) {
+    if (!Array.isArray(nextGoals)) return
+
+    for (const nextGoal of nextGoals) {
+      const prevGoal = (previousGoals || []).find((item) => item.id === nextGoal.id)
+      const prevProgress = prevGoal?.progress ?? 0
+
+      if (nextGoal.progress >= 100 && prevProgress < 100) {
+        pushToast({
+          kind: 'goal',
+          title: 'GOAL COMPLETE',
+          message: nextGoal.title,
+        })
+      }
+    }
+  }
+
+  async function sendMessage(text = message, imageDataUrl = null) {
     const trimmed = text.trim()
 
-    if (!trimmed || loading) return
+    if ((!trimmed && !imageDataUrl) || loading) return
 
     const threadKey = activeMode ? activeMode.key : 'general'
-    const userMessage = { role: 'user', content: trimmed }
+    const userMessage = {
+      role: 'user',
+      content: trimmed || (imageDataUrl ? '[Sent an image]' : ''),
+    }
     const priorMessages = chatThreads[threadKey] || []
 
     setChatThreads((prev) => ({
@@ -229,6 +294,7 @@ export function useAppData() {
             allowActions: settings.aiActions,
           },
           mode: threadKey,
+          image: imageDataUrl || undefined,
         }),
       })
 
@@ -244,7 +310,13 @@ export function useAppData() {
       }))
 
       if (chatResult.actionPerformed) {
-        await loadData()
+        const previousSkills = skills
+        const previousGoals = goals
+        const fresh = await loadData()
+        if (fresh) {
+          detectSkillMilestones(previousSkills, fresh.skills)
+          detectGoalMilestones(previousGoals, fresh.goals)
+        }
       }
 
       /*
@@ -269,13 +341,20 @@ export function useAppData() {
     } catch (error) {
       showError(error.message)
 
+      // Surface the actual backend error in the transcript itself, not just
+      // a generic line — a vanishing toast was hiding useful diagnostics
+      // (e.g. "vision model not installed") that Dylan had no way to see
+      // after the fact.
+      const isNetworkError = error.message?.toLowerCase().includes('fetch')
       setChatThreads((prev) => ({
         ...prev,
         [threadKey]: [
           ...(prev[threadKey] || []),
           {
             role: 'assistant',
-            content: 'I could not connect to the Dylan AI backend.',
+            content: isNetworkError
+              ? 'I could not connect to the Dylan AI backend. Is `npm run dev` running?'
+              : `Something went wrong: ${error.message}`,
           },
         ],
       }))
@@ -386,6 +465,38 @@ export function useAppData() {
       await request(`/skills/${id}`, { method: 'DELETE' })
       await loadData()
       showSuccess('Skill removed.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function uploadSkillVideo(skillId, file, label) {
+    if (!file) return
+
+    setSaving(true)
+    try {
+      const params = new URLSearchParams({ label: label || file.name })
+      const response = await fetch(`${API}/skills/${skillId}/videos?${params.toString()}`, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type || 'video/mp4' },
+        body: file,
+      })
+      const responseData = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(responseData.error || 'Could not upload video')
+
+      setSkills(responseData.skills || [])
+      showSuccess('Video saved.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteSkillVideo(videoId) {
+    try {
+      const responseData = await request(`/skills/videos/${videoId}`, { method: 'DELETE' })
+      setSkills(responseData.skills || [])
     } catch (error) {
       showError(error.message)
     }
@@ -621,12 +732,17 @@ export function useAppData() {
 
   async function toggleTask(task) {
     try {
+      const completing = !task.completed
       await request(`/tasks/${task.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ completed: !task.completed }),
+        body: JSON.stringify({ completed: completing }),
       })
 
       await loadData()
+
+      if (completing) {
+        pushToast({ kind: 'task', title: 'DONE', message: task.title })
+      }
     } catch (error) {
       showError(error.message)
     }
@@ -685,6 +801,7 @@ export function useAppData() {
 
   async function updateGoal(goal, amount) {
     const progress = Math.max(0, Math.min(100, Number(goal.progress || 0) + amount))
+    const justCompleted = progress >= 100 && Number(goal.progress || 0) < 100
 
     try {
       await request(`/goals/${goal.id}`, {
@@ -693,6 +810,10 @@ export function useAppData() {
       })
 
       await loadData()
+
+      if (justCompleted) {
+        pushToast({ kind: 'goal', title: 'GOAL COMPLETE', message: goal.title })
+      }
     } catch (error) {
       showError(error.message)
     }
@@ -858,6 +979,10 @@ export function useAppData() {
     memorySuggestion,
     setMemorySuggestion,
 
+    // toasts (game-feel celebration layer)
+    toasts,
+    dismissToast,
+
     // settings
     settings,
     setSettings,
@@ -946,10 +1071,11 @@ export function useAppData() {
 
     // skills
     skills,
-    maxActiveSkills,
     addSkill,
     removeSkill,
     deleteSkillSession,
+    uploadSkillVideo,
+    deleteSkillVideo,
 
     // overview
     overviewCards,

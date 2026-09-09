@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Bed, Utensils, Droplets, Footprints } from 'lucide-react'
+import ModeChatLauncher from './ModeChatLauncher.jsx'
 
 const CATEGORY_META = {
   sleep: { label: 'Sleep', icon: Bed, placeholder: 'e.g. 7.5 hours' },
@@ -43,7 +44,7 @@ function QuickLogForm({ category, saving, addHealthEntry }) {
   )
 }
 
-export default function HealthPage({ healthEntries, saving, addHealthEntry, deleteHealthEntry }) {
+export default function HealthPage({ healthEntries, saving, addHealthEntry, deleteHealthEntry, assistantContext, openChat }) {
   const sorted = healthEntries.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
   return (
@@ -55,6 +56,8 @@ export default function HealthPage({ healthEntries, saving, addHealthEntry, dele
           <p>Sleep, food, drink, activity — log whatever you've got today.</p>
         </div>
       </div>
+
+      <ModeChatLauncher assistantContext={assistantContext} modeKey="health" openChat={openChat} />
 
       <div className="health-log-grid">
         {Object.keys(CATEGORY_META).map((category) => (

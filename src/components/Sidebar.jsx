@@ -7,6 +7,7 @@ export default function Sidebar({
   userInitial,
   userName,
   assistantContext,
+  modeKey,
   chatMessages,
   message,
   setMessage,
@@ -14,6 +15,8 @@ export default function Sidebar({
   loading,
   onOpenChat,
 }) {
+  const activeModeForAssistant = modeKey ? LIFE_MODES.find((item) => item.key === modeKey) : null
+  const AssistantAvatarIcon = activeModeForAssistant?.icon || Bot
   const iconNav = [
     { key: 'Overview', label: 'Overview', icon: LayoutGrid },
     ...LIFE_MODES.map((mode) => ({
@@ -87,14 +90,14 @@ export default function Sidebar({
       <div className="assistant-panel">
         <div className="assistant-header">
           <div className="assistant-bot-icon">
-            <Bot size={16} strokeWidth={2} />
+            <AssistantAvatarIcon size={16} strokeWidth={2} />
           </div>
 
           <div>
-            <strong>Life assistant</strong>
+            <strong>{assistantContext.assistantName || 'Life assistant'}</strong>
             <span className="assistant-subtitle">
               <span className="assistant-dot" />
-              OWN CONTEXT
+              {assistantContext.assistantTitle || 'OWN CONTEXT'}
             </span>
           </div>
 
@@ -103,11 +106,24 @@ export default function Sidebar({
           </button>
         </div>
 
-        <div className="assistant-bubble">
-          {chatMessages && chatMessages.length
+        {(() => {
+          const latest = chatMessages && chatMessages.length
             ? chatMessages[chatMessages.length - 1].content
-            : assistantContext.message}
-        </div>
+            : assistantContext.message
+          const isLong = latest.length > 220
+          const preview = isLong ? `${latest.slice(0, 220).trim()}…` : latest
+
+          return (
+            <div className="assistant-bubble">
+              {preview}
+              {isLong && (
+                <button className="assistant-bubble-expand" onClick={onOpenChat}>
+                  Read full reply in chat →
+                </button>
+              )}
+            </div>
+          )
+        })()}
 
         <div className="assistant-pills">
           {assistantContext.prompts.map((prompt) => (

@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Flame, Trophy, Award, X, Plus } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Flame, Trophy, Award, X, Plus, Video, Upload } from 'lucide-react'
+import ModeChatLauncher from './ModeChatLauncher.jsx'
 
 function XPBar({ xpIntoLevel, xpForNextLevel }) {
   const percent = Math.max(0, Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100)))
@@ -45,7 +46,63 @@ function AddSkillCard({ saving, addSkill }) {
   )
 }
 
-function SkillCard({ skill, removeSkill, deleteSkillSession }) {
+function VideoUploader({ skillId, saving, uploadSkillVideo }) {
+  const [label, setLabel] = useState('')
+  const inputRef = useRef(null)
+
+  return (
+    <div className="skill-video-uploader">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="video/*"
+        className="skill-video-file-input"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (!file) return
+          uploadSkillVideo(skillId, file, label.trim())
+          setLabel('')
+          event.target.value = ''
+        }}
+      />
+      <input
+        value={label}
+        onChange={(event) => setLabel(event.target.value)}
+        placeholder="Label this clip (e.g. 'Backflip attempt #3')"
+      />
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={saving}
+        title="Upload a video"
+      >
+        <Upload size={13} strokeWidth={2.25} />
+        Add video
+      </button>
+    </div>
+  )
+}
+
+function VideoGallery({ videos, deleteSkillVideo }) {
+  if (!videos.length) return null
+
+  return (
+    <div className="skill-video-gallery">
+      {videos.map((video) => (
+        <div className="skill-video-item" key={video.id}>
+          <video src={`http://localhost:3001/api/skills/videos/${video.id}/file`} controls preload="metadata" />
+          <div className="skill-video-item-footer">
+            <span>{video.label}</span>
+            <button onClick={() => deleteSkillVideo(video.id)} title="Delete video">
+              <X size={12} strokeWidth={2.25} />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SkillCard({ skill, saving, removeSkill, deleteSkillSession, uploadSkillVideo, deleteSkillVideo }) {
   const unit = skill.unit || 'reps'
 
   return (
@@ -99,6 +156,14 @@ function SkillCard({ skill, removeSkill, deleteSkillSession }) {
         </div>
       )}
 
+      <div className="skill-video-section">
+        <span className="skill-recent-heading">
+          <Video size={11} strokeWidth={2.25} /> Proof of practice
+        </span>
+        <VideoGallery videos={skill.videos || []} deleteSkillVideo={deleteSkillVideo} />
+        <VideoUploader skillId={skill.id} saving={saving} uploadSkillVideo={uploadSkillVideo} />
+      </div>
+
       <div className="skill-recent">
         <span className="skill-recent-heading">Recent activity</span>
         {skill.sessions.length ? (
@@ -121,34 +186,42 @@ function SkillCard({ skill, removeSkill, deleteSkillSession }) {
   )
 }
 
-export default function SkillsPage({ skills, maxActiveSkills, saving, addSkill, removeSkill, deleteSkillSession }) {
-  const emptySlots = Math.max(0, maxActiveSkills - skills.length)
-
+export default function SkillsPage({
+  skills,
+  saving,
+  addSkill,
+  removeSkill,
+  deleteSkillSession,
+  uploadSkillVideo,
+  deleteSkillVideo,
+  assistantContext,
+  openChat,
+}) {
   return (
     <div className="page skills-page">
       <div className="page-header">
         <div>
           <span className="eyebrow">SKILLS MODE</span>
           <h1 className="serif">Skills</h1>
-          <p>
-            Track up to {maxActiveSkills} at once. Just tell the AI what you practiced — there's no form to fill in
-            for logging.
-          </p>
+          <p>Track as many as you want. Just tell the AI what you practiced — there's no form to fill in for logging.</p>
         </div>
       </div>
+
+      <ModeChatLauncher assistantContext={assistantContext} modeKey="skills" openChat={openChat} />
 
       <div className="skills-grid">
         {skills.map((skill) => (
           <SkillCard
             key={skill.id}
             skill={skill}
+            saving={saving}
             removeSkill={removeSkill}
             deleteSkillSession={deleteSkillSession}
+            uploadSkillVideo={uploadSkillVideo}
+            deleteSkillVideo={deleteSkillVideo}
           />
         ))}
-        {Array.from({ length: emptySlots }).map((_, index) => (
-          <AddSkillCard key={`empty-${index}`} saving={saving} addSkill={addSkill} />
-        ))}
+        <AddSkillCard saving={saving} addSkill={addSkill} />
       </div>
     </div>
   )
