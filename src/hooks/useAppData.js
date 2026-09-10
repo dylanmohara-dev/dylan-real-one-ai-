@@ -999,7 +999,7 @@ export function useAppData() {
     })
   }
 
-  async function addHealthEntry(category, value, note = '', amount = null) {
+  async function addHealthEntry(category, value, note = '', amount = null, date = null) {
     if (!value?.toString().trim()) return
 
     setSaving(true)
@@ -1007,7 +1007,7 @@ export function useAppData() {
     try {
       await request('/health', {
         method: 'POST',
-        body: JSON.stringify({ category, value: value.toString().trim(), note, amount }),
+        body: JSON.stringify({ category, value: value.toString().trim(), note, amount, date }),
       })
 
       await loadData()

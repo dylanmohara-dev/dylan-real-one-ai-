@@ -3,6 +3,15 @@ import { loadData, saveData } from '../lib/dataStore.js'
 
 const router = Router()
 const CATEGORIES = ['sleep', 'food', 'water', 'activity']
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+function todayKey() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
 
 router.get('/', (req, res) => {
   res.json({ entries: loadData('health') })
@@ -10,13 +19,16 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   try {
-    const { category, value, note, amount } = req.body
+    const { category, value, note, amount, date } = req.body
 
     if (!CATEGORIES.includes(category)) {
       return res.status(400).json({ error: 'category must be one of: ' + CATEGORIES.join(', ') })
     }
     if (!value?.toString().trim()) {
       return res.status(400).json({ error: 'value is required' })
+    }
+    if (date && !DATE_PATTERN.test(date)) {
+      return res.status(400).json({ error: 'date must be YYYY-MM-DD' })
     }
 
     const entries = loadData('health')
@@ -25,6 +37,7 @@ router.post('/', (req, res) => {
       category,
       value: value.toString().trim(),
       note: (note || '').trim(),
+      date: date || todayKey(),
       createdAt: new Date().toISOString(),
     }
 

@@ -3250,6 +3250,143 @@ footer {
   white-space: nowrap;
 }
 
+.health-log-row {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.health-log-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.health-repeat-chip {
+  align-self: flex-start;
+  margin-top: 6px;
+  font-size: 11px;
+  padding: 4px 10px;
+  min-height: 0;
+  border-radius: 999px;
+  background: rgba(var(--mode-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--mode-accent-rgb), 0.3);
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.health-repeat-chip:hover {
+  background: rgba(var(--mode-accent-rgb), 0.18);
+}
+
+.health-log-card-compact {
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  margin-bottom: 0;
+  border-radius: calc(10px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+}
+
+.health-week {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.health-streak-banner {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 6px 14px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  background: rgba(var(--mode-accent-rgb), 0.14);
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.health-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.health-week-day {
+  display: flex;
+  flex-direction: column;
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+  border: var(--mode-border-width, 1px) solid var(--border-soft);
+  overflow: hidden;
+}
+
+.health-week-day.is-today {
+  border-color: rgb(var(--mode-accent-rgb));
+}
+
+.health-week-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-soft);
+  cursor: pointer;
+}
+
+.health-week-day-name {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.health-week-day-date {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.health-week-day-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 6px;
+  align-items: center;
+}
+
+.health-week-stat {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+.health-week-stat.met {
+  color: rgb(var(--mode-accent-rgb));
+  font-weight: 700;
+}
+
+.health-week-empty {
+  opacity: 0.45;
+  font-style: italic;
+}
+
+.health-week-day-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--border-soft);
+}
+
+@media (max-width: 720px) {
+  .health-week-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 /* ============ CALENDAR ============ */
 
 .calendar-header-actions {
