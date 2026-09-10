@@ -35,6 +35,12 @@ export function useAppData() {
   const [sportsSessions, setSportsSessions] = useState([])
   const [sportsSchedule, setSportsSchedule] = useState({})
   const [sportsSettings, setSportsSettings] = useState({ sport: '' })
+  const [readingBooks, setReadingBooks] = useState([])
+  const [readingSessions, setReadingSessions] = useState([])
+  const [disciplineHabits, setDisciplineHabits] = useState([])
+  const [disciplineCompletions, setDisciplineCompletions] = useState([])
+  const [familyMembers, setFamilyMembers] = useState([])
+  const [familyLog, setFamilyLog] = useState([])
   // Growing text shown in the loading slot while a chat reply streams in
   // token by token -- cleared at the start/end of every sendMessage call.
   // Separate from chatThreads on purpose: chatThreads only ever gets the
@@ -305,6 +311,12 @@ export function useAppData() {
         sportsSessionData,
         sportsScheduleData,
         sportsSettingsData,
+        readingBookData,
+        readingSessionData,
+        disciplineHabitData,
+        disciplineCompletionData,
+        familyMemberData,
+        familyLogData,
       ] = await Promise.all([
         request('/tasks'),
         request('/goals'),
@@ -323,6 +335,12 @@ export function useAppData() {
         request('/sports/sessions'),
         request('/sports/schedule'),
         request('/sports/settings'),
+        request('/reading/books'),
+        request('/reading/sessions'),
+        request('/discipline/habits'),
+        request('/discipline/completions'),
+        request('/family/members'),
+        request('/family/log'),
       ])
 
       setTasks(taskData.tasks || [])
@@ -344,6 +362,12 @@ export function useAppData() {
       setSportsSessions(sportsSessionData.sessions || [])
       setSportsSchedule(sportsScheduleData.schedule || {})
       setSportsSettings(sportsSettingsData.settings || { sport: '' })
+      setReadingBooks(readingBookData.books || [])
+      setReadingSessions(readingSessionData.sessions || [])
+      setDisciplineHabits(disciplineHabitData.habits || [])
+      setDisciplineCompletions(disciplineCompletionData.completions || [])
+      setFamilyMembers(familyMemberData.members || [])
+      setFamilyLog(familyLogData.log || [])
 
       return { skills: skillsData.skills || [], goals: goalData.goals || [] }
     } catch (error) {
@@ -640,6 +664,149 @@ export function useAppData() {
         method: 'POST',
         body: JSON.stringify({ sport }),
       })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // Reading
+  async function addReadingBook(book) {
+    setSaving(true)
+    try {
+      await request('/reading/books', { method: 'POST', body: JSON.stringify(book) })
+      await loadData()
+      showSuccess('Book added.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function updateReadingBook(id, updates) {
+    setSaving(true)
+    try {
+      await request(`/reading/books/${id}`, { method: 'PUT', body: JSON.stringify(updates) })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteReadingBook(id) {
+    try {
+      await request(`/reading/books/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Book removed.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function addReadingSession(session) {
+    setSaving(true)
+    try {
+      await request('/reading/sessions', { method: 'POST', body: JSON.stringify(session) })
+      await loadData()
+      showSuccess('Pages logged.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Discipline
+  async function addDisciplineHabit(name) {
+    setSaving(true)
+    try {
+      await request('/discipline/habits', { method: 'POST', body: JSON.stringify({ name }) })
+      await loadData()
+      showSuccess('Habit added.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function updateDisciplineHabit(id, updates) {
+    setSaving(true)
+    try {
+      await request(`/discipline/habits/${id}`, { method: 'PUT', body: JSON.stringify(updates) })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteDisciplineHabit(id) {
+    try {
+      await request(`/discipline/habits/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Habit deleted.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function toggleDisciplineCompletion(habitId, date) {
+    try {
+      await request('/discipline/completions/toggle', {
+        method: 'POST',
+        body: JSON.stringify({ habitId, date }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // Family/Faith
+  async function addFamilyMember(name, relationship) {
+    setSaving(true)
+    try {
+      await request('/family/members', { method: 'POST', body: JSON.stringify({ name, relationship }) })
+      await loadData()
+      showSuccess('Family member added.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteFamilyMember(id) {
+    try {
+      await request(`/family/members/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Family member removed.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function addFamilyLog(entry) {
+    setSaving(true)
+    try {
+      await request('/family/log', { method: 'POST', body: JSON.stringify(entry) })
+      await loadData()
+      showSuccess(entry.type === 'checkin' ? 'Check-in logged.' : 'Logged.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteFamilyLogEntry(id) {
+    try {
+      await request(`/family/log/${id}`, { method: 'DELETE' })
       await loadData()
     } catch (error) {
       showError(error.message)
@@ -1547,9 +1714,79 @@ export function useAppData() {
         }
       }
 
+      if (mode.key === 'reading') {
+        const now = new Date()
+        const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        const pagesToday = readingSessions
+          .filter((sess) => sess.date === todayKey)
+          .reduce((sum, sess) => sum + (Number(sess.pagesRead) || 0), 0)
+        const goalPages = 10
+        const currentlyReading = readingBooks.filter((b) => b.status === 'reading')
+        return {
+          ...mode,
+          headline: currentlyReading.length
+            ? `Reading: ${currentlyReading[0].title}${currentlyReading.length > 1 ? ` +${currentlyReading.length - 1} more` : ''}`
+            : mode.headline,
+          metricValue: `${pagesToday} / ${goalPages}`,
+          progress: Math.max(0, Math.min(100, Math.round((pagesToday / goalPages) * 100))),
+          isSetUp: readingBooks.length > 0,
+        }
+      }
+
+      if (mode.key === 'discipline') {
+        const now = new Date()
+        const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        const activeHabits = disciplineHabits.filter((h) => h.active !== false)
+        const doneToday = disciplineCompletions.filter((c) => c.date === todayKey).length
+        return {
+          ...mode,
+          headline: activeHabits.length ? `${activeHabits.length} habit${activeHabits.length === 1 ? '' : 's'} tracked` : mode.headline,
+          metricValue: `${doneToday} / ${activeHabits.length}`,
+          progress: activeHabits.length ? Math.max(0, Math.min(100, Math.round((doneToday / activeHabits.length) * 100))) : 0,
+          isSetUp: disciplineHabits.length > 0,
+        }
+      }
+
+      if (mode.key === 'family') {
+        const from = new Date()
+        from.setDate(from.getDate() - 6)
+        const fromKey = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`
+        const now = new Date()
+        const toKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        const weekMinutes = familyLog
+          .filter((entry) => entry.type === 'checkin' && entry.date >= fromKey && entry.date <= toKey)
+          .reduce((sum, entry) => sum + (Number(entry.minutesSpent) || 0), 0)
+        const weekHours = Math.round((weekMinutes / 60) * 10) / 10
+        const goalHours = 6
+        return {
+          ...mode,
+          headline: familyMembers.length ? `${familyMembers.length} family member${familyMembers.length === 1 ? '' : 's'} tracked` : mode.headline,
+          metricValue: `${weekHours}H / ${goalHours}H`,
+          progress: Math.max(0, Math.min(100, Math.round((weekHours / goalHours) * 100))),
+          isSetUp: familyMembers.length > 0 || familyLog.length > 0,
+        }
+      }
+
       return { ...mode, progress: 0, isSetUp: false }
     })
-  }, [classes, assignments, tests, healthEntries, financeAccounts, financeNetWorth, skills, sportsSessions, sportsSchedule, sportsSettings])
+  }, [
+    classes,
+    assignments,
+    tests,
+    healthEntries,
+    financeAccounts,
+    financeNetWorth,
+    skills,
+    sportsSessions,
+    sportsSchedule,
+    sportsSettings,
+    readingBooks,
+    readingSessions,
+    disciplineHabits,
+    disciplineCompletions,
+    familyMembers,
+    familyLog,
+  ])
 
   const setUpCount = useMemo(
     () => overviewCards.filter((card) => card.isSetUp).length,
@@ -1715,6 +1952,30 @@ export function useAppData() {
     setSportsScheduleDay,
     sportsSettings,
     setSportsSport,
+
+    // reading
+    readingBooks,
+    readingSessions,
+    addReadingBook,
+    updateReadingBook,
+    deleteReadingBook,
+    addReadingSession,
+
+    // discipline
+    disciplineHabits,
+    disciplineCompletions,
+    addDisciplineHabit,
+    updateDisciplineHabit,
+    deleteDisciplineHabit,
+    toggleDisciplineCompletion,
+
+    // family
+    familyMembers,
+    familyLog,
+    addFamilyMember,
+    deleteFamilyMember,
+    addFamilyLog,
+    deleteFamilyLogEntry,
 
     // chat streaming
     streamingText,

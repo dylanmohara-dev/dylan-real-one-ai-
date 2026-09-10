@@ -25,6 +25,9 @@ import FinancePage from './components/FinancePage.jsx'
 import SkillsPage from './components/SkillsPage.jsx'
 import GymPage from './components/GymPage.jsx'
 import SportsPage from './components/SportsPage.jsx'
+import ReadingPage from './components/ReadingPage.jsx'
+import DisciplinePage from './components/DisciplinePage.jsx'
+import FamilyPage from './components/FamilyPage.jsx'
 import ModeBackground from './components/ModeBackground.jsx'
 import ModeTransition from './components/ModeTransition.jsx'
 import CalendarPage from './components/CalendarPage.jsx'
@@ -312,6 +315,54 @@ function App() {
           deleteSportsSession={data.deleteSportsSession}
           setSportsScheduleDay={data.setSportsScheduleDay}
           setSportsSport={data.setSportsSport}
+          assistantContext={assistantContext}
+          openChat={openChat}
+        />
+      )
+    }
+
+    if (activePage === 'reading') {
+      return (
+        <ReadingPage
+          readingBooks={data.readingBooks}
+          readingSessions={data.readingSessions}
+          saving={data.saving}
+          addReadingBook={data.addReadingBook}
+          updateReadingBook={data.updateReadingBook}
+          deleteReadingBook={data.deleteReadingBook}
+          addReadingSession={data.addReadingSession}
+          assistantContext={assistantContext}
+          openChat={openChat}
+        />
+      )
+    }
+
+    if (activePage === 'discipline') {
+      return (
+        <DisciplinePage
+          disciplineHabits={data.disciplineHabits}
+          disciplineCompletions={data.disciplineCompletions}
+          saving={data.saving}
+          addDisciplineHabit={data.addDisciplineHabit}
+          updateDisciplineHabit={data.updateDisciplineHabit}
+          deleteDisciplineHabit={data.deleteDisciplineHabit}
+          toggleDisciplineCompletion={data.toggleDisciplineCompletion}
+          assistantContext={assistantContext}
+          openChat={openChat}
+        />
+      )
+    }
+
+    if (activePage === 'family') {
+      return (
+        <FamilyPage
+          familyMembers={data.familyMembers}
+          familyLog={data.familyLog}
+          saving={data.saving}
+          addFamilyMember={data.addFamilyMember}
+          deleteFamilyMember={data.deleteFamilyMember}
+          addFamilyLog={data.addFamilyLog}
+          deleteFamilyLogEntry={data.deleteFamilyLogEntry}
           assistantContext={assistantContext}
           openChat={openChat}
         />

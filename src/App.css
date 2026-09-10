@@ -5880,6 +5880,22 @@ button:disabled:active {
   color: rgb(var(--mode-accent-rgb, 249, 115, 22));
 }
 
+/* ---------- Discipline mode: daily checklist row ---------- */
+
+.discipline-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.discipline-checkbox-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: rgb(var(--mode-accent-rgb));
+  cursor: pointer;
+}
+
 /* ---------- Gym mode: tabs, Today view, Routines ---------- */
 
 .gym-tabs {
