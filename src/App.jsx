@@ -267,10 +267,15 @@ function App() {
           accounts={data.financeAccounts}
           netWorth={data.financeNetWorth}
           history={data.financeHistory}
+          transactions={data.financeTransactions}
+          budgets={data.financeBudgets}
           saving={data.saving}
           addAccount={data.addFinanceAccount}
           updateBalance={data.updateFinanceBalance}
           deleteAccount={data.deleteFinanceAccount}
+          addTransaction={data.addFinanceTransaction}
+          deleteTransaction={data.deleteFinanceTransaction}
+          setBudget={data.setFinanceBudget}
           assistantContext={assistantContext}
           openChat={openChat}
         />

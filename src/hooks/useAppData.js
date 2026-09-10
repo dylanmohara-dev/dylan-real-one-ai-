@@ -27,6 +27,8 @@ export function useAppData() {
   const [financeAccounts, setFinanceAccounts] = useState([])
   const [financeNetWorth, setFinanceNetWorth] = useState(0)
   const [financeHistory, setFinanceHistory] = useState([])
+  const [financeTransactions, setFinanceTransactions] = useState([])
+  const [financeBudgets, setFinanceBudgets] = useState({})
   const [skills, setSkills] = useState([])
   const [gymExercises, setGymExercises] = useState([])
   const [gymLogs, setGymLogs] = useState([])
@@ -320,6 +322,8 @@ export function useAppData() {
       setFinanceAccounts(data.finance?.accounts || [])
       setFinanceNetWorth(data.finance?.netWorth || 0)
       setFinanceHistory(data.finance?.history || [])
+      setFinanceTransactions(data.finance?.transactions || [])
+      setFinanceBudgets(data.finance?.budgets || {})
       setSkills(data.skills || [])
       setGymExercises(data.gym?.exercises || [])
       setGymLogs(data.gym?.logs || [])
@@ -1066,6 +1070,53 @@ export function useAppData() {
   async function deleteFinanceAccount(id) {
     try {
       await request(`/finance/accounts/${id}`, { method: 'DELETE' })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // type is 'income' | 'expense'; category is required for an expense
+  // (ignored/normalized to 'income' on the backend for income) -- every
+  // transaction actually moves accountId's real balance, so this is not a
+  // separate ledger from the accounts Finance already tracks.
+  async function addFinanceTransaction(accountId, type, category, amount, date, note = '') {
+    if (!accountId || !amount) return
+
+    setSaving(true)
+    try {
+      await request('/finance/transactions', {
+        method: 'POST',
+        body: JSON.stringify({ accountId, type, category, amount: Number(amount), date, note }),
+      })
+
+      await loadData()
+      showSuccess(type === 'expense' ? 'Expense logged.' : 'Income logged.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteFinanceTransaction(id) {
+    try {
+      await request(`/finance/transactions/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Transaction deleted, balance reversed.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // monthlyLimit of 0/empty clears that category's budget entirely rather
+  // than saving a zero limit -- see routes/finance.js.
+  async function setFinanceBudget(category, monthlyLimit) {
+    try {
+      await request('/finance/budgets', {
+        method: 'POST',
+        body: JSON.stringify({ category, monthlyLimit: Number(monthlyLimit) || 0 }),
+      })
       await loadData()
     } catch (error) {
       showError(error.message)
@@ -1938,9 +1989,14 @@ export function useAppData() {
     financeAccounts,
     financeNetWorth,
     financeHistory,
+    financeTransactions,
+    financeBudgets,
     addFinanceAccount,
     updateFinanceBalance,
     deleteFinanceAccount,
+    addFinanceTransaction,
+    deleteFinanceTransaction,
+    setFinanceBudget,
 
     // skills
     skills,

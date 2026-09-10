@@ -45,6 +45,8 @@ router.get('/bootstrap', (req, res) => {
         accounts: financeAccounts,
         netWorth: computeNetWorth(financeAccounts),
         history: loadData('finance_history'),
+        transactions: loadData('finance_transactions'),
+        budgets: loadData('finance_budgets', {}),
       },
       skills: buildSkillsPayload().skills,
       gym: {
