@@ -24,6 +24,7 @@ import HealthPage from './components/HealthPage.jsx'
 import FinancePage from './components/FinancePage.jsx'
 import SkillsPage from './components/SkillsPage.jsx'
 import GymPage from './components/GymPage.jsx'
+import SportsPage from './components/SportsPage.jsx'
 import ModeBackground from './components/ModeBackground.jsx'
 import ModeTransition from './components/ModeTransition.jsx'
 import CalendarPage from './components/CalendarPage.jsx'
@@ -291,6 +292,21 @@ function App() {
           updateGymRoutine={data.updateGymRoutine}
           deleteGymRoutine={data.deleteGymRoutine}
           setGymWeekPlanDay={data.setGymWeekPlanDay}
+          assistantContext={assistantContext}
+          openChat={openChat}
+        />
+      )
+    }
+
+    if (activePage === 'sports') {
+      return (
+        <SportsPage
+          sportsSessions={data.sportsSessions}
+          sportsSchedule={data.sportsSchedule}
+          saving={data.saving}
+          addSportsSession={data.addSportsSession}
+          deleteSportsSession={data.deleteSportsSession}
+          setSportsScheduleDay={data.setSportsScheduleDay}
           assistantContext={assistantContext}
           openChat={openChat}
         />

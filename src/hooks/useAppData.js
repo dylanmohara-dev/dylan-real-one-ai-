@@ -25,6 +25,8 @@ export function useAppData() {
   const [gymLogs, setGymLogs] = useState([])
   const [gymRoutines, setGymRoutines] = useState([])
   const [gymWeekPlan, setGymWeekPlan] = useState({})
+  const [sportsSessions, setSportsSessions] = useState([])
+  const [sportsSchedule, setSportsSchedule] = useState({})
   const [toasts, setToasts] = useState([])
 
   const [taskInput, setTaskInput] = useState('')
@@ -188,6 +190,8 @@ export function useAppData() {
         gymLogData,
         gymRoutineData,
         gymWeekPlanData,
+        sportsSessionData,
+        sportsScheduleData,
       ] = await Promise.all([
         request('/tasks'),
         request('/goals'),
@@ -203,6 +207,8 @@ export function useAppData() {
         request('/gym/logs'),
         request('/gym/routines'),
         request('/gym/week-plan'),
+        request('/sports/sessions'),
+        request('/sports/schedule'),
       ])
 
       setTasks(taskData.tasks || [])
@@ -221,6 +227,8 @@ export function useAppData() {
       setGymLogs(gymLogData.logs || [])
       setGymRoutines(gymRoutineData.routines || [])
       setGymWeekPlan(gymWeekPlanData.weekPlan || {})
+      setSportsSessions(sportsSessionData.sessions || [])
+      setSportsSchedule(sportsScheduleData.schedule || {})
 
       return { skills: skillsData.skills || [], goals: goalData.goals || [] }
     } catch (error) {
@@ -460,6 +468,50 @@ export function useAppData() {
       await request('/gym/week-plan', {
         method: 'POST',
         body: JSON.stringify({ [day]: routineId }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // Sports: one shared session shape for both a practice and a game (see
+  // routes/sports.js for why) -- the server derives win/loss/tie from the
+  // scores when both are given, so the client just passes through whatever
+  // the form collected.
+  async function addSportsSession(session) {
+    if (!session?.date || !session?.type) return
+    setSaving(true)
+    try {
+      await request('/sports/sessions', {
+        method: 'POST',
+        body: JSON.stringify(session),
+      })
+      await loadData()
+      showSuccess(session.type === 'game' ? 'Game logged.' : 'Practice logged.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteSportsSession(id) {
+    try {
+      await request(`/sports/sessions/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Session deleted.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // day is 'monday'..'sunday'; type is 'practice' | 'game' | 'off' | null.
+  async function setSportsScheduleDay(day, type) {
+    try {
+      await request('/sports/schedule', {
+        method: 'POST',
+        body: JSON.stringify({ [day]: type }),
       })
       await loadData()
     } catch (error) {
@@ -1228,6 +1280,29 @@ export function useAppData() {
         }
       }
 
+      if (mode.key === 'sports') {
+        const from = new Date()
+        from.setDate(from.getDate() - 6)
+        const fromKey = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`
+        const now = new Date()
+        const toKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        const weekMinutes = sportsSessions
+          .filter((s) => s.date >= fromKey && s.date <= toKey)
+          .reduce((sum, s) => sum + (Number(s.durationMinutes) || 0), 0)
+        const weekHours = Math.round((weekMinutes / 60) * 10) / 10
+        const goalHours = 8
+        const hasScheduleSet = Object.values(sportsSchedule || {}).some(Boolean)
+        return {
+          ...mode,
+          headline: sportsSessions.length
+            ? `${sportsSessions.length} session${sportsSessions.length === 1 ? '' : 's'} logged`
+            : mode.headline,
+          metricValue: `${weekHours}H / ${goalHours}H`,
+          progress: Math.max(0, Math.min(100, Math.round((weekHours / goalHours) * 100))),
+          isSetUp: sportsSessions.length > 0 || hasScheduleSet,
+        }
+      }
+
       if (mode.key === 'skills') {
         if (!skills.length) {
           return { ...mode, progress: 0, isSetUp: false }
@@ -1248,7 +1323,7 @@ export function useAppData() {
 
       return { ...mode, progress: 0, isSetUp: false }
     })
-  }, [classes, assignments, tests, healthEntries, financeAccounts, financeNetWorth, skills])
+  }, [classes, assignments, tests, healthEntries, financeAccounts, financeNetWorth, skills, sportsSessions, sportsSchedule])
 
   const setUpCount = useMemo(
     () => overviewCards.filter((card) => card.isSetUp).length,
@@ -1403,6 +1478,12 @@ export function useAppData() {
     updateGymRoutine,
     deleteGymRoutine,
     setGymWeekPlanDay,
+    // sports
+    sportsSessions,
+    sportsSchedule,
+    addSportsSession,
+    deleteSportsSession,
+    setSportsScheduleDay,
 
     // overview
     overviewCards,

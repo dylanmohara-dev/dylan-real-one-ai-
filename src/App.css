@@ -5979,3 +5979,59 @@ button:disabled:active {
   flex: 1;
   max-width: 220px;
 }
+
+/* Sports mode: reuses .form-card / .items-list / .item-card / .gym-tabs /
+   .gym-today / .gym-stats-row / .gym-week-plan* wholesale (same shape as
+   Gym's Today/Log/Schedule tabs) -- only the bits genuinely new to a
+   practice-or-game session form get their own rules here. */
+.sports-session-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sports-session-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sports-type-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.sports-type-toggle button {
+  padding: 6px 14px;
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: var(--surface-strong);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--border-soft);
+}
+
+.sports-type-toggle button.active {
+  background: rgb(var(--mode-accent-rgb));
+  color: var(--bg);
+  border-color: transparent;
+}
+
+.sports-session-form-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.sports-session-icon {
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+
+@media (max-width: 720px) {
+  .sports-session-form-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -21,6 +21,7 @@ import driveRouter from './routes/drive.js'
 import slackRouter from './routes/slack.js'
 import backupRouter from './routes/backup.js'
 import gymRouter from './routes/gym.js'
+import sportsRouter from './routes/sports.js'
 import { startModelWarmup } from './lib/ollamaWarm.js'
 
 
@@ -58,6 +59,7 @@ app.use('/api/drive', driveRouter)
 app.use('/api/slack', slackRouter)
 app.use('/api/backup', backupRouter)
 app.use('/api/gym', gymRouter)
+app.use('/api/sports', sportsRouter)
 
 app.listen(port, () => {
   console.log(`Dylan AI server running on http://localhost:${port}`)
