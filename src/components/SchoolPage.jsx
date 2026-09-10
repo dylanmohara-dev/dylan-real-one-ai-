@@ -159,10 +159,13 @@ export default function SchoolPage({
   toggleAssignment,
   setAssignmentGrade,
   deleteAssignment,
+  tasks,
   addTest,
   toggleTest,
   setTestGrade,
   deleteTest,
+  generateStudyPlan,
+  clearStudyPlan,
   setActivePage,
   assistantContext,
   openChat,
@@ -414,38 +417,77 @@ export default function SchoolPage({
           </div>
           <div className="items-list">
             {currentTests.length ? (
-              currentTests.map((test) => (
-                <div
-                  className={`item-card ${test.completed ? 'completed' : ''}`}
-                  key={test.id}
-                >
-                  <button className="check-button" onClick={() => toggleTest(test)}>
-                    {test.completed ? '✓' : ''}
-                  </button>
-                  <div className="item-content">
-                    <strong>{test.title}</strong>
-                    <div className="item-meta">
-                      {test.date && <span>Date {test.date}</span>}
+              currentTests.map((test) => {
+                const planTasks = (tasks || []).filter((t) => t.studyPlanFor === test.id)
+                return (
+                  <div
+                    className={`item-card school-test-card ${test.completed ? 'completed' : ''}`}
+                    key={test.id}
+                  >
+                    <div className="school-test-row">
+                      <button className="check-button" onClick={() => toggleTest(test)}>
+                        {test.completed ? '✓' : ''}
+                      </button>
+                      <div className="item-content">
+                        <strong>{test.title}</strong>
+                        <div className="item-meta">
+                          {test.date && <span>Date {test.date}</span>}
+                        </div>
+                      </div>
+                      <input
+                        type="number"
+                        className="grade-input"
+                        min="0"
+                        max="100"
+                        placeholder="Grade %"
+                        defaultValue={test.grade ?? ''}
+                        onBlur={(event) => {
+                          if (event.target.value !== String(test.grade ?? '')) {
+                            setTestGrade(test, event.target.value)
+                          }
+                        }}
+                      />
+                      <button className="delete-button" onClick={() => deleteTest(test.id)}>
+                        ×
+                      </button>
                     </div>
+
+                    {test.date && (
+                      <div className="school-study-plan-row">
+                        {planTasks.length ? (
+                          <>
+                            <span className="school-study-plan-status">
+                              Study plan: {planTasks.length} session{planTasks.length === 1 ? '' : 's'} scheduled
+                            </span>
+                            <button
+                              type="button"
+                              className="school-study-plan-action"
+                              onClick={() => generateStudyPlan(test.id)}
+                            >
+                              Regenerate
+                            </button>
+                            <button
+                              type="button"
+                              className="school-study-plan-action"
+                              onClick={() => clearStudyPlan(test.id)}
+                            >
+                              Clear
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="school-study-plan-action"
+                            onClick={() => generateStudyPlan(test.id)}
+                          >
+                            Generate study plan
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <input
-                    type="number"
-                    className="grade-input"
-                    min="0"
-                    max="100"
-                    placeholder="Grade %"
-                    defaultValue={test.grade ?? ''}
-                    onBlur={(event) => {
-                      if (event.target.value !== String(test.grade ?? '')) {
-                        setTestGrade(test, event.target.value)
-                      }
-                    }}
-                  />
-                  <button className="delete-button" onClick={() => deleteTest(test.id)}>
-                    ×
-                  </button>
-                </div>
-              ))
+                )
+              })
             ) : (
               <div className="mini-empty">No tests yet.</div>
             )}

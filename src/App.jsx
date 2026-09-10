@@ -172,6 +172,7 @@ function App() {
           classes={data.classes}
           assignments={data.assignments}
           tests={data.tests}
+          tasks={data.tasks}
           selectedClassId={data.selectedClassId}
           setSelectedClassId={data.setSelectedClassId}
           classNameInput={data.classNameInput}
@@ -196,6 +197,8 @@ function App() {
           toggleTest={data.toggleTest}
           setTestGrade={data.setTestGrade}
           deleteTest={data.deleteTest}
+          generateStudyPlan={data.generateStudyPlan}
+          clearStudyPlan={data.clearStudyPlan}
           setActivePage={setActivePage}
           assistantContext={assistantContext}
           openChat={openChat}

@@ -71,8 +71,20 @@ router.delete('/:id', (req, res) => {
   saveData('classes', remaining)
   const assignments = loadData('assignments').filter((a) => a.classId !== req.params.id)
   saveData('assignments', assignments)
-  const tests = loadData('tests').filter((t) => t.classId !== req.params.id)
+
+  const allTests = loadData('tests')
+  const deletedTestIds = new Set(allTests.filter((t) => t.classId === req.params.id).map((t) => t.id))
+  const tests = allTests.filter((t) => t.classId !== req.params.id)
   saveData('tests', tests)
+
+  // Deleting a class cascades to its tests -- and any study-plan tasks
+  // generated for those tests would otherwise be left pointing at a test
+  // that no longer exists.
+  if (deletedTestIds.size) {
+    const tasks = loadData('tasks').filter((t) => !deletedTestIds.has(t.studyPlanFor))
+    saveData('tasks', tasks)
+  }
+
   res.json({ success: true })
 })
 

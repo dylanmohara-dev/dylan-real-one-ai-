@@ -977,6 +977,32 @@ export function useAppData() {
     }
   }
 
+  // Generates (or regenerates, replacing any existing plan for this test)
+  // a research-backed study schedule as real Task entries -- see
+  // lib/studyPlan.js server-side for the actual scheduling logic.
+  async function generateStudyPlan(testId) {
+    setSaving(true)
+    try {
+      const result = await request(`/tests/${testId}/study-plan`, { method: 'POST' })
+      await loadData()
+      showSuccess(`Study plan created -- ${result.tasks.length} session${result.tasks.length === 1 ? '' : 's'} added to your Tasks.`)
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function clearStudyPlan(testId) {
+    try {
+      await request(`/tests/${testId}/study-plan`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Study plan cleared.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
   async function setTestGrade(test, grade) {
     try {
       await request(`/tests/${test.id}`, {
@@ -1315,6 +1341,8 @@ export function useAppData() {
     toggleTest,
     setTestGrade,
     deleteTest,
+    generateStudyPlan,
+    clearStudyPlan,
 
     // goals
     goals,

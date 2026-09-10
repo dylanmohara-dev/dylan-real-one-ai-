@@ -1595,6 +1595,46 @@ footer {
   width: auto;
 }
 
+.school-test-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.school-test-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.school-study-plan-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.school-study-plan-status {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.school-study-plan-action {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.school-study-plan-action:hover {
+  border-color: rgb(var(--mode-accent-rgb));
+  background: rgba(var(--mode-accent-rgb), 0.08);
+}
+
 .grade-input {
   flex-shrink: 0;
   width: 68px;
