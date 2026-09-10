@@ -53,13 +53,13 @@ function QuickActions({
     key: 'water',
     icon: Droplet,
     label: '+1 glass of water',
-    onClick: () => run('water', () => addHealthEntry('water', '1 glass')),
+    onClick: () => run('water', () => addHealthEntry('water', '1 glass', '', 1)),
   })
   buttons.push({
     key: 'sleep',
     icon: Moon,
     label: 'Log 8h sleep',
-    onClick: () => run('sleep', () => addHealthEntry('sleep', '8 hours')),
+    onClick: () => run('sleep', () => addHealthEntry('sleep', '8 hours', '', 8)),
   })
 
   if (activeBook) {

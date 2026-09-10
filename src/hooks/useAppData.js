@@ -24,6 +24,7 @@ export function useAppData() {
   const [notes, setNotes] = useState([])
   const [memories, setMemories] = useState([])
   const [healthEntries, setHealthEntries] = useState([])
+  const [healthGoals, setHealthGoals] = useState({})
   const [financeAccounts, setFinanceAccounts] = useState([])
   const [financeNetWorth, setFinanceNetWorth] = useState(0)
   const [financeHistory, setFinanceHistory] = useState([])
@@ -319,6 +320,7 @@ export function useAppData() {
       setAssignments(data.assignments || [])
       setTests(data.tests || [])
       setHealthEntries(data.health?.entries || [])
+      setHealthGoals(data.health?.goals || {})
       setFinanceAccounts(data.finance?.accounts || [])
       setFinanceNetWorth(data.finance?.netWorth || 0)
       setFinanceHistory(data.finance?.history || [])
@@ -997,7 +999,7 @@ export function useAppData() {
     })
   }
 
-  async function addHealthEntry(category, value, note = '') {
+  async function addHealthEntry(category, value, note = '', amount = null) {
     if (!value?.toString().trim()) return
 
     setSaving(true)
@@ -1005,7 +1007,7 @@ export function useAppData() {
     try {
       await request('/health', {
         method: 'POST',
-        body: JSON.stringify({ category, value: value.toString().trim(), note }),
+        body: JSON.stringify({ category, value: value.toString().trim(), note, amount }),
       })
 
       await loadData()
@@ -1015,6 +1017,18 @@ export function useAppData() {
       showError(error.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function setHealthGoal(category, goal) {
+    try {
+      await request('/health/goals', {
+        method: 'POST',
+        body: JSON.stringify({ category, goal }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
     }
   }
 
@@ -1982,8 +1996,10 @@ export function useAppData() {
 
     // health
     healthEntries,
+    healthGoals,
     addHealthEntry,
     deleteHealthEntry,
+    setHealthGoal,
 
     // finance
     financeAccounts,

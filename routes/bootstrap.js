@@ -40,7 +40,7 @@ router.get('/bootstrap', (req, res) => {
       classes: loadData('classes'),
       assignments: loadData('assignments'),
       tests: loadData('tests'),
-      health: { entries: loadData('health') },
+      health: { entries: loadData('health'), goals: loadData('health_goals', {}) },
       finance: {
         accounts: financeAccounts,
         netWorth: computeNetWorth(financeAccounts),

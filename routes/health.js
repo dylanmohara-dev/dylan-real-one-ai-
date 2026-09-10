@@ -10,7 +10,7 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   try {
-    const { category, value, note } = req.body
+    const { category, value, note, amount } = req.body
 
     if (!CATEGORIES.includes(category)) {
       return res.status(400).json({ error: 'category must be one of: ' + CATEGORIES.join(', ') })
@@ -28,6 +28,14 @@ router.post('/', (req, res) => {
       createdAt: new Date().toISOString(),
     }
 
+    // Only stored when a real positive number came through -- old entries
+    // (and any new food entry) simply have no `amount` field, and every
+    // consumer of it already treats a missing amount as "not counted."
+    const numericAmount = Number(amount)
+    if (Number.isFinite(numericAmount) && numericAmount > 0) {
+      entry.amount = numericAmount
+    }
+
     entries.push(entry)
     saveData('health', entries)
     res.json({ entry })
@@ -42,6 +50,36 @@ router.delete('/:id', (req, res) => {
   const remaining = entries.filter((entry) => entry.id !== req.params.id)
   saveData('health', remaining)
   res.json({ success: true })
+})
+
+const NUMERIC_CATEGORIES = ['sleep', 'water', 'activity']
+
+router.get('/goals', (req, res) => {
+  res.json({ goals: loadData('health_goals', {}) })
+})
+
+router.post('/goals', (req, res) => {
+  try {
+    const { category, goal } = req.body
+    if (!NUMERIC_CATEGORIES.includes(category)) {
+      return res.status(400).json({ error: 'category must be one of: ' + NUMERIC_CATEGORIES.join(', ') })
+    }
+
+    const goals = loadData('health_goals', {})
+    const numericGoal = Number(goal)
+
+    if (!numericGoal || numericGoal <= 0) {
+      delete goals[category]
+    } else {
+      goals[category] = numericGoal
+    }
+
+    saveData('health_goals', goals)
+    res.json({ goals })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save health goal' })
+  }
 })
 
 export default router

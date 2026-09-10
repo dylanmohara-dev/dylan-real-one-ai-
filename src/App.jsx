@@ -252,9 +252,11 @@ function App() {
       return (
         <HealthPage
           healthEntries={data.healthEntries}
+          goals={data.healthGoals}
           saving={data.saving}
           addHealthEntry={data.addHealthEntry}
           deleteHealthEntry={data.deleteHealthEntry}
+          setHealthGoal={data.setHealthGoal}
           assistantContext={assistantContext}
           openChat={openChat}
         />
