@@ -5,6 +5,7 @@ import { LIFE_MODES } from '../data/lifeModes.js'
 export default function ChatPage({
   chatMessages,
   loading,
+  streamingText,
   memorySuggestion,
   saveMemory,
   setMemorySuggestion,
@@ -247,11 +248,19 @@ export default function ChatPage({
             </div>
 
             <div className="message-content-wrap">
-              <div className="message-bubble typing-dots">
-                <span className="dotPulse">•</span>
-                <span className="dotPulse">•</span>
-                <span className="dotPulse">•</span>
-              </div>
+              {streamingText ? (
+                // Reuses the exact same bubble a finished message gets --
+                // this is real, live model output arriving token by token,
+                // not a placeholder, so it should look like an answer, not
+                // a loading state.
+                <div className="message-bubble">{streamingText}</div>
+              ) : (
+                <div className="message-bubble typing-dots">
+                  <span className="dotPulse">•</span>
+                  <span className="dotPulse">•</span>
+                  <span className="dotPulse">•</span>
+                </div>
+              )}
               <span className="message-thinking-time is-live">
                 Thinking for {formatDuration(elapsedMs) || '0.0s'}
               </span>

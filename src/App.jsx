@@ -93,6 +93,7 @@ function App() {
         <ChatPage
           chatMessages={data.chatMessages}
           loading={loading}
+          streamingText={data.streamingText}
           memorySuggestion={data.memorySuggestion}
           saveMemory={data.saveMemory}
           setMemorySuggestion={data.setMemorySuggestion}
@@ -442,6 +443,7 @@ function App() {
           modeKey={activeMode ? activeMode.key : null}
           chatMessages={data.chatMessages}
           loading={loading}
+          streamingText={data.streamingText}
           memorySuggestion={data.memorySuggestion}
           saveMemory={data.saveMemory}
           setMemorySuggestion={data.setMemorySuggestion}

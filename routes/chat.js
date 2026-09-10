@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { loadData } from '../lib/dataStore.js'
 import { detectCommand, executeAction, looksLikeContentRequest } from '../lib/assistant.js'
 import { getLiveContextBlock } from '../lib/liveContext.js'
+import { createReplyExtractor } from '../lib/streamingJson.js'
 import {
   OLLAMA_HOST,
   OLLAMA_URL,
@@ -40,6 +41,51 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = OLLAMA_TIMEOUT_MS
     throw error
   } finally {
     clearTimeout(timer)
+  }
+}
+
+// Writes one Server-Sent-Events frame. `event` names the frame type the
+// frontend switches on ("token" | "done" | "error"); `data` is JSON-encoded
+// so the frontend never has to guess at escaping.
+function writeSSE(res, event, data) {
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+}
+
+// Reads an Ollama OpenAI-compatible streaming response (`stream: true`) and
+// calls onDelta(text) for every token chunk as it arrives. Ollama's stream is
+// newline-delimited `data: {...}` lines, terminated by `data: [DONE]` --
+// same shape as OpenAI's own streaming API. A malformed line is skipped
+// rather than blowing up the whole stream, since one bad line shouldn't cost
+// Dylan the rest of an otherwise-good answer.
+async function pumpOllamaStream(response, onDelta) {
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+
+      let newlineIndex
+      while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+        const line = buffer.slice(0, newlineIndex).trim()
+        buffer = buffer.slice(newlineIndex + 1)
+        if (!line.startsWith('data:')) continue
+        const payload = line.slice(5).trim()
+        if (payload === '[DONE]') return
+        let json
+        try {
+          json = JSON.parse(payload)
+        } catch {
+          continue
+        }
+        const delta = json.choices?.[0]?.delta?.content
+        if (delta) onDelta(delta)
+      }
+    }
+  } finally {
+    reader.releaseLock?.()
   }
 }
 
@@ -137,12 +183,45 @@ router.post('/chat', async (req, res) => {
   // than on the client so it measures real model work, not network jitter
   // or React render time.
   const startedAt = Date.now()
-  try {
-    const { messages, mode, image } = req.body
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: 'Messages are required' })
-    }
 
+  const { messages, mode, image } = req.body
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'Messages are required' })
+  }
+
+  // From here on, every response this route sends -- success or failure --
+  // goes out as Server-Sent Events, so the frontend has exactly one response
+  // shape to deal with instead of "JSON on success, but sometimes a
+  // different JSON shape and status code on failure." Headers go out now,
+  // before any network call that can fail or hang, so a dead/slow Ollama
+  // shows up to the client as an `event: error` frame (same as any other
+  // failure) instead of a request that just never resolves.
+  //
+  // This is also the actual fix for Dylan's "I'd like it faster" complaint,
+  // backed by his own pasted transcript showing a real 14.7s gap before
+  // anything appeared: previously the ENTIRE model response (thinking +
+  // generating every token of the JSON-wrapped reply) had to finish before
+  // res.json() could send anything at all. Now the model's answer streams
+  // out as `event: token` frames the moment each piece of it is generated.
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache, no-transform')
+  res.setHeader('Connection', 'keep-alive')
+  res.flushHeaders?.()
+
+  function sendError(error) {
+    writeSSE(res, 'error', {
+      error: error?.message || 'Could not connect to the local AI.',
+      thinkingMs: Date.now() - startedAt,
+    })
+    res.end()
+  }
+
+  function sendDone(payload) {
+    writeSSE(res, 'done', { ...payload, thinkingMs: Date.now() - startedAt })
+    res.end()
+  }
+
+  try {
     const latestMessage = messages[messages.length - 1]?.content || ''
 
     // Image-attached messages are a completely separate path — isolated the
@@ -191,6 +270,7 @@ router.post('/chat', async (req, res) => {
         body: JSON.stringify({
           model: VISION_MODEL,
           keep_alive: KEEP_ALIVE,
+          stream: true,
           messages: [
             { role: 'system', content: visionSystemPrompt },
             {
@@ -214,21 +294,29 @@ router.post('/chat', async (req, res) => {
         )
       }
 
-      const visionData = await visionResponse.json()
-      const visionReply = visionData.choices?.[0]?.message?.content?.trim() || 'No response from Dylan AI.'
+      // No JSON wrapper on this path (the vision prompt above explicitly asks
+      // for plain text), so every delta is shown to Dylan as-is, no
+      // extraction needed.
+      let visionReplyText = ''
+      await pumpOllamaStream(visionResponse, (delta) => {
+        visionReplyText += delta
+        writeSSE(res, 'token', { text: delta })
+      })
 
-      return res.json({ reply: visionReply, actionPerformed: false, skipMemoryCheck: true, thinkingMs: Date.now() - startedAt })
+      const visionReply = visionReplyText.trim() || 'No response from Dylan AI.'
+      return sendDone({ reply: visionReply, actionPerformed: false, skipMemoryCheck: true })
     }
 
     const directAction = detectCommand(latestMessage)
 
     if (directAction) {
+      // No model call on this path at all -- it never had a "thinking" delay
+      // to fix, so it just reports done immediately with no token frames.
       const actionResult = executeAction(directAction)
-      return res.json({
+      return sendDone({
         reply: actionResult.message || 'Command could not be completed.',
         actionPerformed: actionResult.performed,
         skipMemoryCheck: true,
-        thinkingMs: Date.now() - startedAt,
       })
     }
 
@@ -255,6 +343,7 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
         body: JSON.stringify({
           model: MODEL,
           keep_alive: KEEP_ALIVE,
+          stream: true,
           messages: [{ role: 'system', content: contentSystemPrompt }, ...messages],
           temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.4) : 0.4,
           max_tokens: 900,
@@ -265,14 +354,20 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
         throw new Error(`Local AI returned ${contentResponse.status}`)
       }
 
-      const contentData = await contentResponse.json()
-      const contentRaw = contentData.choices?.[0]?.message?.content?.trim() || ''
+      // Same as the vision path -- this prompt also asks for plain text, no
+      // JSON wrapper, so deltas stream straight through unmodified.
+      let contentText = ''
+      await pumpOllamaStream(contentResponse, (delta) => {
+        contentText += delta
+        writeSSE(res, 'token', { text: delta })
+      })
 
-      return res.json({
+      const contentRaw = contentText.trim()
+
+      return sendDone({
         reply: contentRaw || 'No response from Dylan AI.',
         actionPerformed: false,
         skipMemoryCheck: false,
-        thinkingMs: Date.now() - startedAt,
       })
     }
 
@@ -382,6 +477,7 @@ ${context}
       body: JSON.stringify({
         model: MODEL,
         keep_alive: KEEP_ALIVE,
+        stream: true,
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
         temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.2) : 0.2,
         max_tokens: 900,
@@ -392,8 +488,23 @@ ${context}
       throw new Error(`Local AI returned ${response.status}`)
     }
 
-    const data = await response.json()
-    const raw = data.choices?.[0]?.message?.content?.trim() || ''
+    // This path is the whole reason streaming needed the JSON-extraction
+    // helper: the model wraps its answer in {"reply": "...", "action": {...}}
+    // so action-detection has something reliable to parse, and that "action"
+    // object always comes AFTER "reply" in the JSON. Without pulling just the
+    // reply text out as it arrives, Dylan would still be stuck waiting for
+    // the model to finish generating the action block too before seeing a
+    // single word -- i.e. still the same 14.7s wait this whole change exists
+    // to fix. extractor.feed() hands back only newly-decoded reply text, so
+    // only that gets forwarded as token frames; nothing about the action
+    // schema or how actions get parsed/executed below changes at all.
+    const extractor = createReplyExtractor()
+    await pumpOllamaStream(response, (delta) => {
+      const newText = extractor.feed(delta)
+      if (newText) writeSSE(res, 'token', { text: newText })
+    })
+
+    const raw = extractor.getRaw().trim()
 
     let parsed
     try {
@@ -402,7 +513,35 @@ ${context}
       parsed = JSON.parse(jsonSlice)
       if (!parsed || typeof parsed.reply !== 'string') throw new Error('malformed shape')
     } catch {
-      parsed = { reply: raw, action: null }
+      // Dylan hit this directly: asked for a top-10 fantasy football list,
+      // and the model forgot to close the "reply" string before writing
+      // "action" -- e.g. `...(RB)\n\naction": { "type": "create_task", ... }`
+      // with no closing quote/comma in between. JSON.parse understandably
+      // fails on that, and until this fix the fallback below was `reply:
+      // raw` -- i.e. the ENTIRE malformed JSON blob (curly braces, escape
+      // sequences, the whole action object) got dumped straight into the
+      // chat as if it were the answer. That is a real, screenshotted bug,
+      // not a hypothetical.
+      //
+      // Reusing createReplyExtractor -- the same escape-aware "read the
+      // reply string value out of possibly-incomplete JSON" logic built for
+      // streaming, already unit-tested across 30 chunk/escape combinations
+      // -- as a one-shot fallback here recovers just the "reply" text up to
+      // wherever its string actually ends, instead of the raw JSON syntax.
+      // It is not a perfect recovery (a model malformation like this one can
+      // still merge a stray word or two off the following key into the
+      // tail of the text), but it reliably hides the JSON structure itself,
+      // which is the part that actually looked broken to Dylan.
+      const fallbackExtractor = createReplyExtractor()
+      // The specific failure Dylan hit leaves one telltale artifact behind:
+      // a bare, punctuation-free "action" word trailing the real text
+      // (from the missing quote/comma that caused the parse failure in the
+      // first place -- decoding stops at the next literal quote, which is
+      // the one right after that stray "action"). Stripping just that
+      // exact trailing shape is narrow enough not to touch a legitimate
+      // reply that happens to end a sentence with the word "action".
+      const fallbackReply = fallbackExtractor.feed(raw).replace(/\n+action$/, '').trim()
+      parsed = { reply: fallbackReply || raw, action: null }
     }
 
     const actionResult = executeAction(parsed.action)
@@ -414,22 +553,28 @@ ${context}
       finalReply = actionResult.message
     }
 
-    res.json({
+    // finalReply can legitimately differ from what was just streamed token by
+    // token (e.g. the model's own short "reply" text gets swapped for
+    // actionResult.message once an action actually runs) -- the `done` frame
+    // is always the authoritative final text, and the frontend replaces the
+    // in-progress streamed text with it rather than appending.
+    sendDone({
       reply: finalReply || 'No response from Dylan AI.',
       actionPerformed: actionResult.performed,
       skipMemoryCheck: actionResult.performed,
-      thinkingMs: Date.now() - startedAt,
     })
   } catch (error) {
-    // This was the other half of the "real errors reach Dylan" fix from
-    // last session — the CLIENT side was fixed to show error.message
+    // This was the other half of the "real errors reach Dylan" fix from a
+    // previous session — the CLIENT side was fixed to show error.message
     // instead of a generic string, but the SERVER was still discarding
     // every specific error (including the vision pre-flight checks above)
-    // and always sending back this one hardcoded string. Every specific
-    // error message built into this route was silently thrown away here
-    // until now.
+    // and always sending back one hardcoded string. Every specific error
+    // message built into this route reaches Dylan now, just as an
+    // `event: error` SSE frame instead of a 500 JSON response, since SSE
+    // headers are already committed by the time any of this route's logic
+    // runs.
     console.error('Chat failed:', error)
-    res.status(500).json({ error: error.message || 'Could not connect to the local AI.', thinkingMs: Date.now() - startedAt })
+    sendError(error)
   }
 })
 

@@ -28,6 +28,13 @@ export function useAppData() {
   const [sportsSessions, setSportsSessions] = useState([])
   const [sportsSchedule, setSportsSchedule] = useState({})
   const [sportsSettings, setSportsSettings] = useState({ sport: '' })
+  // Growing text shown in the loading slot while a chat reply streams in
+  // token by token -- cleared at the start/end of every sendMessage call.
+  // Separate from chatThreads on purpose: chatThreads only ever gets the
+  // final, authoritative message once the stream's `done` event arrives,
+  // so a stream that errors partway through never leaves a half-written
+  // message sitting in the real transcript.
+  const [streamingText, setStreamingText] = useState('')
   const [toasts, setToasts] = useState([])
 
   const [taskInput, setTaskInput] = useState('')
@@ -173,6 +180,102 @@ export function useAppData() {
     }
 
     return data
+  }
+
+  /*
+    Same job as request(), but for the one endpoint (`/chat`) that now
+    streams its answer back as Server-Sent Events instead of a single JSON
+    body -- so it can't reuse request()'s `response.json()` call. Ollama
+    itself hasn't gotten any faster; this is what actually fixes "it feels
+    slow": text now appears the moment the model writes it instead of only
+    after the ENTIRE reply (plus the JSON action block that follows it) has
+    finished generating.
+
+    Every `token` frame's text is appended to streamingText immediately, so
+    the loading slot in ChatPage can show it live. The `done` frame is the
+    one authoritative result -- same shape request('/chat', ...) used to
+    return -- and is what sendMessage below actually uses to build the real
+    chat message; the streamed text is a preview, not the source of truth
+    (they can legitimately differ, e.g. once an action's own message
+    replaces the model's short "reply" text).
+  */
+  async function streamChat(body, timeoutMs = 150000) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+    let response
+    try {
+      response = await fetch(`${API}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
+    } catch (error) {
+      clearTimeout(timer)
+      if (error.name === 'AbortError') {
+        throw new Error(
+          `The request took longer than ${Math.round(timeoutMs / 1000)}s and was cancelled. The backend may be stuck — check the terminal running \`npm run dev\`.`,
+          { cause: error }
+        )
+      }
+      throw error
+    }
+
+    if (!response.ok) {
+      clearTimeout(timer)
+      const data = await response.json().catch(() => ({}))
+      throw new Error(data.error || 'Something went wrong.')
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let doneResult = null
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        let frameBreak
+        while ((frameBreak = buffer.indexOf('\n\n')) !== -1) {
+          const frame = buffer.slice(0, frameBreak)
+          buffer = buffer.slice(frameBreak + 2)
+
+          const lines = frame.split('\n')
+          const eventLine = lines.find((l) => l.startsWith('event:'))
+          const dataLine = lines.find((l) => l.startsWith('data:'))
+          if (!eventLine || !dataLine) continue
+
+          const eventName = eventLine.slice(6).trim()
+          let payload
+          try {
+            payload = JSON.parse(dataLine.slice(5).trim())
+          } catch {
+            continue
+          }
+
+          if (eventName === 'token') {
+            setStreamingText((prev) => prev + (payload.text || ''))
+          } else if (eventName === 'done') {
+            doneResult = payload
+          } else if (eventName === 'error') {
+            throw new Error(payload.error || 'Could not connect to the local AI.')
+          }
+        }
+      }
+    } finally {
+      clearTimeout(timer)
+      reader.releaseLock?.()
+    }
+
+    if (!doneResult) {
+      throw new Error('The connection ended before a full response arrived.')
+    }
+
+    return doneResult
   }
 
   async function loadData() {
@@ -557,17 +660,16 @@ export function useAppData() {
     setLoading(true)
     setMemorySuggestion('')
 
+    setStreamingText('')
+
     try {
-      const chatResult = await request('/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: [...priorMessages, userMessage],
-          settings: {
-            allowActions: settings.aiActions,
-          },
-          mode: threadKey,
-          image: imageDataUrl || undefined,
-        }),
+      const chatResult = await streamChat({
+        messages: [...priorMessages, userMessage],
+        settings: {
+          allowActions: settings.aiActions,
+        },
+        mode: threadKey,
+        image: imageDataUrl || undefined,
       })
 
       setChatThreads((prev) => ({
@@ -644,6 +746,7 @@ export function useAppData() {
       }))
     } finally {
       setLoading(false)
+      setStreamingText('')
     }
   }
 
@@ -1533,6 +1636,9 @@ export function useAppData() {
     setSportsScheduleDay,
     sportsSettings,
     setSportsSport,
+
+    // chat streaming
+    streamingText,
 
     // overview
     overviewCards,
