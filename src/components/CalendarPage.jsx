@@ -6,6 +6,27 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 
+// Every mode already gets a distinct chip color via the .cal-mode-* CSS
+// rules (see App.css, fed by the --cal-* custom properties) -- that part
+// was built already. What was missing was anywhere on the page that told
+// Dylan which color meant which life area, so the calendar was color-coded
+// with no key to read it by. This is that key -- one source of truth
+// (the .cal-mode-* class names) reused for both the chips and the swatches
+// below, so the legend can never drift out of sync with the actual colors.
+const CALENDAR_LEGEND = [
+  { key: 'school', label: 'School' },
+  { key: 'sports', label: 'Sports' },
+  { key: 'gym', label: 'Gym' },
+  { key: 'health', label: 'Health' },
+  { key: 'finance', label: 'Finance' },
+  { key: 'skills', label: 'Skills' },
+  { key: 'reading', label: 'Reading' },
+  { key: 'discipline', label: 'Discipline' },
+  { key: 'family', label: 'Family/Faith' },
+  { key: 'goals', label: 'Goals' },
+  { key: 'calendar', label: 'Apple Calendar (untagged)' },
+]
+
 function dayKey(year, monthIndex, day) {
   return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
@@ -370,6 +391,16 @@ export default function CalendarPage({ calendar }) {
           </label>
         </div>
       )}
+
+      <div className="calendar-legend">
+        <span className="calendar-legend-label">KEY:</span>
+        {CALENDAR_LEGEND.map((item) => (
+          <span className={`calendar-legend-item cal-mode-${item.key}`} key={item.key}>
+            <span className="calendar-legend-swatch" />
+            {item.label}
+          </span>
+        ))}
+      </div>
 
       <div className="calendar-toolbar">
         <div className="calendar-view-toggle">

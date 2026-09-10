@@ -4874,6 +4874,51 @@ button:disabled:active {
   width: auto;
 }
 
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 8px 10px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(10px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+}
+
+.calendar-legend-label {
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.calendar-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.calendar-legend-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  background: rgb(var(--chip-rgb, 148, 163, 184));
+  flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .calendar-legend {
+    gap: 8px;
+  }
+  .calendar-legend-item {
+    font-size: 0.66rem;
+  }
+}
+
 @media (max-width: 720px) {
   .calendar-day {
     min-height: 74px;

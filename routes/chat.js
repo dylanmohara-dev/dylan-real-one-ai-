@@ -254,7 +254,6 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: MODEL,
-        keep_alive: KEEP_ALIVE,
           keep_alive: KEEP_ALIVE,
           messages: [{ role: 'system', content: contentSystemPrompt }, ...messages],
           temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.4) : 0.4,
@@ -277,10 +276,11 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
       })
     }
 
-    const memories = loadData('memories')
-    const tasks = loadData('tasks')
+    const memories = loadData('memories').slice(-50)
+    const allTasks = loadData('tasks')
+    const openTasks = allTasks.filter((t) => !t.completed)
     const goals = loadData('goals')
-    const notes = loadData('notes')
+    const notes = loadData('notes').slice(-50)
     const liveContext = await getLiveContextBlock()
 
     const context = `
@@ -289,8 +289,8 @@ CURRENT DYLAN AI DATA
 MEMORIES:
 ${memories.map((m) => `- ${m.content}`).join('\n') || '- None'}
 
-TASKS:
-${tasks.map((t) => `- ${t.title} | ${t.completed ? 'Completed' : 'Open'} | Priority: ${t.priority}`).join('\n') || '- None'}
+OPEN TASKS (completed tasks are hidden here to keep this short -- they still exist and can still be found/managed by name):
+${openTasks.map((t) => `- ${t.title} | Priority: ${t.priority}`).join('\n') || '- None open'}
 
 GOALS:
 ${goals.map((g) => `- ${g.title} | ${g.progress}% complete`).join('\n') || '- None'}
