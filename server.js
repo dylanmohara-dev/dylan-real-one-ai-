@@ -1,6 +1,9 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
 
 import tasksRouter from './routes/tasks.js'
 import goalsRouter from './routes/goals.js'
@@ -60,6 +63,30 @@ app.use('/api/slack', slackRouter)
 app.use('/api/backup', backupRouter)
 app.use('/api/gym', gymRouter)
 app.use('/api/sports', sportsRouter)
+
+// Phone access (via a tunnel to this Mac) needs the frontend and the API
+// reachable through the SAME origin/port, since a free tunnel forwards
+// exactly one port -- this is also why src/hooks/useAppData.js and
+// useCalendar.js now fetch a relative '/api' path in production instead
+// of a hardcoded localhost URL. Run `npm run build` once, then start
+// this server (`npm run server` or `node server.js`) -- it serves the
+// built frontend here. This block is a no-op during normal local
+// development (`npm run dev`), which still runs Vite's own dev server
+// on its own port exactly as before -- dist/ simply won't exist yet, so
+// none of these routes match anything and Vite keeps handling the UI.
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const distDir = path.join(__dirname, 'dist')
+const distIndex = path.join(distDir, 'index.html')
+
+if (fs.existsSync(distIndex)) {
+  app.use(express.static(distDir))
+  // SPA fallback: any non-API GET that isn't a real static file (e.g. a
+  // page refresh on a client-side route) still gets the app shell, so
+  // React Router-style navigation doesn't 404 on phone or tunnel access.
+  app.get(/^\/(?!api\/).*/, (req, res) => {
+    res.sendFile(distIndex)
+  })
+}
 
 app.listen(port, () => {
   console.log(`Dylan AI server running on http://localhost:${port}`)

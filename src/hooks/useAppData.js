@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { DEFAULT_SETTINGS, LIFE_MODES } from '../data/lifeModes.js'
 
-const API = 'http://localhost:3001/api'
+// In dev (npm run dev), Vite and Express run as two separate servers on
+// this Mac, so the dev server always talks to localhost:3001 directly.
+// In production (npm run build, then node server.js), Express serves the
+// built frontend AND the API from the SAME origin/port -- which is what
+// makes phone access through a tunnel work at all, since a free tunnel
+// forwards exactly one port. A relative /api path automatically resolves
+// to whatever host the tunnel maps that day, with zero reconfiguration.
+const API = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api'
 
 export function useAppData() {
   const [message, setMessage] = useState('')

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 
-const API = 'http://localhost:3001/api/calendar'
+const API = import.meta.env.DEV ? 'http://localhost:3001/api/calendar' : '/api/calendar'
 
 async function request(endpoint, options = {}) {
   let response
