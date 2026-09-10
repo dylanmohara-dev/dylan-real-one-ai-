@@ -681,6 +681,13 @@ export function useAppData() {
             content: chatResult.reply || 'No response from Dylan AI.',
             // Measured server-side, so it reflects real model work.
             thinkingMs: chatResult.thinkingMs,
+            // A proposed real calendar event awaiting Dylan's explicit
+            // confirm/cancel -- see confirmPendingEvent/cancelPendingEvent
+            // below. null on every message that isn't a create_event
+            // proposal.
+            pendingEvent: chatResult.pendingEvent
+              ? { ...chatResult.pendingEvent, status: 'pending', error: null }
+              : null,
           },
         ],
       }))
@@ -748,6 +755,71 @@ export function useAppData() {
       setLoading(false)
       setStreamingText('')
     }
+  }
+
+  /*
+    create_event is the one action type the chat route never performs on
+    its own (see routes/chat.js) -- it's a real, one-way write to Dylan's
+    actual Apple/iCloud calendar, so Dylan (session 23) chose to require an
+    explicit confirm click before anything actually gets written. These two
+    functions are that confirm/cancel step. `index` addresses a message by
+    its position in chatThreads[threadKey] -- safe here because messages are
+    only ever appended, never reordered or removed, matching the `key={index}`
+    already used to render them in ChatPage.
+  */
+  async function confirmPendingEvent(index) {
+    const threadKey = currentThreadKey
+    const pending = chatThreads[threadKey]?.[index]?.pendingEvent
+    if (!pending || pending.status === 'confirming' || pending.status === 'confirmed') return
+
+    function patchPendingEvent(patch) {
+      setChatThreads((prev) => {
+        const thread = prev[threadKey] || []
+        const target = thread[index]
+        if (!target?.pendingEvent) return prev
+        const updated = [...thread]
+        updated[index] = { ...target, pendingEvent: { ...target.pendingEvent, ...patch } }
+        return { ...prev, [threadKey]: updated }
+      })
+    }
+
+    patchPendingEvent({ status: 'confirming', error: null })
+
+    try {
+      // Reuses the exact same real-calendar-write endpoint the Calendar
+      // page's own manual "add event" form already uses (useCalendar.js's
+      // createEvent -> POST /calendar/events) -- this is not a second,
+      // parallel way of writing events, just a second caller of the one
+      // that already exists and is already trusted with Dylan's real
+      // iCloud calendar.
+      await request('/calendar/events', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: pending.title,
+          start: pending.start,
+          end: pending.end,
+          allDay: pending.allDay,
+          location: pending.location,
+          mode: pending.mode,
+        }),
+      })
+      patchPendingEvent({ status: 'confirmed', error: null })
+    } catch (error) {
+      showError(error.message)
+      patchPendingEvent({ status: 'pending', error: error.message })
+    }
+  }
+
+  function cancelPendingEvent(index) {
+    const threadKey = currentThreadKey
+    setChatThreads((prev) => {
+      const thread = prev[threadKey] || []
+      const target = thread[index]
+      if (!target?.pendingEvent) return prev
+      const updated = [...thread]
+      updated[index] = { ...target, pendingEvent: { ...target.pendingEvent, status: 'cancelled' } }
+      return { ...prev, [threadKey]: updated }
+    })
   }
 
   async function addHealthEntry(category, value, note = '') {
@@ -1639,6 +1711,10 @@ export function useAppData() {
 
     // chat streaming
     streamingText,
+
+    // chat: real-calendar-event proposals
+    confirmPendingEvent,
+    cancelPendingEvent,
 
     // overview
     overviewCards,

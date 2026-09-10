@@ -2167,6 +2167,85 @@ footer {
   filter: brightness(1.2);
 }
 
+.pending-event-card {
+  padding: 13px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid rgba(var(--mode-accent-rgb), 0.28);
+  border-radius: 13px;
+  background: rgba(var(--mode-accent-rgb), 0.07);
+  animation: fadeUp 0.2s ease;
+}
+
+.pending-event-card.pending-event-confirmed {
+  border-color: rgba(64, 230, 154, 0.3);
+  background: rgba(64, 230, 154, 0.07);
+}
+
+.pending-event-card.pending-event-cancelled {
+  opacity: 0.6;
+}
+
+.pending-event-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text-primary);
+}
+
+.pending-event-summary strong {
+  display: block;
+  font-size: 12.5px;
+}
+
+.pending-event-summary span {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+}
+
+.pending-event-actions {
+  display: flex;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.pending-event-actions button {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 11px;
+  color: var(--text-on-accent);
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+}
+
+.pending-event-confirm {
+  background: linear-gradient(135deg, rgb(var(--mode-accent-rgb)), rgb(var(--mode-accent2-rgb))) !important;
+}
+
+.pending-event-actions button:hover {
+  filter: brightness(1.2);
+}
+
+.pending-event-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.pending-event-status-ok {
+  color: #46d99a;
+}
+
+.pending-event-error {
+  font-size: 11px;
+  color: #ff8080;
+}
+
 .chat-image-file-input {
   display: none;
 }

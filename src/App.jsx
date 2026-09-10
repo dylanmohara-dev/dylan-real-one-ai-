@@ -100,6 +100,8 @@ function App() {
           message={message}
           setMessage={setMessage}
           sendMessage={sendMessage}
+          confirmPendingEvent={data.confirmPendingEvent}
+          cancelPendingEvent={data.cancelPendingEvent}
         />
       )
     }
@@ -450,6 +452,8 @@ function App() {
           message={message}
           setMessage={setMessage}
           sendMessage={sendMessage}
+          confirmPendingEvent={data.confirmPendingEvent}
+          cancelPendingEvent={data.cancelPendingEvent}
         />
       </div>
     </div>

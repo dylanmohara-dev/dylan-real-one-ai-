@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Image as ImageIcon, X, Sparkles, Mic, MicOff } from 'lucide-react'
+import { Image as ImageIcon, X, Sparkles, Mic, MicOff, CalendarPlus, Check } from 'lucide-react'
 import { LIFE_MODES } from '../data/lifeModes.js'
 
 export default function ChatPage({
@@ -12,6 +12,8 @@ export default function ChatPage({
   message,
   setMessage,
   sendMessage,
+  confirmPendingEvent,
+  cancelPendingEvent,
   assistantContext,
   modeKey,
 }) {
@@ -141,6 +143,21 @@ export default function ChatPage({
     return `${minutes}m ${seconds}s`
   }
 
+  // Renders a create_event proposal's start (and its own date/time format,
+  // which is a bare "YYYY-MM-DD" for an allDay event or a local
+  // "YYYY-MM-DDTHH:MM:SS" otherwise -- see routes/chat.js's system prompt)
+  // into something readable, without pulling in a date library for one line
+  // of formatting.
+  const formatEventWhen = (pendingEvent) => {
+    if (!pendingEvent?.start) return ''
+    const parsed = new Date(pendingEvent.start)
+    if (Number.isNaN(parsed.getTime())) return pendingEvent.start
+    const datePart = parsed.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    if (pendingEvent.allDay) return datePart
+    const timePart = parsed.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    return `${datePart}, ${timePart}`
+  }
+
   const mode = modeKey ? LIFE_MODES.find((item) => item.key === modeKey) : null
   const AssistantIcon = mode?.icon || Sparkles
   const assistantName = assistantContext?.assistantName || 'Dylan AI'
@@ -244,6 +261,55 @@ export default function ChatPage({
                 <span className="message-thinking-time">
                   Thought for {formatDuration(chat.thinkingMs)}
                 </span>
+              )}
+
+              {chat.pendingEvent && (
+                <div className={`pending-event-card pending-event-${chat.pendingEvent.status}`}>
+                  <div className="pending-event-summary">
+                    <CalendarPlus size={14} strokeWidth={2.25} />
+                    <div>
+                      <strong>{chat.pendingEvent.title}</strong>
+                      <span>{formatEventWhen(chat.pendingEvent)}{chat.pendingEvent.location ? ` — ${chat.pendingEvent.location}` : ''}</span>
+                    </div>
+                  </div>
+
+                  {chat.pendingEvent.status === 'pending' && (
+                    <div className="pending-event-actions">
+                      <button
+                        type="button"
+                        className="pending-event-confirm"
+                        onClick={() => confirmPendingEvent(index)}
+                      >
+                        Add to calendar
+                      </button>
+                      <button
+                        type="button"
+                        className="pending-event-cancel"
+                        onClick={() => cancelPendingEvent(index)}
+                      >
+                        Don't add
+                      </button>
+                    </div>
+                  )}
+
+                  {chat.pendingEvent.status === 'confirming' && (
+                    <span className="pending-event-status">Adding to your calendar…</span>
+                  )}
+
+                  {chat.pendingEvent.status === 'confirmed' && (
+                    <span className="pending-event-status pending-event-status-ok">
+                      <Check size={13} strokeWidth={2.5} /> Added to your calendar
+                    </span>
+                  )}
+
+                  {chat.pendingEvent.status === 'cancelled' && (
+                    <span className="pending-event-status">Not added</span>
+                  )}
+
+                  {chat.pendingEvent.error && (
+                    <span className="pending-event-error">{chat.pendingEvent.error}</span>
+                  )}
+                </div>
               )}
             </div>
           </div>

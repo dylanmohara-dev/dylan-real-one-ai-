@@ -3,6 +3,7 @@ import { loadData } from '../lib/dataStore.js'
 import { detectCommand, executeAction, looksLikeContentRequest } from '../lib/assistant.js'
 import { getLiveContextBlock } from '../lib/liveContext.js'
 import { createReplyExtractor } from '../lib/streamingJson.js'
+import { todayKey } from '../lib/studyPlan.js'
 import {
   OLLAMA_HOST,
   OLLAMA_URL,
@@ -395,8 +396,20 @@ ${notes.map((n) => `- ${n.content}`).join('\n') || '- None'}
 ${liveContext}
 `
 
+    // Needed so the model can correctly resolve relative dates Dylan
+    // actually says out loud -- "tomorrow," "next Friday," "in two weeks."
+    // Without this the model has no way to know what day it even is, which
+    // makes create_event's proposed start/end dates a guess rather than a
+    // calculation. Computed the same way every other "today" in this app
+    // is (lib/studyPlan.js's todayKey(), server-local, bare YYYY-MM-DD --
+    // consistent with the bare-date convention used everywhere else here).
+    const todayForModel = todayKey()
+    const weekdayForModel = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+    const nowForModel = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+
     const systemPrompt = `
 You are Dylan AI, Dylan's personal AI operating system.
+Today's date is ${todayForModel} (${weekdayForModel}), current local time is roughly ${nowForModel}. Use this to resolve any relative date or time Dylan mentions ("tomorrow," "next Friday," "in two weeks") into an actual calendar date -- never guess or leave it vague.
 ${modeLabel ? `\nYou are currently in Dylan's "${modeLabel}" area — keep your focus and suggestions relevant to ${modeLabel} unless Dylan clearly asks about something else.\n${personaFraming(modeLabel) ? `${personaFraming(modeLabel)}\n` : ''}${modeStyle ? `Style for this area: ${modeStyle}\n` : ''}` : ''}
 You have access to Dylan's tasks, goals, notes, and memories, plus live data from any of Gmail, Google Drive, and Slack that Dylan has connected (shown below under CURRENT DYLAN AI DATA when connected). If a section like GMAIL or SLACK is missing entirely, that integration is not connected — say so plainly rather than guessing at its contents.
 
@@ -465,6 +478,11 @@ Dylan: "practiced guitar, got through 3 pages of sheet music"
 {"reply": "Logged 3 pages for Guitar.", "action": {"type": "log_skill_practice", "skillName": "guitar", "quantity": 3, "note": "sheet music"}}
 
 If Dylan only has one skill being tracked, skillName can be omitted or guessed loosely — the app will default to it.
+
+create_event — use this whenever Dylan asks to add, schedule, book, or put something on his REAL calendar (not a task -- an actual Apple Calendar event). This NEVER happens immediately: it always requires Dylan's explicit confirmation first, so phrase "reply" as a genuine proposal or question ("I can add 'Team lunch' on Friday, Sept 12 at 6:00 PM -- want me to add it?"), never as if it is already done. Fields: title (required), start (required -- "YYYY-MM-DDTHH:MM:SS" 24-hour local time for a timed event, or bare "YYYY-MM-DD" when allDay is true), end (optional, same format as start), allDay (boolean), location (optional short string), mode (one of school/sports/gym/health/finance/skills/reading/discipline/family if Dylan's request is clearly about one of those areas, otherwise omit it). Never set a "recurrence" field -- if Dylan wants something repeating, propose only the first occurrence and mention in "reply" that repeating events need to be set up from the Calendar page directly. If Dylan did not give enough detail to know the date (or time, for a non-allDay event), do not produce a create_event action at all -- ask him what's missing in "reply" instead, with "action" set to null.
+
+Dylan: "add a team lunch this friday at 6pm"
+{"reply": "I can add 'Team lunch' on Friday, Sept 12 at 6:00 PM to your calendar -- want me to add it?", "action": {"type": "create_event", "title": "Team lunch", "start": "2026-09-12T18:00:00", "allDay": false}}
 
 Never claim an action happened unless the application actually performed it.
 
@@ -544,7 +562,38 @@ ${context}
       parsed = { reply: fallbackReply || raw, action: null }
     }
 
-    const actionResult = executeAction(parsed.action)
+    // create_event is deliberately never handed to executeAction: every
+    // other action here is a same-process, instantly-reversible write to a
+    // local JSON file, while this one is a real, one-way write to Dylan's
+    // actual Apple/iCloud calendar -- Dylan explicitly chose (session 23)
+    // that a 3B model proposing one is not enough on its own, it must be
+    // confirmed first. So this branch never touches the calendar; it just
+    // hands the proposed fields back to the frontend as `pendingEvent`,
+    // which renders Confirm/Cancel and only calls the real
+    // POST /calendar/events route (already used by the Calendar page's own
+    // manual "add event" form) once Dylan actually clicks Confirm.
+    let pendingEvent = null
+    if (parsed.action?.type === 'create_event') {
+      const { title, start, end, allDay, location, mode: eventMode } = parsed.action
+      if (title?.trim() && start) {
+        pendingEvent = {
+          title: title.trim(),
+          start,
+          end: end || null,
+          allDay: Boolean(allDay),
+          location: location || '',
+          mode: eventMode || modeLabel || null,
+        }
+      }
+      // Missing title/start: treat as no action at all rather than showing
+      // a broken confirm button with nothing to confirm. The system prompt
+      // already tells the model to ask a clarifying question instead of
+      // proposing an incomplete event, so parsed.reply should already read
+      // like a question in this case.
+      parsed.action = null
+    }
+
+    const actionResult = pendingEvent ? { performed: false, message: '' } : executeAction(parsed.action)
     let finalReply = parsed.reply || raw
 
     if (actionResult.performed) {
@@ -562,6 +611,7 @@ ${context}
       reply: finalReply || 'No response from Dylan AI.',
       actionPerformed: actionResult.performed,
       skipMemoryCheck: actionResult.performed,
+      pendingEvent,
     })
   } catch (error) {
     // This was the other half of the "real errors reach Dylan" fix from a
