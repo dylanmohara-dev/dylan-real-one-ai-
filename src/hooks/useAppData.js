@@ -292,88 +292,51 @@ export function useAppData() {
     return doneResult
   }
 
+  // Used to fire ~22 separate GET requests in parallel every single time
+  // ANY mutation anywhere in the app happened -- add a task, log a gym set,
+  // toggle a habit. Each request was individually fast (local Express,
+  // small JSON files), but 22 of them, 22 route handlers, 22 JSON parses,
+  // every single save, was real and measurable -- the most concrete
+  // candidate for "the app feels slow." Now a single GET /api/bootstrap
+  // (routes/bootstrap.js) does the same 22 reads server-side, in-process,
+  // reusing the exact same computation each real endpoint already runs
+  // (skills' XP/streak/level, finance's net worth, gym/sports week-plan
+  // defaults) -- and returns them in one response. Every individual
+  // endpoint (/gym/logs, /finance, etc.) is untouched and still used by
+  // every add/update/delete function below; only the "reload everything"
+  // step changed from 22 round trips to 1.
   async function loadData() {
     try {
-      const [
-        taskData,
-        goalData,
-        noteData,
-        memoryData,
-        classData,
-        assignmentData,
-        testData,
-        healthData,
-        financeData,
-        skillsData,
-        gymExerciseData,
-        gymLogData,
-        gymRoutineData,
-        gymWeekPlanData,
-        gymDayNoteData,
-        sportsSessionData,
-        sportsScheduleData,
-        sportsSettingsData,
-        readingBookData,
-        readingSessionData,
-        disciplineHabitData,
-        disciplineCompletionData,
-        familyMemberData,
-        familyLogData,
-      ] = await Promise.all([
-        request('/tasks'),
-        request('/goals'),
-        request('/notes'),
-        request('/memories'),
-        request('/classes'),
-        request('/assignments'),
-        request('/tests'),
-        request('/health'),
-        request('/finance'),
-        request('/skills'),
-        request('/gym/exercises'),
-        request('/gym/logs'),
-        request('/gym/routines'),
-        request('/gym/week-plan'),
-        request('/gym/day-notes'),
-        request('/sports/sessions'),
-        request('/sports/schedule'),
-        request('/sports/settings'),
-        request('/reading/books'),
-        request('/reading/sessions'),
-        request('/discipline/habits'),
-        request('/discipline/completions'),
-        request('/family/members'),
-        request('/family/log'),
-      ])
+      const data = await request('/bootstrap')
 
-      setTasks(taskData.tasks || [])
-      setGoals(goalData.goals || [])
-      setNotes(noteData.notes || [])
-      setMemories(memoryData.memories || [])
-      setClasses(classData.classes || [])
-      setAssignments(assignmentData.assignments || [])
-      setTests(testData.tests || [])
-      setHealthEntries(healthData.entries || [])
-      setFinanceAccounts(financeData.accounts || [])
-      setFinanceNetWorth(financeData.netWorth || 0)
-      setFinanceHistory(financeData.history || [])
-      setSkills(skillsData.skills || [])
-      setGymExercises(gymExerciseData.exercises || [])
-      setGymLogs(gymLogData.logs || [])
-      setGymRoutines(gymRoutineData.routines || [])
-      setGymWeekPlan(gymWeekPlanData.weekPlan || {})
-      setGymDayNotes(gymDayNoteData.dayNotes || [])
-      setSportsSessions(sportsSessionData.sessions || [])
-      setSportsSchedule(sportsScheduleData.schedule || {})
-      setSportsSettings(sportsSettingsData.settings || { sport: '' })
-      setReadingBooks(readingBookData.books || [])
-      setReadingSessions(readingSessionData.sessions || [])
-      setDisciplineHabits(disciplineHabitData.habits || [])
-      setDisciplineCompletions(disciplineCompletionData.completions || [])
-      setFamilyMembers(familyMemberData.members || [])
-      setFamilyLog(familyLogData.log || [])
+      setTasks(data.tasks || [])
+      setGoals(data.goals || [])
+      setNotes(data.notes || [])
+      setMemories(data.memories || [])
+      setClasses(data.classes || [])
+      setAssignments(data.assignments || [])
+      setTests(data.tests || [])
+      setHealthEntries(data.health?.entries || [])
+      setFinanceAccounts(data.finance?.accounts || [])
+      setFinanceNetWorth(data.finance?.netWorth || 0)
+      setFinanceHistory(data.finance?.history || [])
+      setSkills(data.skills || [])
+      setGymExercises(data.gym?.exercises || [])
+      setGymLogs(data.gym?.logs || [])
+      setGymRoutines(data.gym?.routines || [])
+      setGymWeekPlan(data.gym?.weekPlan || {})
+      setGymDayNotes(data.gym?.dayNotes || [])
+      setSportsSessions(data.sports?.sessions || [])
+      setSportsSchedule(data.sports?.schedule || {})
+      setSportsSettings(data.sports?.settings || { sport: '' })
+      setReadingBooks(data.reading?.books || [])
+      setReadingSessions(data.reading?.sessions || [])
+      setDisciplineHabits(data.discipline?.habits || [])
+      setDisciplineCompletions(data.discipline?.completions || [])
+      setFamilyMembers(data.family?.members || [])
+      setFamilyLog(data.family?.log || [])
 
-      return { skills: skillsData.skills || [], goals: goalData.goals || [] }
+      return { skills: data.skills || [], goals: data.goals || [] }
     } catch (error) {
       setErrorMessage(error.message)
       return null

@@ -113,7 +113,7 @@ router.delete('/sessions/:id', async (req, res) => {
 // game, or off. Same single-settings-object pattern as Gym's week plan,
 // just a type string per day instead of a routine id.
 const WEEKDAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-const DEFAULT_SCHEDULE = Object.fromEntries(WEEKDAYS.map((day) => [day, null]))
+export const DEFAULT_SCHEDULE = Object.fromEntries(WEEKDAYS.map((day) => [day, null]))
 
 router.get('/schedule', (req, res) => {
   const stored = loadData('sports_schedule', DEFAULT_SCHEDULE)

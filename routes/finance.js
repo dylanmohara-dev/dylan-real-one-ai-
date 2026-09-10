@@ -6,7 +6,7 @@ const router = Router()
 const ACCOUNT_TYPES = ['checking', 'savings', 'investment', 'credit', 'loan']
 const DEBT_TYPES = ['credit', 'loan']
 
-function computeNetWorth(accounts) {
+export function computeNetWorth(accounts) {
   return accounts.reduce((total, account) => {
     const balance = Number(account.balance) || 0
     return DEBT_TYPES.includes(account.type) ? total - balance : total + balance

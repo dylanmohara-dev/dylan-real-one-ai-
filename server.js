@@ -28,6 +28,7 @@ import sportsRouter from './routes/sports.js'
 import readingRouter from './routes/reading.js'
 import disciplineRouter from './routes/discipline.js'
 import familyRouter from './routes/family.js'
+import bootstrapRouter from './routes/bootstrap.js'
 import { startModelWarmup } from './lib/ollamaWarm.js'
 
 
@@ -69,6 +70,7 @@ app.use('/api/sports', sportsRouter)
 app.use('/api/reading', readingRouter)
 app.use('/api/discipline', disciplineRouter)
 app.use('/api/family', familyRouter)
+app.use('/api', bootstrapRouter)
 
 // Phone access (via a tunnel to this Mac) needs the frontend and the API
 // reachable through the SAME origin/port, since a free tunnel forwards

@@ -46,14 +46,24 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = OLLAMA_TIMEOUT_MS
   }
 }
 
-// Checks whether a given model name is actually pulled in Ollama BEFORE
-// spending a request on it -- this is what turns "some HTTP error came
-// back" into an unmistakable, specific instruction ("run ollama pull X").
-// Originally only the vision path did this; pulled out here so the main
-// and content-request paths can do the same check now that MODEL is no
-// longer guaranteed to already be installed (see lib/aiConfig.js -- Dylan
-// chose a bigger, smarter, NOT-yet-pulled model over the previous default).
-async function checkModelInstalled(modelName) {
+// Both this and resolveAvailableModel() below used to independently ping
+// Ollama's /api/tags on every single call -- meaning a normal chat message
+// could trigger it twice (once here or in resolveAvailableModel, again in
+// the /memory-check that follows), and a back-and-forth conversation paid
+// that extra local round trip before every message with zero benefit --
+// which model is pulled essentially never changes mid-conversation.
+// Cached for a short window so it's skipped for the overwhelmingly common
+// case (several messages in quick succession) while still noticing a real
+// `ollama pull`/`ollama rm` within seconds, not requiring a server
+// restart.
+const MODEL_LIST_CACHE_MS = 15000
+let modelListCache = { at: 0, models: null }
+
+async function getInstalledModels() {
+  if (modelListCache.models && Date.now() - modelListCache.at < MODEL_LIST_CACHE_MS) {
+    return modelListCache.models
+  }
+
   let installedModels = []
   try {
     const tagsResponse = await fetchWithTimeout(`${OLLAMA_HOST}/api/tags`, {}, OLLAMA_PING_TIMEOUT_MS, 'Ollama')
@@ -62,10 +72,26 @@ async function checkModelInstalled(modelName) {
       installedModels = (tagsData.models || []).map((m) => m.name)
     }
   } catch {
+    // Deliberately NOT cached -- a transient failure to reach Ollama
+    // shouldn't get remembered as "nothing is installed" for the next 15s.
     throw new Error(
       `Could not reach Ollama at all (${OLLAMA_HOST}). Is it running? Try \`ollama serve\` ` + 'or open the Ollama app, then try again.'
     )
   }
+
+  modelListCache = { at: Date.now(), models: installedModels }
+  return installedModels
+}
+
+// Checks whether a given model name is actually pulled in Ollama BEFORE
+// spending a request on it -- this is what turns "some HTTP error came
+// back" into an unmistakable, specific instruction ("run ollama pull X").
+// Originally only the vision path did this; pulled out here so the main
+// and content-request paths can do the same check now that MODEL is no
+// longer guaranteed to already be installed (see lib/aiConfig.js -- Dylan
+// chose a bigger, smarter, NOT-yet-pulled model over the previous default).
+async function checkModelInstalled(modelName) {
+  const installedModels = await getInstalledModels()
 
   const isInstalled = installedModels.some((name) => name === modelName || name.startsWith(`${modelName}:`))
   if (!isInstalled) {
@@ -88,18 +114,7 @@ async function checkModelInstalled(modelName) {
 // while still telling him plainly (see callers below) that he's on the
 // fallback and what to run to get the better one.
 async function resolveAvailableModel(preferredModel, fallbackModel) {
-  let installedModels = []
-  try {
-    const tagsResponse = await fetchWithTimeout(`${OLLAMA_HOST}/api/tags`, {}, OLLAMA_PING_TIMEOUT_MS, 'Ollama')
-    if (tagsResponse.ok) {
-      const tagsData = await tagsResponse.json()
-      installedModels = (tagsData.models || []).map((m) => m.name)
-    }
-  } catch {
-    throw new Error(
-      `Could not reach Ollama at all (${OLLAMA_HOST}). Is it running? Try \`ollama serve\` ` + 'or open the Ollama app, then try again.'
-    )
-  }
+  const installedModels = await getInstalledModels()
 
   const isModelInstalled = (name) => installedModels.some((m) => m === name || m.startsWith(`${name}:`))
 

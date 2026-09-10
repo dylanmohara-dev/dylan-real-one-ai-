@@ -177,7 +177,7 @@ router.delete('/routines/:id', (req, res) => {
 // A single settings object, not a list -- monday..sunday, each either a
 // routine id or null ("rest / no routine scheduled").
 const WEEKDAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-const DEFAULT_WEEK_PLAN = Object.fromEntries(WEEKDAYS.map((day) => [day, null]))
+export const DEFAULT_WEEK_PLAN = Object.fromEntries(WEEKDAYS.map((day) => [day, null]))
 
 router.get('/week-plan', (req, res) => {
   const stored = loadData('gym_week_plan', DEFAULT_WEEK_PLAN)

@@ -142,7 +142,7 @@ function enrichSkill(skill, allSessions) {
   }
 }
 
-function buildPayload() {
+export function buildPayload() {
   const skills = loadData('skills')
   const sessions = loadData('skill_sessions')
   const active = skills.filter((s) => s.active)
