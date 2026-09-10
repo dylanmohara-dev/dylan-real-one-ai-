@@ -6151,6 +6151,148 @@ button:disabled:active {
   max-width: 220px;
 }
 
+.gym-suggested-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  background: rgba(var(--mode-accent2-rgb, 250, 204, 21), 0.1);
+  border: 1px solid rgba(var(--mode-accent2-rgb, 250, 204, 21), 0.3);
+}
+
+.gym-suggested-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gym-suggested-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: rgb(var(--mode-accent2-rgb, 250, 204, 21));
+}
+
+.gym-suggested-value {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.gym-suggested-fill {
+  padding: 6px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.gym-program-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 0 14px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.gym-program-edit {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+}
+
+.gym-program-edit:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.gym-program-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.gym-program-form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.gym-program-form-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.gym-program-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gym-program-clear,
+.gym-program-cancel {
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+  padding: 8px 12px;
+}
+
+.gym-program-clear:hover,
+.gym-program-cancel:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.gym-day-note {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.gym-day-note textarea {
+  resize: vertical;
+  min-height: 54px;
+  font-family: inherit;
+}
+
+.gym-day-note-history {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: -6px;
+  margin-bottom: 18px;
+}
+
+.gym-day-note-row {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 0.85rem;
+}
+
+.gym-day-note-row:last-child {
+  border-bottom: none;
+}
+
+.gym-day-note-date {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 76px;
+}
+
+.gym-day-note-text {
+  color: var(--text-primary);
+}
+
 /* Sports mode: reuses .form-card / .items-list / .item-card / .gym-tabs /
    .gym-today / .gym-stats-row / .gym-week-plan* wholesale (same shape as
    Gym's Today/Log/Schedule tabs) -- only the bits genuinely new to a

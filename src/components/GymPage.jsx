@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Dumbbell, Trophy, Plus } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 
@@ -57,6 +57,30 @@ function lastLogForExercise(logs, exerciseId) {
   const matches = logs.filter((l) => l.exerciseId === exerciseId)
   if (!matches.length) return null
   return sortLogsRecentFirst(matches)[0]
+}
+
+// A simple, honest progression suggestion -- not a rigid program. If an
+// exercise has a target (targetSets/targetReps, set from the Exercises
+// tab) this looks at the most recent log and suggests what to try today:
+// the same weight again, or +progressionIncrement if every set of the
+// last session met the target reps. No target on the exercise -> no
+// suggestion, freeform logging exactly like before.
+function suggestedProgram(exercise, gymLogs) {
+  if (!exercise?.targetSets || !exercise?.targetReps) return null
+  const lastLog = lastLogForExercise(gymLogs, exercise.id)
+  const increment = Number(exercise.progressionIncrement) || 0
+
+  if (!lastLog) {
+    return { sets: exercise.targetSets, reps: exercise.targetReps, weight: null, isFirstTime: true }
+  }
+
+  const sets = lastLog.sets || []
+  const hitTarget =
+    sets.length >= exercise.targetSets && sets.every((s) => (Number(s.reps) || 0) >= exercise.targetReps)
+  const lastWeight = sets.reduce((max, s) => Math.max(max, Number(s.weight) || 0), 0)
+  const weight = hitTarget ? lastWeight + increment : lastWeight
+
+  return { sets: exercise.targetSets, reps: exercise.targetReps, weight, isFirstTime: false, hitTarget }
 }
 
 // "This week" = the trailing 7 days including today, compared as bare
@@ -135,6 +159,27 @@ function ExerciseLogger({ exercise, gymLogs, saving, addGymLog, deleteGymLog, sh
     setSets([{ reps: '', weight: '' }])
   }
 
+  const suggestion = suggestedProgram(exercise, gymLogs)
+  const suggestionNote = !suggestion
+    ? ''
+    : suggestion.isFirstTime
+    ? 'first time -- pick a weight you can hit for all sets'
+    : suggestion.hitTarget
+    ? exercise.progressionIncrement
+      ? `+${exercise.progressionIncrement} lbs -- you hit target last time`
+      : 'you hit target last time -- try adding weight'
+    : "repeat -- didn't hit target last time"
+
+  function fillSuggested() {
+    if (!suggestion) return
+    setSets(
+      Array.from({ length: suggestion.sets }, () => ({
+        reps: String(suggestion.reps),
+        weight: suggestion.weight ? String(suggestion.weight) : '',
+      }))
+    )
+  }
+
   return (
     <div className="gym-exercise-logger">
       <button
@@ -162,6 +207,21 @@ function ExerciseLogger({ exercise, gymLogs, saving, addGymLog, deleteGymLog, sh
                 Best set: {lastBest.weight} lbs &times; {lastBest.reps} (~{Math.round(lastBest.oneRM)} lbs est.
                 1RM)
               </span>
+            </div>
+          )}
+
+          {suggestion && (
+            <div className="gym-suggested-box">
+              <div className="gym-suggested-text">
+                <span className="gym-suggested-label">TODAY'S TARGET</span>
+                <span className="gym-suggested-value">
+                  {suggestion.sets}&times;{suggestion.reps}
+                  {suggestion.weight ? ` @ ${suggestion.weight} lbs` : ''} ({suggestionNote})
+                </span>
+              </div>
+              <button type="button" className="gym-suggested-fill" onClick={fillSuggested}>
+                Use this
+              </button>
             </div>
           )}
 
@@ -234,7 +294,59 @@ function ExerciseLogger({ exercise, gymLogs, saving, addGymLog, deleteGymLog, sh
   )
 }
 
-function TodayTab({ gymExercises, gymLogs, gymRoutines, gymWeekPlan, saving, addGymLog }) {
+// One freeform note per day -- "how'd it go" -- shown at the top of
+// Today, with a short trailing-week history underneath so a note is
+// actually worth writing (a note you can never look back at is useless).
+function DayNoteBox({ gymDayNotes, saving, setGymDayNote }) {
+  const today = todayKey()
+  const existing = gymDayNotes.find((n) => n.date === today)
+  const [dirty, setDirty] = useState(false)
+  const textareaRef = useRef(null)
+
+  function handleSave() {
+    setGymDayNote(today, textareaRef.current?.value || '')
+    setDirty(false)
+  }
+
+  const recentNotes = gymDayNotes
+    .filter((n) => n.date !== today && n.date >= daysAgoKey(6))
+    .slice()
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+
+  return (
+    <>
+      <div className="form-card gym-day-note">
+        <span className="eyebrow">TODAY'S NOTE</span>
+        <textarea
+          key={existing?.id || 'new'}
+          ref={textareaRef}
+          rows={2}
+          placeholder="How'd it go? Sore shoulder, felt strong, skipped legs..."
+          defaultValue={existing?.note || ''}
+          onChange={() => setDirty(true)}
+        />
+        {dirty && (
+          <button type="button" onClick={handleSave} disabled={saving}>
+            Save note
+          </button>
+        )}
+      </div>
+
+      {recentNotes.length > 0 && (
+        <div className="gym-day-note-history">
+          {recentNotes.map((n) => (
+            <div className="gym-day-note-row" key={n.id}>
+              <span className="gym-day-note-date">{n.date}</span>
+              <span className="gym-day-note-text">{n.note}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+function TodayTab({ gymExercises, gymLogs, gymRoutines, gymWeekPlan, gymDayNotes, saving, addGymLog, setGymDayNote }) {
   const todayWeekdayKey = WEEKDAY_KEYS[new Date().getDay()]
   const routineId = gymWeekPlan?.[todayWeekdayKey] || null
   const routine = gymRoutines.find((r) => r.id === routineId) || null
@@ -248,6 +360,8 @@ function TodayTab({ gymExercises, gymLogs, gymRoutines, gymWeekPlan, saving, add
         <span className="eyebrow">{WEEKDAY_LABELS[todayWeekdayKey]}</span>
         <h2 className="serif">{routine ? routine.name : 'Rest day'}</h2>
       </div>
+
+      <DayNoteBox gymDayNotes={gymDayNotes} saving={saving} setGymDayNote={setGymDayNote} />
 
       {routine ? (
         routineExercises.length ? (
@@ -282,7 +396,96 @@ function TodayTab({ gymExercises, gymLogs, gymRoutines, gymWeekPlan, saving, add
   )
 }
 
-function ExercisesTab({ gymExercises, gymLogs, saving, addGymExercise, deleteGymExercise, addGymLog, deleteGymLog }) {
+// Sets or clears a simple linear-progression program on one exercise --
+// target sets/reps, plus a weight bump to suggest once you hit them. Not
+// prescriptive: leaving it unset keeps that exercise pure freeform
+// logging, same as every exercise was before this existed.
+function ProgramForm({ exercise, saving, updateGymExercise }) {
+  const [editing, setEditing] = useState(false)
+  const [targetSets, setTargetSets] = useState(exercise.targetSets || '')
+  const [targetReps, setTargetReps] = useState(exercise.targetReps || '')
+  const [increment, setIncrement] = useState(exercise.progressionIncrement || '')
+
+  const hasProgram = Boolean(exercise.targetSets && exercise.targetReps)
+
+  function handleSave() {
+    if (!targetSets || !targetReps) return
+    updateGymExercise(exercise.id, {
+      targetSets: Number(targetSets),
+      targetReps: Number(targetReps),
+      progressionIncrement: Number(increment) || 0,
+    })
+    setEditing(false)
+  }
+
+  function handleClear() {
+    setTargetSets('')
+    setTargetReps('')
+    setIncrement('')
+    updateGymExercise(exercise.id, { targetSets: null, targetReps: null, progressionIncrement: 0 })
+    setEditing(false)
+  }
+
+  if (!editing) {
+    return (
+      <div className="gym-program-summary">
+        <span>
+          {hasProgram
+            ? `Program: ${exercise.targetSets}×${exercise.targetReps}${
+                exercise.progressionIncrement ? `, +${exercise.progressionIncrement} lbs on hitting target` : ''
+              }`
+            : 'No program set -- freeform logging.'}
+        </span>
+        <button type="button" className="gym-program-edit" onClick={() => setEditing(true)}>
+          {hasProgram ? 'Edit program' : 'Set a program'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="form-card gym-program-form">
+      <div className="gym-program-form-row">
+        <input
+          type="number"
+          min="1"
+          placeholder="Target sets"
+          value={targetSets}
+          onChange={(event) => setTargetSets(event.target.value)}
+        />
+        <input
+          type="number"
+          min="1"
+          placeholder="Target reps"
+          value={targetReps}
+          onChange={(event) => setTargetReps(event.target.value)}
+        />
+        <input
+          type="number"
+          min="0"
+          placeholder="+lbs on hit"
+          value={increment}
+          onChange={(event) => setIncrement(event.target.value)}
+        />
+      </div>
+      <div className="gym-program-form-actions">
+        <button onClick={handleSave} disabled={saving || !targetSets || !targetReps}>
+          Save program
+        </button>
+        {hasProgram && (
+          <button type="button" className="gym-program-clear" onClick={handleClear}>
+            Clear
+          </button>
+        )}
+        <button type="button" className="gym-program-cancel" onClick={() => setEditing(false)}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ExercisesTab({ gymExercises, gymLogs, saving, addGymExercise, deleteGymExercise, updateGymExercise, addGymLog, deleteGymLog }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState(gymExercises[0]?.id || null)
   const [newExerciseName, setNewExerciseName] = useState('')
   const [newExerciseCategory, setNewExerciseCategory] = useState('')
@@ -354,15 +557,18 @@ function ExercisesTab({ gymExercises, gymLogs, saving, addGymExercise, deleteGym
 
       <div className="gym-log-column">
         {selectedExercise ? (
-          <ExerciseLogger
-            key={selectedExercise.id}
-            exercise={selectedExercise}
-            gymLogs={gymLogs}
-            saving={saving}
-            addGymLog={addGymLog}
-            deleteGymLog={deleteGymLog}
-            showHistory
-          />
+          <>
+            <ProgramForm key={selectedExercise.id} exercise={selectedExercise} saving={saving} updateGymExercise={updateGymExercise} />
+            <ExerciseLogger
+              key={selectedExercise.id}
+              exercise={selectedExercise}
+              gymLogs={gymLogs}
+              saving={saving}
+              addGymLog={addGymLog}
+              deleteGymLog={deleteGymLog}
+              showHistory
+            />
+          </>
         ) : (
           <div className="empty-state">
             <div>&#128072;</div>
@@ -519,15 +725,18 @@ export default function GymPage({
   gymLogs,
   gymRoutines,
   gymWeekPlan,
+  gymDayNotes,
   saving,
   addGymExercise,
   deleteGymExercise,
+  updateGymExercise,
   addGymLog,
   deleteGymLog,
   addGymRoutine,
   updateGymRoutine,
   deleteGymRoutine,
   setGymWeekPlanDay,
+  setGymDayNote,
   assistantContext,
   openChat,
 }) {
@@ -593,8 +802,10 @@ export default function GymPage({
           gymLogs={gymLogs}
           gymRoutines={gymRoutines}
           gymWeekPlan={gymWeekPlan}
+          gymDayNotes={gymDayNotes}
           saving={saving}
           addGymLog={addGymLog}
+          setGymDayNote={setGymDayNote}
         />
       )}
 
@@ -605,6 +816,7 @@ export default function GymPage({
           saving={saving}
           addGymExercise={addGymExercise}
           deleteGymExercise={deleteGymExercise}
+          updateGymExercise={updateGymExercise}
           addGymLog={addGymLog}
           deleteGymLog={deleteGymLog}
         />

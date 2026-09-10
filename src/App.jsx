@@ -301,15 +301,18 @@ function App() {
           gymLogs={data.gymLogs}
           gymRoutines={data.gymRoutines}
           gymWeekPlan={data.gymWeekPlan}
+          gymDayNotes={data.gymDayNotes}
           saving={data.saving}
           addGymExercise={data.addGymExercise}
           deleteGymExercise={data.deleteGymExercise}
+          updateGymExercise={data.updateGymExercise}
           addGymLog={data.addGymLog}
           deleteGymLog={data.deleteGymLog}
           addGymRoutine={data.addGymRoutine}
           updateGymRoutine={data.updateGymRoutine}
           deleteGymRoutine={data.deleteGymRoutine}
           setGymWeekPlanDay={data.setGymWeekPlanDay}
+          setGymDayNote={data.setGymDayNote}
           assistantContext={assistantContext}
           openChat={openChat}
         />

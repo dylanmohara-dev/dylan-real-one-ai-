@@ -41,6 +41,21 @@ router.delete('/exercises/:id', (req, res) => {
   res.json({ success: true })
 })
 
+router.put('/exercises/:id', (req, res) => {
+  const exercises = loadData('gym_exercises')
+  const index = exercises.findIndex((e) => e.id === req.params.id)
+  if (index === -1) {
+    return res.status(404).json({ error: 'Exercise not found' })
+  }
+  // Generic merge, same shape as the routines/logs PUT below -- used today
+  // to set or clear a simple progression program (targetSets, targetReps,
+  // progressionIncrement) without a dedicated endpoint for it. Leaving a
+  // field out of the body leaves that field untouched.
+  exercises[index] = { ...exercises[index], ...req.body, id: exercises[index].id }
+  saveData('gym_exercises', exercises)
+  res.json({ exercise: exercises[index] })
+})
+
 // Logs: one entry per exercise per session -- "on this date, this
 // exercise, these sets." sets is [{ reps, weight }], both plain numbers.
 router.get('/logs', (req, res) => {
@@ -185,6 +200,48 @@ router.post('/week-plan', (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Could not save week plan' })
+  }
+})
+
+// Day notes: one freeform note per date -- "how did today go," not tied
+// to any single exercise. Upsert by date: saving again for a date that
+// already has a note replaces it; saving an empty note deletes the row
+// instead of keeping an empty one sitting around.
+router.get('/day-notes', (req, res) => {
+  res.json({ dayNotes: loadData('gym_day_notes') })
+})
+
+router.post('/day-notes', (req, res) => {
+  try {
+    const { date, note } = req.body
+    if (!date) {
+      return res.status(400).json({ error: 'date is required' })
+    }
+    const trimmed = (note || '').trim()
+    const dayNotes = loadData('gym_day_notes')
+    const index = dayNotes.findIndex((n) => n.date === date)
+
+    if (!trimmed) {
+      if (index !== -1) {
+        dayNotes.splice(index, 1)
+        saveData('gym_day_notes', dayNotes)
+      }
+      return res.json({ dayNote: null })
+    }
+
+    if (index === -1) {
+      const dayNote = { id: Date.now().toString(), date, note: trimmed, createdAt: new Date().toISOString() }
+      dayNotes.push(dayNote)
+      saveData('gym_day_notes', dayNotes)
+      return res.json({ dayNote })
+    }
+
+    dayNotes[index] = { ...dayNotes[index], note: trimmed, updatedAt: new Date().toISOString() }
+    saveData('gym_day_notes', dayNotes)
+    res.json({ dayNote: dayNotes[index] })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save day note' })
   }
 })
 

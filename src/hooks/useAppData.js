@@ -32,6 +32,7 @@ export function useAppData() {
   const [gymLogs, setGymLogs] = useState([])
   const [gymRoutines, setGymRoutines] = useState([])
   const [gymWeekPlan, setGymWeekPlan] = useState({})
+  const [gymDayNotes, setGymDayNotes] = useState([])
   const [sportsSessions, setSportsSessions] = useState([])
   const [sportsSchedule, setSportsSchedule] = useState({})
   const [sportsSettings, setSportsSettings] = useState({ sport: '' })
@@ -308,6 +309,7 @@ export function useAppData() {
         gymLogData,
         gymRoutineData,
         gymWeekPlanData,
+        gymDayNoteData,
         sportsSessionData,
         sportsScheduleData,
         sportsSettingsData,
@@ -332,6 +334,7 @@ export function useAppData() {
         request('/gym/logs'),
         request('/gym/routines'),
         request('/gym/week-plan'),
+        request('/gym/day-notes'),
         request('/sports/sessions'),
         request('/sports/schedule'),
         request('/sports/settings'),
@@ -359,6 +362,7 @@ export function useAppData() {
       setGymLogs(gymLogData.logs || [])
       setGymRoutines(gymRoutineData.routines || [])
       setGymWeekPlan(gymWeekPlanData.weekPlan || {})
+      setGymDayNotes(gymDayNoteData.dayNotes || [])
       setSportsSessions(sportsSessionData.sessions || [])
       setSportsSchedule(sportsScheduleData.schedule || {})
       setSportsSettings(sportsSettingsData.settings || { sport: '' })
@@ -490,6 +494,22 @@ export function useAppData() {
     }
   }
 
+  // Sets or clears a simple progression program on an exercise --
+  // { targetSets, targetReps, progressionIncrement } -- or any other
+  // exercise field. Silent (no toast) since it's called live as someone
+  // types into the program form, same treatment as updateGymRoutine.
+  async function updateGymExercise(id, updates) {
+    try {
+      await request(`/gym/exercises/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
   // Logs a set of work for one exercise, then checks it against every prior
   // log for that same exercise -- both raw max weight and estimated 1RM --
   // and fires a celebratory toast on a genuine new record. The very first
@@ -607,6 +627,20 @@ export function useAppData() {
       await request('/gym/week-plan', {
         method: 'POST',
         body: JSON.stringify({ [day]: routineId }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // date is a bare 'YYYY-MM-DD' key; note '' clears that day's note. No
+  // success toast -- this saves as you type/blur, same as the week plan.
+  async function setGymDayNote(date, note) {
+    try {
+      await request('/gym/day-notes', {
+        method: 'POST',
+        body: JSON.stringify({ date, note }),
       })
       await loadData()
     } catch (error) {
@@ -1959,14 +1993,17 @@ export function useAppData() {
     gymLogs,
     gymRoutines,
     gymWeekPlan,
+    gymDayNotes,
     addGymExercise,
     deleteGymExercise,
+    updateGymExercise,
     addGymLog,
     deleteGymLog,
     addGymRoutine,
     updateGymRoutine,
     deleteGymRoutine,
     setGymWeekPlanDay,
+    setGymDayNote,
     // sports
     sportsSessions,
     sportsSchedule,
