@@ -89,13 +89,37 @@ export const DESIGN_SYSTEMS = [
     tagline: 'Shifting rainbow chrome, always',
     description: "Overrides every mode's color with cool chrome silver plus a slowly hue-shifting rainbow sheen. Angular sheared panels, glossy metallic highlights, and a short glitch flicker when you hover.",
   },
+  {
+    key: 'spring-bloom',
+    name: 'Spring Bloom',
+    tagline: 'Blossom pink + fresh green, always',
+    description: "Overrides every mode's color with blossom pink and fresh green. Soft rounded Quicksand headings, a scatter of blurred petal-dot texture behind the page, and gently rounded cards.",
+  },
+  {
+    key: 'summer-blaze',
+    name: 'Summer Blaze',
+    tagline: 'Sun orange + teal, always',
+    description: "Overrides every mode's color with bright sun orange and beach teal. Bold Poppins headings and a faint sunburst of rays radiating from the top of the page.",
+  },
+  {
+    key: 'autumn-harvest',
+    name: 'Autumn Harvest',
+    tagline: 'Amber + rust, always',
+    description: "Overrides every mode's color with harvest amber and rust. Elegant Playfair Display headings and a drift of warm, diagonal falling-leaf streaks behind the page.",
+  },
+  {
+    key: 'winter-frost',
+    name: 'Winter Frost',
+    tagline: 'Ice blue + silver, always',
+    description: "Overrides every mode's color with ice blue and silver. Crisp Cormorant Garamond headings and a scatter of faint snowflake dots on a near-black frozen backdrop.",
+  },
 ]
 
 // A third, independent global "skin" dimension: mood/intensity applied on
 // top of whichever mode color and design system are active, via saturation/
 // brightness/contrast multipliers (see the COLOR PALETTES section in
 // App.css) rather than swapping hues — so it never fights the 9 mode colors
-// or the 5 design systems, it just turns the whole thing up or down.
+// or the 14 design systems, it just turns the whole thing up or down.
 export const COLOR_PALETTES = [
   {
     key: 'vivid',

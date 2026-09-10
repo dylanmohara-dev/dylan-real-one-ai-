@@ -391,7 +391,7 @@ select option {
    the top bar (and anything else outside .app-shell) picks up mode color
    too, instead of always falling back to the :root defaults. */
 
-.app-root.theme-school {  --mode-accent-rgb: 244, 196, 48;  --mode-accent2-rgb: 255, 157, 58;  --mode-heading-font: 'Lora', Georgia, serif;  --mode-radius-scale: 0.85;  --mode-border-width: 1px;  --bg-glow-1: rgba(244, 196, 48, 0.22);  --bg-glow-2: rgba(244, 196, 48, 0.13);  --bg: #1c1608;  --mode-tracking: 0.16em;  --mode-body-font: 'Lora', Georgia, serif;  --surface: rgba(var(--mode-accent-rgb), 0.055);  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);  --surface-input: rgba(var(--mode-accent-rgb), 0.065);  --surface-strong: rgba(57, 48, 23, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.18);  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
+.app-root.theme-school {  --mode-accent-rgb: 244, 196, 48;  --mode-accent2-rgb: 255, 157, 58;  --mode-heading-font: 'Caveat', cursive;  --mode-radius-scale: 0.85;  --mode-border-width: 1px;  --bg-glow-1: rgba(244, 196, 48, 0.22);  --bg-glow-2: rgba(244, 196, 48, 0.13);  --bg: #1c1608;  --mode-tracking: 0.16em;  --mode-body-font: 'Lora', Georgia, serif;  --surface: rgba(var(--mode-accent-rgb), 0.055);  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);  --surface-input: rgba(var(--mode-accent-rgb), 0.065);  --surface-strong: rgba(57, 48, 23, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.18);  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
 }
 
 .app-root.theme-sports {  --mode-accent-rgb: 34, 197, 94;  --mode-accent2-rgb: 163, 230, 53;  --mode-heading-font: 'Bebas Neue', 'Anton', sans-serif;  --mode-radius-scale: 0.5;  --mode-border-width: 2px;  --bg-glow-1: rgba(34, 197, 94, 0.22);  --bg-glow-2: rgba(34, 197, 94, 0.13);  --bg: #06190f;  --mode-tracking: 0.20em;  --mode-body-font: 'Barlow Condensed', 'Arial Narrow', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.055);  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);  --surface-input: rgba(var(--mode-accent-rgb), 0.065);  --surface-strong: rgba(19, 49, 32, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.18);  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
@@ -1794,6 +1794,16 @@ footer {
 
 .deadline-overdue .deadline-when {
   color: rgb(239, 68, 68);
+}
+
+.deadline-clickable {
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.deadline-clickable:hover {
+  transform: translateX(2px);
+  border-color: rgb(var(--mode-accent-rgb));
 }
 
 .check-button {
@@ -4420,6 +4430,35 @@ button:disabled:active {
   position: relative;
 }
 
+/* --- School: notebook paper --- */
+.app-shell.theme-school .main-content {
+  position: relative;
+}
+
+/* Ruled horizontal lines + a vertical red margin line, like a page of
+   notebook paper. Lines sit low-opacity so real content stays the focus. */
+.app-shell.theme-school .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      rgba(var(--mode-accent-rgb), 0.16) 0,
+      rgba(var(--mode-accent-rgb), 0.16) 1px,
+      transparent 1px,
+      transparent 32px
+    ),
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent 44px,
+      rgba(239, 68, 68, 0.35) 44px,
+      rgba(239, 68, 68, 0.35) 45px,
+      transparent 45px
+    );
+}
+
 /* Fine halftone dot texture — a much tighter grain than Comic Pop's bold
    halftone, closer to actual newsprint reproduction. */
 .app-shell.design-newsprint .main-content::before {
@@ -4757,6 +4796,156 @@ button:disabled:active {
   animation: holoGlitch 0.35s steps(2, end);
 }
 
+/* --- Spring Bloom --- */
+.app-shell.design-spring-bloom,
+.app-root.design-spring-bloom {
+  --mode-accent-rgb: 236, 130, 175;
+  --mode-accent2-rgb: 110, 197, 145;
+  --bg-glow-1: rgba(236, 130, 175, 0.16);
+  --bg-glow-2: rgba(110, 197, 145, 0.13);
+  --bg: #0f1a12;
+  --mode-heading-font: 'Quicksand', 'Nunito', sans-serif;
+  --mode-body-font: 'Manrope', sans-serif;
+  --mode-radius-scale: 1.4;
+  --mode-border-width: 1px;
+  --mode-tracking: 0.04em;
+}
+
+.app-shell.design-spring-bloom .main-content {
+  position: relative;
+}
+
+/* A scatter of soft blurred petal-dots, pink and green, drifting behind
+   the page -- gentle and organic rather than a rigid grid. */
+.app-shell.design-spring-bloom .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(236, 130, 175, 0.16) 0, rgba(236, 130, 175, 0.16) 5px, transparent 6px),
+    radial-gradient(circle, rgba(110, 197, 145, 0.13) 0, rgba(110, 197, 145, 0.13) 4px, transparent 5px);
+  background-size: 140px 140px, 95px 95px;
+  background-position: 0 0, 45px 60px;
+}
+
+.app-shell.design-spring-bloom .sidebar,
+.app-shell.design-spring-bloom .top-settings-bar {
+  border-color: rgba(var(--mode-accent-rgb), 0.28);
+}
+
+/* --- Summer Blaze --- */
+.app-shell.design-summer-blaze,
+.app-root.design-summer-blaze {
+  --mode-accent-rgb: 251, 146, 60;
+  --mode-accent2-rgb: 45, 212, 191;
+  --bg-glow-1: rgba(251, 146, 60, 0.18);
+  --bg-glow-2: rgba(45, 212, 191, 0.13);
+  --bg: #0a1716;
+  --mode-heading-font: 'Poppins', sans-serif;
+  --mode-body-font: 'Inter', sans-serif;
+  --mode-radius-scale: 1.0;
+  --mode-border-width: 1px;
+  --mode-tracking: 0.08em;
+}
+
+.app-shell.design-summer-blaze .main-content {
+  position: relative;
+}
+
+/* A faint sunburst of rays fanning out from the top of the page. */
+.app-shell.design-summer-blaze .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-conic-gradient(
+    from 0deg at 50% -20%,
+    rgba(251, 146, 60, 0.07) 0deg,
+    rgba(251, 146, 60, 0.07) 4deg,
+    transparent 4deg,
+    transparent 16deg
+  );
+}
+
+.app-shell.design-summer-blaze .sidebar,
+.app-shell.design-summer-blaze .top-settings-bar {
+  border-color: rgba(var(--mode-accent-rgb), 0.28);
+}
+
+/* --- Autumn Harvest --- */
+.app-shell.design-autumn-harvest,
+.app-root.design-autumn-harvest {
+  --mode-accent-rgb: 217, 119, 6;
+  --mode-accent2-rgb: 154, 52, 18;
+  --bg-glow-1: rgba(217, 119, 6, 0.17);
+  --bg-glow-2: rgba(154, 52, 18, 0.13);
+  --bg: #170f06;
+  --mode-heading-font: 'Playfair Display', Georgia, serif;
+  --mode-body-font: 'Bitter', Georgia, serif;
+  --mode-radius-scale: 0.6;
+  --mode-border-width: 1px;
+  --mode-tracking: 0.06em;
+}
+
+.app-shell.design-autumn-harvest .main-content {
+  position: relative;
+}
+
+/* Warm diagonal streaks, like a drift of falling leaves caught mid-fall. */
+.app-shell.design-autumn-harvest .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgba(217, 119, 6, 0.09) 0,
+    rgba(217, 119, 6, 0.09) 2px,
+    transparent 2px,
+    transparent 46px
+  );
+}
+
+.app-shell.design-autumn-harvest .sidebar,
+.app-shell.design-autumn-harvest .top-settings-bar {
+  border-color: rgba(var(--mode-accent-rgb), 0.28);
+}
+
+/* --- Winter Frost --- */
+.app-shell.design-winter-frost,
+.app-root.design-winter-frost {
+  --mode-accent-rgb: 125, 211, 252;
+  --mode-accent2-rgb: 203, 213, 225;
+  --bg-glow-1: rgba(125, 211, 252, 0.15);
+  --bg-glow-2: rgba(203, 213, 225, 0.08);
+  --bg: #050b14;
+  --mode-heading-font: 'Cormorant Garamond', Georgia, serif;
+  --mode-body-font: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --mode-radius-scale: 0.9;
+  --mode-border-width: 1px;
+  --mode-tracking: 0.12em;
+}
+
+.app-shell.design-winter-frost .main-content {
+  position: relative;
+}
+
+/* Faint snowflake dots, sparse and pale against the near-black backdrop. */
+.app-shell.design-winter-frost .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1.5px);
+  background-size: 26px 26px;
+}
+
+.app-shell.design-winter-frost .sidebar,
+.app-shell.design-winter-frost .top-settings-bar {
+  border-color: rgba(var(--mode-accent-rgb), 0.22);
+}
+
 /* Thinking-time readout: live while the model works, final once it lands. */
 .message-content-wrap {
   display: flex;
@@ -4781,13 +4970,13 @@ button:disabled:active {
 /* ============ CALENDAR: real month grid ============ */
 /*
   Mode colours here are deliberately HARD-CODED rather than read from
-  --mode-accent-rgb. Nine of the ten design systems override that variable
-  with their own single signature colour — so if the calendar used it, every
-  chip in the grid would come out the same hue in Neon Arcade, Command Deck,
-  Retro Terminal and the rest, and colour-coding by life area (the entire
-  point of colouring them) would silently stop working outside Minimal
-  Glass. These are the nine mode accents, pinned so they survive whichever
-  design system is active.
+  --mode-accent-rgb. Thirteen of the fourteen design systems override that
+  variable with their own single signature colour — so if the calendar used
+  it, every chip in the grid would come out the same hue in Neon Arcade,
+  Command Deck, Retro Terminal and the rest, and colour-coding by life area
+  (the entire point of colouring them) would silently stop working outside
+  Minimal Glass. These are the nine mode accents, pinned so they survive
+  whichever design system is active.
 */
 .calendar-page {
   --cal-school: 244, 196, 48;

@@ -117,7 +117,9 @@ function upcomingItems(classes, assignments, tests) {
       kind: 'Assignment',
       title: a.title,
       className: classNameById[a.classId] || 'Unknown class',
+      classId: a.classId,
       dueDate: a.dueDate,
+      raw: a,
     }))
 
   const fromTests = tests
@@ -127,7 +129,9 @@ function upcomingItems(classes, assignments, tests) {
       kind: 'Test',
       title: t.title,
       className: classNameById[t.classId] || 'Unknown class',
+      classId: t.classId,
       dueDate: t.date,
+      raw: t,
     }))
 
   return [...fromAssignments, ...fromTests]
@@ -214,7 +218,20 @@ export default function SchoolPage({
                 const tone =
                   item.daysUntil < 0 ? 'overdue' : item.daysUntil <= 2 ? 'soon' : 'normal'
                 return (
-                  <div className={`deadline-item deadline-${tone}`} key={item.id}>
+                  <div
+                    className={`deadline-item deadline-${tone} deadline-clickable`}
+                    key={item.id}
+                    onClick={() => setSelectedClassId(item.classId)}
+                  >
+                    <button
+                      className="check-button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        if (item.kind === 'Assignment') toggleAssignment(item.raw)
+                        else toggleTest(item.raw)
+                      }}
+                      title="Mark done"
+                    ></button>
                     <span className="deadline-kind">{item.kind}</span>
                     <div className="deadline-body">
                       <strong>{item.title}</strong>
