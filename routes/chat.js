@@ -8,6 +8,7 @@ import {
   OLLAMA_HOST,
   OLLAMA_URL,
   MODEL,
+  FALLBACK_MODEL,
   VISION_MODEL,
   OLLAMA_TIMEOUT_MS,
   OLLAMA_PING_TIMEOUT_MS,
@@ -74,6 +75,55 @@ async function checkModelInstalled(modelName) {
         `Run \`ollama pull ${modelName}\` in a terminal on this Mac, then try again -- it only needs to be done once.`
     )
   }
+}
+
+// Like checkModelInstalled, but for the everyday text paths (content-request
+// and main) that have a known-good fallback to drop back to: if the
+// preferred MODEL isn't pulled yet but FALLBACK_MODEL is, use the fallback
+// for THIS request instead of hard-blocking every single message on a
+// one-time setup step Dylan hasn't gotten to yet. Real example that
+// prompted this: Dylan switched MODEL to llama3.1:8b, hadn't run
+// `ollama pull` yet, and every message failed outright until he did --
+// this keeps chat usable in the meantime, at the smaller model's quality,
+// while still telling him plainly (see callers below) that he's on the
+// fallback and what to run to get the better one.
+async function resolveAvailableModel(preferredModel, fallbackModel) {
+  let installedModels = []
+  try {
+    const tagsResponse = await fetchWithTimeout(`${OLLAMA_HOST}/api/tags`, {}, OLLAMA_PING_TIMEOUT_MS, 'Ollama')
+    if (tagsResponse.ok) {
+      const tagsData = await tagsResponse.json()
+      installedModels = (tagsData.models || []).map((m) => m.name)
+    }
+  } catch {
+    throw new Error(
+      `Could not reach Ollama at all (${OLLAMA_HOST}). Is it running? Try \`ollama serve\` ` + 'or open the Ollama app, then try again.'
+    )
+  }
+
+  const isModelInstalled = (name) => installedModels.some((m) => m === name || m.startsWith(`${name}:`))
+
+  if (isModelInstalled(preferredModel)) {
+    return { model: preferredModel, usedFallback: false }
+  }
+  if (fallbackModel && isModelInstalled(fallbackModel)) {
+    return { model: fallbackModel, usedFallback: true }
+  }
+  throw new Error(
+    `Dylan AI is set to use "${preferredModel}", but it isn't pulled yet` +
+      `${fallbackModel ? ` (and neither is the fallback, "${fallbackModel}")` : ''}. ` +
+      `\`ollama list\` shows: ${installedModels.length ? installedModels.join(', ') : '(nothing installed at all)'}. ` +
+      `Run \`ollama pull ${preferredModel}\` in a terminal on this Mac, then try again -- it only needs to be done once.`
+  )
+}
+
+// One-line, low-noise heads-up appended to a reply when the fallback model
+// answered instead of the preferred one -- so a degraded answer is always
+// disclosed rather than silently passed off as the smarter model's work.
+function fallbackNotice(usedFallback) {
+  return usedFallback ? `
+
+(Using ${FALLBACK_MODEL} right now -- run \`ollama pull ${MODEL}\` for smarter answers.)` : ''
 }
 
 // Writes one Server-Sent-Events frame. `event` names the frame type the
@@ -329,9 +379,11 @@ router.post('/chat', async (req, res) => {
     const modeStyle = modeLabel ? MODE_STYLE[modeLabel] : null
 
     // Both the content-request and main paths below use the same everyday
-    // text MODEL -- one check covers both rather than duplicating it in
-    // each branch. See checkModelInstalled above.
-    await checkModelInstalled(MODEL)
+    // text MODEL -- one resolution covers both rather than duplicating it in
+    // each branch. See resolveAvailableModel above -- this can return the
+    // fallback model instead of MODEL if MODEL isn't pulled yet, rather than
+    // hard-blocking every message.
+    const { model: resolvedModel, usedFallback } = await resolveAvailableModel(MODEL, FALLBACK_MODEL)
 
     // Requests to write/draft/plan/explain something substantial skip the
     // JSON-action contract entirely — the model never sees the action schema,
@@ -351,7 +403,7 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: MODEL,
+          model: resolvedModel,
           keep_alive: KEEP_ALIVE,
           stream: true,
           messages: [{ role: 'system', content: contentSystemPrompt }, ...messages],
@@ -375,7 +427,7 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
       const contentRaw = contentText.trim()
 
       return sendDone({
-        reply: contentRaw || 'No response from Dylan AI.',
+        reply: (contentRaw || 'No response from Dylan AI.') + fallbackNotice(usedFallback),
         actionPerformed: false,
         skipMemoryCheck: false,
       })
@@ -502,7 +554,7 @@ ${context}
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: MODEL,
+        model: resolvedModel,
         keep_alive: KEEP_ALIVE,
         stream: true,
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
@@ -617,7 +669,7 @@ ${context}
     // is always the authoritative final text, and the frontend replaces the
     // in-progress streamed text with it rather than appending.
     sendDone({
-      reply: finalReply || 'No response from Dylan AI.',
+      reply: (finalReply || 'No response from Dylan AI.') + fallbackNotice(usedFallback),
       actionPerformed: actionResult.performed,
       skipMemoryCheck: actionResult.performed,
       pendingEvent,
@@ -648,11 +700,19 @@ router.post('/memory-check', async (req, res) => {
       return res.json({ shouldSuggest: false, memory: '' })
     }
 
+    // Same fallback as the main chat paths -- memory detection is already
+    // fire-and-forget/non-blocking (see aiConfig.js history), so this was
+    // never going to surface an error to Dylan either way, but there's no
+    // reason to skip a memory this could have caught just because the
+    // bigger model isn't pulled yet when the smaller one still works fine
+    // for this narrow a task.
+    const { model: resolvedModel } = await resolveAvailableModel(MODEL, FALLBACK_MODEL)
+
     const response = await fetchWithTimeout(OLLAMA_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: MODEL,
+        model: resolvedModel,
         keep_alive: KEEP_ALIVE,
         messages: [
           {
