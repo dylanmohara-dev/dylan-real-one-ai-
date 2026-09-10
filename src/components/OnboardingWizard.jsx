@@ -35,10 +35,16 @@ export default function OnboardingWizard({ onComplete }) {
     setStepIndex((i) => Math.max(0, i - 1))
   }
 
+  // See useAppData.js's API constant for why this needs the DEV check --
+  // onboarding only ever runs once, but a hardcoded localhost:3001 would
+  // fail it outright for anyone opening this app for the first time
+  // through a tunnel/phone instead of directly on this Mac.
+  const ONBOARDING_API = import.meta.env.DEV ? 'http://localhost:3001/api/onboarding' : '/api/onboarding'
+
   async function submit() {
     setPhase('submitting')
     try {
-      const response = await fetch('http://localhost:3001/api/onboarding', {
+      const response = await fetch(ONBOARDING_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, answers }),

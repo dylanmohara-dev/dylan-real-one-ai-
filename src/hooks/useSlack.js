@@ -1,6 +1,9 @@
 import { useCallback, useState } from 'react'
 
-const API = 'http://localhost:3001/api/slack'
+// See useAppData.js's API constant for why this needs the DEV check --
+// a hardcoded localhost:3001 breaks this feature entirely once accessed
+// through a tunnel/phone, since '/api' isn't the fallback, it's the fix.
+const API = import.meta.env.DEV ? 'http://localhost:3001/api/slack' : '/api/slack'
 
 async function request(endpoint, options = {}) {
   const response = await fetch(`${API}${endpoint}`, {

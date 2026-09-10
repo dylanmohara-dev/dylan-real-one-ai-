@@ -2,6 +2,12 @@ import { useState, useRef } from 'react'
 import { Flame, Trophy, Award, X, Plus, Video, Upload } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 
+// See useAppData.js's API constant for why this needs the DEV check --
+// a hardcoded localhost:3001 would silently break every skill video's
+// playback the moment this app is opened through a tunnel/phone instead
+// of directly on this Mac.
+const API = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api'
+
 function XPBar({ xpIntoLevel, xpForNextLevel }) {
   const percent = Math.max(0, Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100)))
   return (
@@ -89,7 +95,7 @@ function VideoGallery({ videos, deleteSkillVideo }) {
     <div className="skill-video-gallery">
       {videos.map((video) => (
         <div className="skill-video-item" key={video.id}>
-          <video src={`http://localhost:3001/api/skills/videos/${video.id}/file`} controls preload="metadata" />
+          <video src={`${API}/skills/videos/${video.id}/file`} controls preload="metadata" />
           <div className="skill-video-item-footer">
             <span>{video.label}</span>
             <button onClick={() => deleteSkillVideo(video.id)} title="Delete video">

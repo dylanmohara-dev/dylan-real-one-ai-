@@ -8,8 +8,21 @@ const router = Router()
 const STREAK_BADGES = [3, 7, 30, 100]
 const LEVEL_BADGES = [5, 10, 25]
 
+// Bare local YYYY-MM-DD -- NOT toISOString().slice(0, 10), which reads off
+// UTC. On any machine west of UTC (all of the US, including wherever this
+// server actually runs), that UTC-based version tags practice logged in
+// the evening as tomorrow's date -- corrupting todayQuantity, streaks, and
+// badge-threshold checks. This exact bug class is already documented and
+// fixed once in routes/calendar.js's dayKey() (a goal due "2026-09-11"
+// landed on the 10th under America/New_York) and is the same local-time
+// convention every other date field in this app uses (health.js, the
+// Discipline/Health/Gym/Sports/Reading/Family frontend helpers).
 function todayKey() {
-  return new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 // Level N requires 50*N xp to clear (so 1->2 needs 50, 2->3 needs 100 more,
@@ -47,7 +60,13 @@ function computeCurrentStreak(totals) {
 
   let streak = 0
   while (true) {
-    const key = cursor.toISOString().slice(0, 10)
+    // Same local-time key as todayKey() above -- the walking cursor must
+    // use the identical convention or every day it checks (not just
+    // "today") drifts by the UTC/local offset, same bug, same fix.
+    const cy = cursor.getFullYear()
+    const cm = String(cursor.getMonth() + 1).padStart(2, '0')
+    const cd = String(cursor.getDate()).padStart(2, '0')
+    const key = `${cy}-${cm}-${cd}`
     if (totals[key] > 0) {
       streak += 1
       cursor.setDate(cursor.getDate() - 1)

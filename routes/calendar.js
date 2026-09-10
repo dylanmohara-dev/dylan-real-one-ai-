@@ -328,15 +328,17 @@ router.get('/month', async (req, res) => {
 
   // --- Skills: practice actually logged.
   const skills = loadData('skills')
-  const skillNameById = Object.fromEntries(skills.map((s) => [s.id, s.name]))
+  const skillById = Object.fromEntries(skills.map((s) => [s.id, s]))
   for (const session of loadData('skill_sessions')) {
     const key = dayKey(session.date)
     if (!inRange(key)) continue
+    const skill = skillById[session.skillId]
+    const unit = skill?.unit || 'reps'
     items.push({
       id: `skill-${session.id}`,
       kind: 'skill',
       mode: 'skills',
-      title: `${skillNameById[session.skillId] || 'Practice'} — ${session.minutes}m`,
+      title: `${skill?.name || 'Practice'} — ${session.quantity} ${unit}`,
       date: key,
       time: null,
       meta: session.note || '',
