@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
 import { buildStudySessions } from '../lib/studyPlan.js'
+import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.js'
 
 const router = Router()
 
@@ -8,7 +9,7 @@ router.get('/', (req, res) => {
   res.json({ tests: loadData('tests') })
 })
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { classId, title, date, topics } = req.body
     if (!title?.trim() || !classId) {
@@ -29,6 +30,8 @@ router.post('/', (req, res) => {
       completed: false,
       createdAt: new Date().toISOString(),
     }
+    // Best-effort real-calendar write -- see lib/calendarAutoSync.js.
+    await syncCalendarEvent(test, { title: test.title, date: test.date, mode: 'school' })
     tests.push(test)
     saveData('tests', tests)
     res.json({ test })
@@ -38,25 +41,32 @@ router.post('/', (req, res) => {
   }
 })
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const tests = loadData('tests')
   const index = tests.findIndex((t) => t.id === req.params.id)
   if (index === -1) {
     return res.status(404).json({ error: 'Test not found' })
   }
   tests[index] = { ...tests[index], ...req.body, id: tests[index].id }
+  await syncCalendarEvent(tests[index], { title: tests[index].title, date: tests[index].date, mode: 'school' })
   saveData('tests', tests)
   res.json({ test: tests[index] })
 })
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   const tests = loadData('tests')
+  const test = tests.find((t) => t.id === req.params.id)
+  if (test) await clearCalendarEvent(test)
   const remaining = tests.filter((t) => t.id !== req.params.id)
   saveData('tests', remaining)
   // Any study-plan tasks generated for this test are now pointing at
-  // nothing -- clean them up in the same request rather than leaving
-  // orphaned "study for X" tasks on Dylan's Tasks list forever.
-  const tasks = loadData('tasks').filter((t) => t.studyPlanFor !== req.params.id)
+  // nothing -- clean them (and their own real calendar events, if any)
+  // up in the same request rather than leaving orphaned "study for X"
+  // tasks -- or orphaned calendar entries -- behind forever.
+  const allTasks = loadData('tasks')
+  const orphaned = allTasks.filter((t) => t.studyPlanFor === req.params.id)
+  for (const orphan of orphaned) await clearCalendarEvent(orphan)
+  const tasks = allTasks.filter((t) => t.studyPlanFor !== req.params.id)
   saveData('tasks', tasks)
   res.json({ success: true })
 })
@@ -67,7 +77,7 @@ router.delete('/:id', (req, res) => {
 // show up (Tasks list, Calendar) with no new screen required. See
 // lib/studyPlan.js for the actual scheduling logic and the research
 // behind it.
-router.post('/:id/study-plan', (req, res) => {
+router.post('/:id/study-plan', async (req, res) => {
   try {
     const tests = loadData('tests')
     const test = tests.find((t) => t.id === req.params.id)
@@ -90,7 +100,8 @@ router.post('/:id/study-plan', (req, res) => {
     // plan rather than piling up duplicate tasks alongside it.
     const tasks = loadData('tasks').filter((t) => t.studyPlanFor !== test.id)
 
-    const created = sessions.map((session, index) => {
+    const created = []
+    for (const [index, session] of sessions.entries()) {
       const task = {
         id: `${Date.now()}-${index}`,
         title: `Study ${className} for "${test.title}": ${session.label}`,
@@ -106,9 +117,14 @@ router.post('/:id/study-plan', (req, res) => {
         studyPlanFor: test.id,
         studyPlanDetail: session.detail,
       }
+      // Sequential (not Promise.all) on purpose -- each write is a
+      // separate real CalDAV request, and firing several concurrent
+      // creates at the same external service for one study plan isn't
+      // worth the speed for what's already a background, non-blocking step.
+      await syncCalendarEvent(task, { title: task.title, date: task.dueDate, mode: 'school' })
       tasks.push(task)
-      return task
-    })
+      created.push(task)
+    }
 
     saveData('tasks', tasks)
     res.json({ tasks: created })
@@ -118,8 +134,11 @@ router.post('/:id/study-plan', (req, res) => {
   }
 })
 
-router.delete('/:id/study-plan', (req, res) => {
-  const tasks = loadData('tasks').filter((t) => t.studyPlanFor !== req.params.id)
+router.delete('/:id/study-plan', async (req, res) => {
+  const allTasks = loadData('tasks')
+  const orphaned = allTasks.filter((t) => t.studyPlanFor === req.params.id)
+  for (const orphan of orphaned) await clearCalendarEvent(orphan)
+  const tasks = allTasks.filter((t) => t.studyPlanFor !== req.params.id)
   saveData('tasks', tasks)
   res.json({ success: true })
 })

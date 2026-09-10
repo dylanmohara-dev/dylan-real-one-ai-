@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.js'
 
 const router = Router()
 
@@ -13,7 +14,7 @@ router.get('/sessions', (req, res) => {
   res.json({ sessions: loadData('sports_sessions') })
 })
 
-router.post('/sessions', (req, res) => {
+router.post('/sessions', async (req, res) => {
   try {
     const { date, type, durationMinutes, intensity, opponent, teamScore, opponentScore, result, notes } = req.body
 
@@ -51,6 +52,12 @@ router.post('/sessions', (req, res) => {
       notes: (notes || '').trim(),
       createdAt: new Date().toISOString(),
     }
+    // Best-effort real-calendar write -- see lib/calendarAutoSync.js.
+    await syncCalendarEvent(session, {
+      title: session.type === 'game' ? `Game${session.opponent ? ` vs ${session.opponent}` : ''}` : 'Sports practice',
+      date: session.date,
+      mode: 'sports',
+    })
     sessions.push(session)
     saveData('sports_sessions', sessions)
     res.json({ session })
@@ -60,7 +67,7 @@ router.post('/sessions', (req, res) => {
   }
 })
 
-router.put('/sessions/:id', (req, res) => {
+router.put('/sessions/:id', async (req, res) => {
   try {
     const sessions = loadData('sports_sessions')
     const index = sessions.findIndex((s) => s.id === req.params.id)
@@ -79,6 +86,11 @@ router.put('/sessions/:id', (req, res) => {
       }
     }
 
+    await syncCalendarEvent(updated, {
+      title: updated.type === 'game' ? `Game${updated.opponent ? ` vs ${updated.opponent}` : ''}` : 'Sports practice',
+      date: updated.date,
+      mode: 'sports',
+    })
     sessions[index] = updated
     saveData('sports_sessions', sessions)
     res.json({ session: sessions[index] })
@@ -88,8 +100,10 @@ router.put('/sessions/:id', (req, res) => {
   }
 })
 
-router.delete('/sessions/:id', (req, res) => {
+router.delete('/sessions/:id', async (req, res) => {
   const sessions = loadData('sports_sessions')
+  const session = sessions.find((s) => s.id === req.params.id)
+  if (session) await clearCalendarEvent(session)
   const remaining = sessions.filter((s) => s.id !== req.params.id)
   saveData('sports_sessions', remaining)
   res.json({ success: true })

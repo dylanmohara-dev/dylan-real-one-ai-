@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.js'
 
 const router = Router()
 
@@ -7,7 +8,7 @@ router.get('/', (req, res) => {
   res.json({ assignments: loadData('assignments') })
 })
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { classId, title, dueDate } = req.body
     if (!title?.trim() || !classId) {
@@ -22,6 +23,8 @@ router.post('/', (req, res) => {
       completed: false,
       createdAt: new Date().toISOString(),
     }
+    // Best-effort real-calendar write -- see lib/calendarAutoSync.js.
+    await syncCalendarEvent(assignment, { title: assignment.title, date: assignment.dueDate, mode: 'school' })
     assignments.push(assignment)
     saveData('assignments', assignments)
     res.json({ assignment })
@@ -31,19 +34,22 @@ router.post('/', (req, res) => {
   }
 })
 
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const assignments = loadData('assignments')
   const index = assignments.findIndex((a) => a.id === req.params.id)
   if (index === -1) {
     return res.status(404).json({ error: 'Assignment not found' })
   }
   assignments[index] = { ...assignments[index], ...req.body, id: assignments[index].id }
+  await syncCalendarEvent(assignments[index], { title: assignments[index].title, date: assignments[index].dueDate, mode: 'school' })
   saveData('assignments', assignments)
   res.json({ assignment: assignments[index] })
 })
 
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   const assignments = loadData('assignments')
+  const assignment = assignments.find((a) => a.id === req.params.id)
+  if (assignment) await clearCalendarEvent(assignment)
   const remaining = assignments.filter((a) => a.id !== req.params.id)
   saveData('assignments', remaining)
   res.json({ success: true })

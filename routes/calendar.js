@@ -261,7 +261,11 @@ router.get('/month', async (req, res) => {
 
   for (const assignment of loadData('assignments')) {
     const key = dayKey(assignment.dueDate)
-    if (!inRange(key)) continue
+    // Once a real Dylan AI calendar event exists for this record (see
+    // lib/calendarAutoSync.js), it already shows up above as a `kind:
+    // 'event'` item from the real iCloud fetch -- skip the virtual one so
+    // the same due date doesn't render twice on the grid.
+    if (!inRange(key) || assignment.calendarEventUrl) continue
     items.push({
       id: `assignment-${assignment.id}`,
       kind: 'assignment',
@@ -276,7 +280,7 @@ router.get('/month', async (req, res) => {
 
   for (const test of loadData('tests')) {
     const key = dayKey(test.date)
-    if (!inRange(key)) continue
+    if (!inRange(key) || test.calendarEventUrl) continue
     items.push({
       id: `test-${test.id}`,
       kind: 'test',
@@ -293,7 +297,7 @@ router.get('/month', async (req, res) => {
   // 'goals' calendar color instead of borrowing one of the 9 life areas.
   for (const goal of loadData('goals')) {
     const key = dayKey(goal.dueDate)
-    if (!inRange(key)) continue
+    if (!inRange(key) || goal.calendarEventUrl) continue
     items.push({
       id: `goal-${goal.id}`,
       kind: 'goal',
@@ -309,7 +313,7 @@ router.get('/month', async (req, res) => {
   // --- Tasks with a due date.
   for (const task of loadData('tasks')) {
     const key = dayKey(task.dueDate)
-    if (!inRange(key)) continue
+    if (!inRange(key) || task.calendarEventUrl) continue
     items.push({
       id: `task-${task.id}`,
       kind: 'task',
