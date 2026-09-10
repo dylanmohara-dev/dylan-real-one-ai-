@@ -45,6 +45,37 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = OLLAMA_TIMEOUT_MS
   }
 }
 
+// Checks whether a given model name is actually pulled in Ollama BEFORE
+// spending a request on it -- this is what turns "some HTTP error came
+// back" into an unmistakable, specific instruction ("run ollama pull X").
+// Originally only the vision path did this; pulled out here so the main
+// and content-request paths can do the same check now that MODEL is no
+// longer guaranteed to already be installed (see lib/aiConfig.js -- Dylan
+// chose a bigger, smarter, NOT-yet-pulled model over the previous default).
+async function checkModelInstalled(modelName) {
+  let installedModels = []
+  try {
+    const tagsResponse = await fetchWithTimeout(`${OLLAMA_HOST}/api/tags`, {}, OLLAMA_PING_TIMEOUT_MS, 'Ollama')
+    if (tagsResponse.ok) {
+      const tagsData = await tagsResponse.json()
+      installedModels = (tagsData.models || []).map((m) => m.name)
+    }
+  } catch {
+    throw new Error(
+      `Could not reach Ollama at all (${OLLAMA_HOST}). Is it running? Try \`ollama serve\` ` + 'or open the Ollama app, then try again.'
+    )
+  }
+
+  const isInstalled = installedModels.some((name) => name === modelName || name.startsWith(`${modelName}:`))
+  if (!isInstalled) {
+    throw new Error(
+      `Dylan AI is set to use "${modelName}", but it isn't pulled yet. \`ollama list\` shows: ` +
+        `${installedModels.length ? installedModels.join(', ') : '(nothing installed at all)'}. ` +
+        `Run \`ollama pull ${modelName}\` in a terminal on this Mac, then try again -- it only needs to be done once.`
+    )
+  }
+}
+
 // Writes one Server-Sent-Events frame. `event` names the frame type the
 // frontend switches on ("token" | "done" | "error"); `data` is JSON-encoded
 // so the frontend never has to guess at escaping.
@@ -231,35 +262,8 @@ router.post('/chat', async (req, res) => {
     // the existing text-only chat flow at all.
     if (image) {
       // Check what's actually installed BEFORE spending a request on a model
-      // that isn't there — this turns "some HTTP error came back" into an
-      // unmistakable, specific instruction. Ollama's native /api/tags (not
-      // the OpenAI-compat endpoint) is what lists installed models.
-      let installedModels = []
-      try {
-        const tagsResponse = await fetchWithTimeout(`${OLLAMA_HOST}/api/tags`, {}, OLLAMA_PING_TIMEOUT_MS, 'Ollama')
-        if (tagsResponse.ok) {
-          const tagsData = await tagsResponse.json()
-          installedModels = (tagsData.models || []).map((m) => m.name)
-        }
-      } catch {
-        throw new Error(
-          `Could not reach Ollama at all (${OLLAMA_HOST}). Is it running? Try \`ollama serve\` ` +
-            'or open the Ollama app, then send the image again.'
-        )
-      }
-
-      const hasVisionModel = installedModels.some(
-        (name) => name === VISION_MODEL || name.startsWith(`${VISION_MODEL}:`)
-      )
-
-      if (!hasVisionModel) {
-        throw new Error(
-          `No vision model installed. Dylan AI is currently set to look for "${VISION_MODEL}", but ` +
-            `\`ollama list\` shows: ${installedModels.length ? installedModels.join(', ') : '(nothing installed at all)'}. ` +
-            `Run \`ollama pull ${VISION_MODEL}\` (or pull a different vision model like moondream or llama3.2-vision and ` +
-            'tell me its exact name so I can update VISION_MODEL in routes/chat.js to match).'
-        )
-      }
+      // that isn't there -- see checkModelInstalled above.
+      await checkModelInstalled(VISION_MODEL)
 
       const modeLabelForImage = mode && mode !== 'general' ? mode : null
       const visionPersona = personaFraming(modeLabelForImage)
@@ -323,6 +327,11 @@ router.post('/chat', async (req, res) => {
 
     const modeLabel = mode && mode !== 'general' ? mode : null
     const modeStyle = modeLabel ? MODE_STYLE[modeLabel] : null
+
+    // Both the content-request and main paths below use the same everyday
+    // text MODEL -- one check covers both rather than duplicating it in
+    // each branch. See checkModelInstalled above.
+    await checkModelInstalled(MODEL)
 
     // Requests to write/draft/plan/explain something substantial skip the
     // JSON-action contract entirely — the model never sees the action schema,
@@ -651,11 +660,16 @@ router.post('/memory-check', async (req, res) => {
             content: `
 You are a memory detector.
 
-Only suggest a memory if the user clearly states a real long-term personal fact, preference, goal, routine, or important project detail.
+Suggest a memory whenever the user's message reveals something worth remembering about him long-term -- not just an explicit "remember that" statement. This includes, mentioned in ANY of these ways -- directly stated, mentioned in passing, or implied by what he's doing:
+- Facts about himself (school, sports, family, routines, schedule)
+- Preferences, opinions, likes/dislikes ("I hate mornings," "I prefer typing over voice")
+- Goals, plans, or things he's working toward
+- Named specifics he uses regularly (an account, tool, app, teacher, coach, teammate, or place he mentions)
+- Ongoing projects or commitments, even mentioned casually ("I'm building an app," "I'm on the team this year")
 
-Never invent information. Only extract facts that are explicitly and literally present in the user's message below. If the message does not contain a clear personal fact, you must return NONE.
+Still never invent information -- only extract what's explicitly and literally present in the user's message below, worded as a real durable fact rather than a quote of the whole message. If the message genuinely contains nothing worth remembering later, return NONE.
 
-Do not suggest memories for commands, questions, greetings, casual conversation, or temporary information.
+Do not suggest memories for commands, questions, greetings, small talk with no lasting content, or purely temporary/one-off information (e.g. "I'm tired right now" is temporary; "I usually get tired around 2pm" is a routine worth keeping).
 
 Return ONLY:
 

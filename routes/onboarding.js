@@ -1,10 +1,8 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { OLLAMA_URL, MODEL } from '../lib/aiConfig.js'
 
 const router = Router()
-
-const OLLAMA_URL = 'http://127.0.0.1:11434/v1/chat/completions'
-const MODEL = 'llama3.2:3b'
 
 const MEMORY_ONLY_MODES = {
   sports: 'Sports',
