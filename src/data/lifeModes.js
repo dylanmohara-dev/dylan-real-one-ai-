@@ -1,6 +1,6 @@
+import FootballIcon from '../components/FootballIcon.jsx'
 import {
   BookOpen,
-  Volleyball,
   Dumbbell,
   Activity,
   TrendingUp,
@@ -162,7 +162,7 @@ export const LIFE_MODES = [
     key: 'sports',
     assistantName: 'The Coach',
     assistantTitle: 'Performance coach',
-    icon: Volleyball,
+    icon: FootballIcon,
     title: 'Sports',
     rgb: '34, 197, 94',
     rgb2: '163, 230, 53',

@@ -122,4 +122,24 @@ router.post('/schedule', (req, res) => {
   }
 })
 
+// Settings: which sport Dylan actually plays -- a single free-text field.
+// Kept deliberately loose (not an enum) since "which sport" spans anything
+// from football to swimming to something with no obvious built-in option,
+// and Dylan told us directly the mode needs to actually know this.
+router.get('/settings', (req, res) => {
+  res.json({ settings: loadData('sports_settings', { sport: '' }) })
+})
+
+router.post('/settings', (req, res) => {
+  try {
+    const { sport } = req.body || {}
+    const settings = { sport: (sport || '').trim() }
+    saveData('sports_settings', settings)
+    res.json({ settings })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save sport' })
+  }
+})
+
 export default router

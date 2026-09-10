@@ -27,6 +27,7 @@ export function useAppData() {
   const [gymWeekPlan, setGymWeekPlan] = useState({})
   const [sportsSessions, setSportsSessions] = useState([])
   const [sportsSchedule, setSportsSchedule] = useState({})
+  const [sportsSettings, setSportsSettings] = useState({ sport: '' })
   const [toasts, setToasts] = useState([])
 
   const [taskInput, setTaskInput] = useState('')
@@ -50,6 +51,7 @@ export function useAppData() {
   const [assignmentDueDate, setAssignmentDueDate] = useState('')
   const [testInput, setTestInput] = useState('')
   const [testDate, setTestDate] = useState('')
+  const [testTopics, setTestTopics] = useState('')
 
   const [goalInput, setGoalInput] = useState('')
   const [goalDueDate, setGoalDueDate] = useState('')
@@ -192,6 +194,7 @@ export function useAppData() {
         gymWeekPlanData,
         sportsSessionData,
         sportsScheduleData,
+        sportsSettingsData,
       ] = await Promise.all([
         request('/tasks'),
         request('/goals'),
@@ -209,6 +212,7 @@ export function useAppData() {
         request('/gym/week-plan'),
         request('/sports/sessions'),
         request('/sports/schedule'),
+        request('/sports/settings'),
       ])
 
       setTasks(taskData.tasks || [])
@@ -229,6 +233,7 @@ export function useAppData() {
       setGymWeekPlan(gymWeekPlanData.weekPlan || {})
       setSportsSessions(sportsSessionData.sessions || [])
       setSportsSchedule(sportsScheduleData.schedule || {})
+      setSportsSettings(sportsSettingsData.settings || { sport: '' })
 
       return { skills: skillsData.skills || [], goals: goalData.goals || [] }
     } catch (error) {
@@ -512,6 +517,18 @@ export function useAppData() {
       await request('/sports/schedule', {
         method: 'POST',
         body: JSON.stringify({ [day]: type }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function setSportsSport(sport) {
+    try {
+      await request('/sports/settings', {
+        method: 'POST',
+        body: JSON.stringify({ sport }),
       })
       await loadData()
     } catch (error) {
@@ -994,16 +1011,34 @@ export function useAppData() {
           classId: selectedClassId,
           title: testInput.trim(),
           date: testDate,
+          topics: testTopics.trim(),
         }),
       })
       setTestInput('')
       setTestDate('')
+      setTestTopics('')
       await loadData()
       showSuccess('Test added.')
     } catch (error) {
       showError(error.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Editing topics after the fact -- e.g. Dylan adds a test before he
+  // knows exactly what's covered, then fills it in once the teacher
+  // announces it. Regenerating the study plan afterward is what actually
+  // pulls the new topics into the session details.
+  async function setTestTopicsValue(test, topics) {
+    try {
+      await request(`/tests/${test.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ topics: (topics || '').trim() }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
     }
   }
 
@@ -1292,8 +1327,17 @@ export function useAppData() {
         const weekHours = Math.round((weekMinutes / 60) * 10) / 10
         const goalHours = 8
         const hasScheduleSet = Object.values(sportsSchedule || {}).some(Boolean)
+        const sportLabel = sportsSettings?.sport?.trim()
         return {
           ...mode,
+          // Deliberately NOT overriding `title` here -- the Sidebar nav
+          // label and the Sports page's own <h1> both read straight from
+          // LIFE_MODES/hardcoded text, not this computed card, so
+          // renaming just the Overview card to "Football" would make the
+          // app say three different things in three different places.
+          // The sport name shows on the Sports page itself instead, where
+          // Dylan actually sets it.
+          subtitle: sportLabel ? `${sportLabel} -- practices, games, film` : mode.subtitle,
           headline: sportsSessions.length
             ? `${sportsSessions.length} session${sportsSessions.length === 1 ? '' : 's'} logged`
             : mode.headline,
@@ -1323,7 +1367,7 @@ export function useAppData() {
 
       return { ...mode, progress: 0, isSetUp: false }
     })
-  }, [classes, assignments, tests, healthEntries, financeAccounts, financeNetWorth, skills, sportsSessions, sportsSchedule])
+  }, [classes, assignments, tests, healthEntries, financeAccounts, financeNetWorth, skills, sportsSessions, sportsSchedule, sportsSettings])
 
   const setUpCount = useMemo(
     () => overviewCards.filter((card) => card.isSetUp).length,
@@ -1405,6 +1449,9 @@ export function useAppData() {
     setTestInput,
     testDate,
     setTestDate,
+    testTopics,
+    setTestTopics,
+    setTestTopicsValue,
     addClass,
     deleteClass,
     updateClass,
@@ -1484,6 +1531,8 @@ export function useAppData() {
     addSportsSession,
     deleteSportsSession,
     setSportsScheduleDay,
+    sportsSettings,
+    setSportsSport,
 
     // overview
     overviewCards,

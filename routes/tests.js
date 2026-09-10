@@ -10,7 +10,7 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   try {
-    const { classId, title, date } = req.body
+    const { classId, title, date, topics } = req.body
     if (!title?.trim() || !classId) {
       return res.status(400).json({ error: 'classId and title are required' })
     }
@@ -20,6 +20,12 @@ router.post('/', (req, res) => {
       classId,
       title: title.trim(),
       date: date || '',
+      // Comma-separated, optional -- what the test actually covers. Empty
+      // by default; a generated study plan falls back to generic
+      // technique-only guidance when this is blank (see lib/studyPlan.js),
+      // but naming real topics is what turns that into a plan Dylan can
+      // actually act on.
+      topics: (topics || '').trim(),
       completed: false,
       createdAt: new Date().toISOString(),
     }
@@ -72,7 +78,7 @@ router.post('/:id/study-plan', (req, res) => {
       return res.status(400).json({ error: 'This test has no date set yet -- add one before generating a study plan.' })
     }
 
-    const sessions = buildStudySessions(test.date)
+    const sessions = buildStudySessions(test.date, test.topics || '')
     if (!sessions.length) {
       return res.status(400).json({ error: 'This test is today or already past -- nothing left to schedule.' })
     }

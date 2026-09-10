@@ -303,10 +303,12 @@ function App() {
         <SportsPage
           sportsSessions={data.sportsSessions}
           sportsSchedule={data.sportsSchedule}
+          sportsSettings={data.sportsSettings}
           saving={data.saving}
           addSportsSession={data.addSportsSession}
           deleteSportsSession={data.deleteSportsSession}
           setSportsScheduleDay={data.setSportsScheduleDay}
+          setSportsSport={data.setSportsSport}
           assistantContext={assistantContext}
           openChat={openChat}
         />

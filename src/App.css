@@ -1635,6 +1635,39 @@ footer {
   background: rgba(var(--mode-accent-rgb), 0.08);
 }
 
+.school-topics-row {
+  margin-top: 8px;
+}
+
+.school-topics-input {
+  width: 100%;
+  font-size: 0.8rem;
+  background: transparent;
+  border: 1px dashed var(--border-soft);
+}
+
+.school-study-plan-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 10px 0 0 18px;
+  border-top: 1px dashed var(--border-soft);
+}
+
+.school-study-plan-sessions li {
+  font-size: 0.8rem;
+}
+
+.school-study-plan-sessions strong {
+  color: var(--text-primary);
+}
+
+.school-study-plan-sessions p {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+}
+
 .grade-input {
   flex-shrink: 0;
   width: 68px;
@@ -6034,4 +6067,21 @@ button:disabled:active {
   .sports-session-form-fields {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+.sports-sport-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.sports-sport-field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.sports-sport-field input {
+  max-width: 220px;
 }

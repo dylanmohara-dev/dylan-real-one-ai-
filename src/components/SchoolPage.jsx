@@ -151,6 +151,9 @@ export default function SchoolPage({
   setTestInput,
   testDate,
   setTestDate,
+  testTopics,
+  setTestTopics,
+  setTestTopicsValue,
   saving,
   addClass,
   deleteClass,
@@ -411,6 +414,11 @@ export default function SchoolPage({
               value={testDate}
               onChange={(event) => setTestDate(event.target.value)}
             />
+            <input
+              value={testTopics}
+              onChange={(event) => setTestTopics(event.target.value)}
+              placeholder="Topics covered, comma-separated (optional -- makes the study plan specific)"
+            />
             <button onClick={addTest} disabled={saving || !testInput.trim()}>
               + Add
             </button>
@@ -453,37 +461,74 @@ export default function SchoolPage({
                     </div>
 
                     {test.date && (
-                      <div className="school-study-plan-row">
-                        {planTasks.length ? (
-                          <>
-                            <span className="school-study-plan-status">
-                              Study plan: {planTasks.length} session{planTasks.length === 1 ? '' : 's'} scheduled
-                            </span>
+                      <>
+                        <div className="school-topics-row">
+                          <input
+                            className="school-topics-input"
+                            defaultValue={test.topics || ''}
+                            placeholder="What does this test cover? (comma-separated topics)"
+                            onBlur={(event) => {
+                              if (event.target.value.trim() !== (test.topics || '')) {
+                                setTestTopicsValue(test, event.target.value)
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <div className="school-study-plan-row">
+                          {planTasks.length ? (
+                            <>
+                              <span className="school-study-plan-status">
+                                Study plan: {planTasks.length} session{planTasks.length === 1 ? '' : 's'} scheduled
+                              </span>
+                              <button
+                                type="button"
+                                className="school-study-plan-action"
+                                onClick={() => generateStudyPlan(test.id)}
+                              >
+                                Regenerate
+                              </button>
+                              <button
+                                type="button"
+                                className="school-study-plan-action"
+                                onClick={() => clearStudyPlan(test.id)}
+                              >
+                                Clear
+                              </button>
+                            </>
+                          ) : (
                             <button
                               type="button"
                               className="school-study-plan-action"
                               onClick={() => generateStudyPlan(test.id)}
                             >
-                              Regenerate
+                              Generate study plan
                             </button>
-                            <button
-                              type="button"
-                              className="school-study-plan-action"
-                              onClick={() => clearStudyPlan(test.id)}
-                            >
-                              Clear
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            className="school-study-plan-action"
-                            onClick={() => generateStudyPlan(test.id)}
-                          >
-                            Generate study plan
-                          </button>
+                          )}
+                        </div>
+
+                        {planTasks.length > 0 && (
+                          // The actual plan, visible right here -- not just a
+                          // count. Dylan's own words: the old version was "just
+                          // like a placeholder... there isn't actually a plan
+                          // for me to study or do." This is the plan itself:
+                          // every session's date, technique, and (when topics
+                          // were given above) exactly what it covers.
+                          <ol className="school-study-plan-sessions">
+                            {planTasks
+                              .slice()
+                              .sort((a, b) => (a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0))
+                              .map((task) => (
+                                <li key={task.id}>
+                                  <strong>
+                                    {task.dueDate} &mdash; {task.title.split(': ').slice(-1)[0]}
+                                  </strong>
+                                  <p>{task.studyPlanDetail}</p>
+                                </li>
+                              ))}
+                          </ol>
                         )}
-                      </div>
+                      </>
                     )}
                   </div>
                 )

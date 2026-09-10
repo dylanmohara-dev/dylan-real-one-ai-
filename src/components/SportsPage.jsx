@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Volleyball, Trophy } from 'lucide-react'
+import { Trophy } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
+import FootballIcon from './FootballIcon.jsx'
 
 function todayKey() {
   const d = new Date()
@@ -176,7 +177,7 @@ function SessionCard({ session, deleteSportsSession }) {
           {session.type === 'game' ? (
             <Trophy size={13} strokeWidth={2.25} className="sports-session-icon" />
           ) : (
-            <Volleyball size={13} strokeWidth={2.25} className="sports-session-icon" />
+            <FootballIcon size={13} strokeWidth={2.25} className="sports-session-icon" />
           )}
           {session.date}: {summarizeSession(session)}
         </strong>
@@ -276,10 +277,12 @@ function ScheduleTab({ sportsSchedule, setSportsScheduleDay }) {
 export default function SportsPage({
   sportsSessions,
   sportsSchedule,
+  sportsSettings,
   saving,
   addSportsSession,
   deleteSportsSession,
   setSportsScheduleDay,
+  setSportsSport,
   assistantContext,
   openChat,
 }) {
@@ -299,6 +302,20 @@ export default function SportsPage({
           <h1 className="serif">Sports</h1>
           <p>Practices, games, and film -- schedule your week once, then log as you go.</p>
         </div>
+      </div>
+
+      <div className="sports-sport-field">
+        <label htmlFor="sports-which-sport">Which sport?</label>
+        <input
+          id="sports-which-sport"
+          defaultValue={sportsSettings?.sport || ''}
+          placeholder="e.g. Football"
+          onBlur={(event) => {
+            if (event.target.value.trim() !== (sportsSettings?.sport || '')) {
+              setSportsSport(event.target.value.trim())
+            }
+          }}
+        />
       </div>
 
       <ModeChatLauncher assistantContext={assistantContext} modeKey="sports" openChat={openChat} />
