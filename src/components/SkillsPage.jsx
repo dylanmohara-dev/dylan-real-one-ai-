@@ -102,7 +102,37 @@ function VideoGallery({ videos, deleteSkillVideo }) {
   )
 }
 
-function SkillCard({ skill, saving, removeSkill, deleteSkillSession, uploadSkillVideo, deleteSkillVideo }) {
+function LogPracticeForm({ skill, saving, addSkillSession }) {
+  const [quantity, setQuantity] = useState('')
+  const [note, setNote] = useState('')
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    if (!quantity) return
+    await addSkillSession(skill.id, quantity, note)
+    setQuantity('')
+    setNote('')
+  }
+
+  return (
+    <form className="form-card skill-log-form" onSubmit={handleSubmit}>
+      <input
+        type="number"
+        min="0"
+        step="any"
+        value={quantity}
+        onChange={(e) => setQuantity(e.target.value)}
+        placeholder={`${skill.unit || 'reps'} today`}
+      />
+      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" />
+      <button type="submit" disabled={saving || !quantity}>
+        Log practice
+      </button>
+    </form>
+  )
+}
+
+function SkillCard({ skill, saving, removeSkill, deleteSkillSession, uploadSkillVideo, deleteSkillVideo, addSkillSession }) {
   const unit = skill.unit || 'reps'
 
   return (
@@ -164,6 +194,8 @@ function SkillCard({ skill, saving, removeSkill, deleteSkillSession, uploadSkill
         <VideoUploader skillId={skill.id} saving={saving} uploadSkillVideo={uploadSkillVideo} />
       </div>
 
+      <LogPracticeForm skill={skill} saving={saving} addSkillSession={addSkillSession} />
+
       <div className="skill-recent">
         <span className="skill-recent-heading">Recent activity</span>
         {skill.sessions.length ? (
@@ -179,7 +211,7 @@ function SkillCard({ skill, saving, removeSkill, deleteSkillSession, uploadSkill
             </div>
           ))
         ) : (
-          <p className="skill-recent-empty">Nothing logged yet — just tell the AI what you practiced.</p>
+          <p className="skill-recent-empty">Nothing logged yet -- log your first session above, or tell the AI what you practiced.</p>
         )}
       </div>
     </div>
@@ -190,6 +222,7 @@ export default function SkillsPage({
   skills,
   saving,
   addSkill,
+  addSkillSession,
   removeSkill,
   deleteSkillSession,
   uploadSkillVideo,
@@ -219,6 +252,7 @@ export default function SkillsPage({
             deleteSkillSession={deleteSkillSession}
             uploadSkillVideo={uploadSkillVideo}
             deleteSkillVideo={deleteSkillVideo}
+            addSkillSession={addSkillSession}
           />
         ))}
         <AddSkillCard saving={saving} addSkill={addSkill} />

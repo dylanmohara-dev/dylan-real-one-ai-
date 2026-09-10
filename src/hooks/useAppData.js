@@ -1093,6 +1093,28 @@ export function useAppData() {
     }
   }
 
+  // Logging practice was previously only possible by asking the AI to do
+  // it (routes/chat.js's log_skill_practice action) -- there was no direct
+  // button anywhere in SkillsPage itself, despite the backend
+  // (POST /skills/sessions) fully supporting it. Real gap, not a design
+  // choice; this is the direct manual path.
+  async function addSkillSession(skillId, quantity, note = '') {
+    if (!skillId || !quantity) return
+    setSaving(true)
+    try {
+      await request('/skills/sessions', {
+        method: 'POST',
+        body: JSON.stringify({ skillId, quantity, note }),
+      })
+      await loadData()
+      showSuccess('Practice logged.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function removeSkill(id) {
     try {
       await request(`/skills/${id}`, { method: 'DELETE' })
@@ -1926,6 +1948,7 @@ export function useAppData() {
     // skills
     skills,
     addSkill,
+    addSkillSession,
     removeSkill,
     deleteSkillSession,
     uploadSkillVideo,

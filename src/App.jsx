@@ -87,6 +87,17 @@ function App() {
           overviewCards={data.overviewCards}
           setActivePage={setActivePage}
           openChat={openChat}
+          saving={data.saving}
+          addHealthEntry={data.addHealthEntry}
+          readingBooks={data.readingBooks}
+          addReadingSession={data.addReadingSession}
+          disciplineHabits={data.disciplineHabits}
+          disciplineCompletions={data.disciplineCompletions}
+          toggleDisciplineCompletion={data.toggleDisciplineCompletion}
+          addFamilyLog={data.addFamilyLog}
+          addSportsSession={data.addSportsSession}
+          skills={data.skills}
+          addSkillSession={data.addSkillSession}
         />
       )
     }
@@ -272,6 +283,7 @@ function App() {
           skills={data.skills}
           saving={data.saving}
           addSkill={data.addSkill}
+          addSkillSession={data.addSkillSession}
           removeSkill={data.removeSkill}
           deleteSkillSession={data.deleteSkillSession}
           uploadSkillVideo={data.uploadSkillVideo}
@@ -382,6 +394,17 @@ function App() {
         overviewCards={data.overviewCards}
         setActivePage={setActivePage}
         openChat={openChat}
+        saving={data.saving}
+        addHealthEntry={data.addHealthEntry}
+        readingBooks={data.readingBooks}
+        addReadingSession={data.addReadingSession}
+        disciplineHabits={data.disciplineHabits}
+        disciplineCompletions={data.disciplineCompletions}
+        toggleDisciplineCompletion={data.toggleDisciplineCompletion}
+        addFamilyLog={data.addFamilyLog}
+        addSportsSession={data.addSportsSession}
+        skills={data.skills}
+        addSkillSession={data.addSkillSession}
       />
     )
   }
