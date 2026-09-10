@@ -68,12 +68,20 @@ export default function ChatPage({
     }
 
     recognition.onerror = (event) => {
+      // Chrome's SpeechRecognition round-trips audio to a Google speech
+      // service even though the button feels "local" -- a wifi hiccup, a
+      // background tab throttle, or the mic just going quiet for a beat can
+      // all kill it mid-sentence. Previously every one of those collapsed
+      // into the same generic "stopped unexpectedly" with no way to tell
+      // which one actually happened; now the real browser error code is
+      // included so a recurring failure is at least diagnosable instead of
+      // just annoying.
       setVoiceError(
         event.error === 'not-allowed'
           ? 'Microphone access was blocked — allow it in your browser to use voice input.'
           : event.error === 'no-speech'
             ? "Didn't catch anything — try again."
-            : 'Voice input stopped unexpectedly.'
+            : `Voice input stopped unexpectedly (${event.error || 'unknown'}). Try again, or type instead if it keeps happening.`
       )
       setIsListening(false)
     }
