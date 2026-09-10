@@ -37,14 +37,23 @@ export default function ChatPage({
   // Snapshot of whatever was already typed when listening started, so
   // dictated text appends after it instead of replacing it.
   const baseMessageRef = useRef('')
+  // Chrome fires onerror with error:'aborted' whenever recognition.stop()
+  // interrupts a session that hadn't produced a final result yet -- which
+  // is exactly what happens every time Dylan deliberately taps the mic
+  // button to turn it off. Without this flag, stopping the mic on purpose
+  // looked identical to a real failure and showed him a scary
+  // "stopped unexpectedly (aborted)" message for doing nothing wrong.
+  const intentionalStopRef = useRef(false)
 
   useEffect(() => {
     return () => {
+      intentionalStopRef.current = true
       recognitionRef.current?.stop()
     }
   }, [])
 
   function startListening() {
+    intentionalStopRef.current = false
     if (!SpeechRecognitionAPI) {
       setVoiceError('Voice input is not supported in this browser.')
       return
@@ -70,6 +79,16 @@ export default function ChatPage({
     }
 
     recognition.onerror = (event) => {
+      // 'aborted' fires when OUR OWN stop() call interrupts recognition
+      // before it produced a final result -- not a real failure. Dylan
+      // tapping the mic to turn it off, or this component unmounting,
+      // both look exactly like this. Swallow it silently in that case;
+      // onend still fires right after and correctly resets isListening.
+      if (event.error === 'aborted' && intentionalStopRef.current) {
+        intentionalStopRef.current = false
+        return
+      }
+
       // Chrome's SpeechRecognition round-trips audio to a Google speech
       // service even though the button feels "local" -- a wifi hiccup, a
       // background tab throttle, or the mic just going quiet for a beat can
@@ -101,6 +120,7 @@ export default function ChatPage({
   }
 
   function stopListening() {
+    intentionalStopRef.current = true
     recognitionRef.current?.stop()
     setIsListening(false)
   }
