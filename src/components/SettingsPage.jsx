@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Download, ShieldCheck, RotateCcw } from 'lucide-react'
+import { Download, ShieldCheck, RotateCcw, Bell, BellOff, BellRing } from 'lucide-react'
 import { DESIGN_SYSTEMS, COLOR_PALETTES, LIFE_MODES } from '../data/lifeModes.js'
 
 // See useAppData.js's API constant for why this needs the DEV check --
@@ -137,6 +137,158 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
       setMapError(err.message)
     } finally {
       setMappingMode(null)
+    }
+  }
+
+  // --- Push notifications ---
+  // Deliberately its own self-contained block (like Backup/Restore above),
+  // not routed through useAppData.js -- notifications are a Settings-only
+  // concern, and the actual browser APIs involved (Notification,
+  // PushManager, service worker registration) only make sense called
+  // directly from here.
+  const notificationsSupported =
+    typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+  // iOS only allows push notifications for a PWA that's been added to the
+  // Home Screen -- a notification permission prompt from inside a normal
+  // Safari tab is silently useless there. Not a bug to fix; a real
+  // platform limit to disclose plainly rather than let Dylan tap "Enable"
+  // and wonder why nothing ever arrives.
+  const isStandalone =
+    typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
+  const [notificationPermission, setNotificationPermission] = useState(
+    () => (typeof Notification !== 'undefined' ? Notification.permission : 'unsupported')
+  )
+  const [pushSubscribed, setPushSubscribed] = useState(false)
+  const [notificationPrefs, setNotificationPrefs] = useState(null)
+  const [notificationError, setNotificationError] = useState('')
+  const [notificationBusy, setNotificationBusy] = useState(false)
+  const [testResult, setTestResult] = useState('')
+
+  useEffect(() => {
+    fetch(`${API}/notifications/preferences`)
+      .then((r) => r.json())
+      .then((data) => setNotificationPrefs(data.preferences))
+      .catch(() => {})
+
+    if (notificationsSupported) {
+      navigator.serviceWorker.ready
+        .then((registration) => registration.pushManager.getSubscription())
+        .then((subscription) => setPushSubscribed(Boolean(subscription)))
+        .catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const rawData = atob(base64)
+    return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)))
+  }
+
+  async function handleEnableNotifications() {
+    setNotificationError('')
+    setNotificationBusy(true)
+    try {
+      if (!notificationsSupported) {
+        throw new Error('This browser does not support push notifications.')
+      }
+      // iOS requires the permission prompt to happen inside a real user
+      // gesture (this click handler qualifies) AND requires the app to
+      // already be running as an installed Home Screen app, not a Safari
+      // tab -- checked here so the error is specific instead of a
+      // permission prompt that silently never fires.
+      if (!isStandalone && /iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        throw new Error('On iPhone/iPad: add Dylan AI to your Home Screen first (Share → Add to Home Screen), then open it from there and try again. Notifications only work from the installed app, not a Safari tab.')
+      }
+
+      const permission = await Notification.requestPermission()
+      setNotificationPermission(permission)
+      if (permission !== 'granted') {
+        throw new Error('Notification permission was not granted.')
+      }
+
+      const keyResponse = await fetch(`${API}/notifications/vapid-public-key`)
+      const keyBody = await keyResponse.json()
+      if (!keyResponse.ok) throw new Error(keyBody.error || 'Notifications are not set up on the server yet.')
+
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(keyBody.publicKey),
+      })
+
+      const subscribeResponse = await fetch(`${API}/notifications/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: subscription.toJSON() }),
+      })
+      if (!subscribeResponse.ok) {
+        const body = await subscribeResponse.json().catch(() => ({}))
+        throw new Error(body.error || 'Could not save the subscription.')
+      }
+
+      setPushSubscribed(true)
+      const prefsResponse = await fetch(`${API}/notifications/preferences`)
+      const prefsBody = await prefsResponse.json()
+      setNotificationPrefs(prefsBody.preferences)
+    } catch (err) {
+      setNotificationError(err.message)
+    } finally {
+      setNotificationBusy(false)
+    }
+  }
+
+  async function handleDisableNotifications() {
+    setNotificationError('')
+    setNotificationBusy(true)
+    try {
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.getSubscription()
+      if (subscription) {
+        await fetch(`${API}/notifications/unsubscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: subscription.endpoint }),
+        })
+        await subscription.unsubscribe()
+      }
+      setPushSubscribed(false)
+    } catch (err) {
+      setNotificationError(err.message)
+    } finally {
+      setNotificationBusy(false)
+    }
+  }
+
+  async function updateNotificationPref(field, value) {
+    const next = { ...notificationPrefs, [field]: value }
+    setNotificationPrefs(next)
+    try {
+      const response = await fetch(`${API}/notifications/preferences`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      })
+      const body = await response.json()
+      if (response.ok) setNotificationPrefs(body.preferences)
+    } catch {
+      // Leave the optimistic update in place -- worth a real retry
+      // mechanism only if this turns out to be a real problem in
+      // practice; a lost preference toggle here isn't destructive.
+    }
+  }
+
+  async function handleTestNotification() {
+    setTestResult('')
+    setNotificationError('')
+    try {
+      const response = await fetch(`${API}/notifications/test`, { method: 'POST' })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.error || 'Could not send a test notification.')
+      setTestResult(`Sent to ${body.sent} of ${body.total} device${body.total === 1 ? '' : 's'}.`)
+    } catch (err) {
+      setNotificationError(err.message)
     }
   }
 
@@ -465,6 +617,98 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
                   })}
                 </div>
               </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="classic-tools notifications-section">
+        <span className="eyebrow">NOTIFICATIONS</span>
+        <p className="classic-tools-note">
+          Real push notifications to your phone or this Mac's browser --
+          not an in-app banner. Two kinds, on by default once you enable
+          this: an evening nudge if today's habits or Health log are still
+          empty, and a heads-up before something in Tasks/School is due.
+          These only fire while this app's server is actually running
+          (same as everything else here) -- nothing sends while your Mac
+          is asleep or the app isn't started.
+        </p>
+
+        {!notificationsSupported && (
+          <p className="journal-error">This browser doesn't support push notifications.</p>
+        )}
+
+        {notificationsSupported && notificationPermission === 'denied' && !pushSubscribed && (
+          <p className="journal-error">
+            Notifications were blocked for this site previously -- re-enable them in your
+            browser's site settings, then try again here.
+          </p>
+        )}
+
+        {notificationsSupported && (
+          <>
+            <div className="backup-card">
+              <div className="backup-card-summary">
+                {pushSubscribed ? <BellRing size={18} strokeWidth={2} /> : <Bell size={18} strokeWidth={2} />}
+                <div>
+                  <strong>{pushSubscribed ? 'Notifications enabled on this device' : 'Not enabled on this device yet'}</strong>
+                  <p className="backup-excluded-note">
+                    On iPhone/iPad: add Dylan AI to your Home Screen first
+                    (Share → Add to Home Screen) and open it from there --
+                    iOS only delivers push notifications to an installed
+                    app, never a regular Safari tab. This is a real Apple
+                    platform rule, not something this app can work around.
+                  </p>
+                  {notificationError && <p className="journal-error">{notificationError}</p>}
+                  {testResult && <p className="backup-last-export">{testResult}</p>}
+                </div>
+              </div>
+
+              {pushSubscribed ? (
+                <button className="backup-download-button" onClick={handleDisableNotifications} disabled={notificationBusy}>
+                  <BellOff size={16} strokeWidth={2.25} />
+                  {notificationBusy ? 'Working...' : 'Disable on this device'}
+                </button>
+              ) : (
+                <button className="backup-download-button" onClick={handleEnableNotifications} disabled={notificationBusy}>
+                  <Bell size={16} strokeWidth={2.25} />
+                  {notificationBusy ? 'Working...' : 'Enable notifications'}
+                </button>
+              )}
+            </div>
+
+            {pushSubscribed && notificationPrefs && (
+              <>
+                <div className="settings-card">
+                  <div>
+                    <strong>Evening streak/habit reminder</strong>
+                    <p>A nudge if Discipline habits or today's Health log are still empty.</p>
+                  </div>
+                  <button
+                    className={`toggle ${notificationPrefs.streakReminders ? 'on' : ''}`}
+                    onClick={() => updateNotificationPref('streakReminders', !notificationPrefs.streakReminders)}
+                  >
+                    <span />
+                  </button>
+                </div>
+
+                <div className="settings-card">
+                  <div>
+                    <strong>Task/due-date reminders</strong>
+                    <p>A heads-up before a task, assignment, or test is due.</p>
+                  </div>
+                  <button
+                    className={`toggle ${notificationPrefs.dueDateReminders ? 'on' : ''}`}
+                    onClick={() => updateNotificationPref('dueDateReminders', !notificationPrefs.dueDateReminders)}
+                  >
+                    <span />
+                  </button>
+                </div>
+
+                <button className="backup-download-button" onClick={handleTestNotification}>
+                  Send a test notification
+                </button>
+              </>
             )}
           </>
         )}

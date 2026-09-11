@@ -29,7 +29,9 @@ import readingRouter from './routes/reading.js'
 import disciplineRouter from './routes/discipline.js'
 import familyRouter from './routes/family.js'
 import bootstrapRouter from './routes/bootstrap.js'
+import notificationsRouter from './routes/notifications.js'
 import { startModelWarmup } from './lib/ollamaWarm.js'
+import { startNotificationScheduler } from './lib/notificationScheduler.js'
 
 
 const app = express()
@@ -71,6 +73,7 @@ app.use('/api/reading', readingRouter)
 app.use('/api/discipline', disciplineRouter)
 app.use('/api/family', familyRouter)
 app.use('/api', bootstrapRouter)
+app.use('/api/notifications', notificationsRouter)
 
 // Phone access (via a tunnel to this Mac) needs the frontend and the API
 // reachable through the SAME origin/port, since a free tunnel forwards
@@ -101,6 +104,11 @@ app.listen(port, () => {
   // Load the model into RAM now, so the first real message doesn't pay for
   // a multi-second cold start, and keep it there while the app is running.
   startModelWarmup()
+  // Push notifications only ever fire while this process is alive -- same
+  // honest constraint as the AI warmup above and the calendar auto-sync.
+  // A no-op until Dylan has both real VAPID keys in .env AND at least one
+  // subscribed device; see lib/notificationTriggers.js.
+  startNotificationScheduler()
 })
 
 // Defensive keep-alive: on this machine the listening socket alone hasn't
