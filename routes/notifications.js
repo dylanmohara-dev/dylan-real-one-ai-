@@ -66,14 +66,29 @@ router.get('/preferences', (req, res) => {
 
 router.post('/preferences', (req, res) => {
   const prefs = loadData('notification_preferences', DEFAULT_NOTIFICATION_PREFERENCES)
-  const { enabled, streakReminders, dueDateReminders, reminderHour, dueDateLeadDays } = req.body
+  const {
+    enabled,
+    streakReminders,
+    dueDateReminders,
+    morningSummary,
+    nightlyTaskReminder,
+    reminderHour,
+    morningHour,
+    dueDateLeadDays,
+  } = req.body
 
   if (enabled !== undefined) prefs.enabled = Boolean(enabled)
   if (streakReminders !== undefined) prefs.streakReminders = Boolean(streakReminders)
   if (dueDateReminders !== undefined) prefs.dueDateReminders = Boolean(dueDateReminders)
+  if (morningSummary !== undefined) prefs.morningSummary = Boolean(morningSummary)
+  if (nightlyTaskReminder !== undefined) prefs.nightlyTaskReminder = Boolean(nightlyTaskReminder)
   if (reminderHour !== undefined) {
     const hour = Number(reminderHour)
     if (Number.isInteger(hour) && hour >= 0 && hour <= 23) prefs.reminderHour = hour
+  }
+  if (morningHour !== undefined) {
+    const hour = Number(morningHour)
+    if (Number.isInteger(hour) && hour >= 0 && hour <= 23) prefs.morningHour = hour
   }
   if (dueDateLeadDays !== undefined) {
     const days = Number(dueDateLeadDays)

@@ -30,6 +30,8 @@ import disciplineRouter from './routes/discipline.js'
 import familyRouter from './routes/family.js'
 import bootstrapRouter from './routes/bootstrap.js'
 import notificationsRouter from './routes/notifications.js'
+import playerRouter from './routes/player.js'
+import tradingRouter from './routes/trading.js'
 import { startModelWarmup } from './lib/ollamaWarm.js'
 import { startNotificationScheduler } from './lib/notificationScheduler.js'
 
@@ -74,6 +76,8 @@ app.use('/api/discipline', disciplineRouter)
 app.use('/api/family', familyRouter)
 app.use('/api', bootstrapRouter)
 app.use('/api/notifications', notificationsRouter)
+app.use('/api/player', playerRouter)
+app.use('/api/trading', tradingRouter)
 
 // Phone access (via a tunnel to this Mac) needs the frontend and the API
 // reachable through the SAME origin/port, since a free tunnel forwards

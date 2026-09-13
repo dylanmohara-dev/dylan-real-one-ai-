@@ -1,4 +1,4 @@
-import { LayoutGrid, Lock, CalendarDays, Plug, Settings as SettingsIcon, Send, Bot, Maximize2 } from 'lucide-react'
+import { LayoutGrid, Lock, CalendarDays, Plug, Settings as SettingsIcon, Send, Bot, Maximize2, MessageCircle } from 'lucide-react'
 import { LIFE_MODES } from '../data/lifeModes.js'
 
 export default function Sidebar({
@@ -37,10 +37,12 @@ export default function Sidebar({
           const Icon = item.icon
           const isActive = activePage === item.key
 
+          const isOverview = item.key === 'Overview'
+
           return (
             <button
               key={item.key}
-              className={`icon-nav-button ${isActive ? 'active' : ''}`}
+              className={`icon-nav-button ${isOverview ? 'overview' : ''} ${isActive ? 'active' : ''}`}
               title={item.label}
               onClick={() => setActivePage(item.key)}
             >
@@ -80,6 +82,14 @@ export default function Sidebar({
         onClick={() => setActivePage('Settings')}
       >
         <SettingsIcon size={18} strokeWidth={2} />
+      </button>
+
+      <button
+        className="icon-nav-button mobile-chat"
+        title="Chat with your assistant"
+        onClick={onOpenChat}
+      >
+        <MessageCircle size={18} strokeWidth={2} />
       </button>
 
       <div className="sidebar-user-footer">

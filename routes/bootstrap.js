@@ -2,8 +2,10 @@ import { Router } from 'express'
 import { loadData } from '../lib/dataStore.js'
 import { buildPayload as buildSkillsPayload } from './skills.js'
 import { computeNetWorth } from './finance.js'
+import { computeTradingStats, DEFAULT_TRADING_SETTINGS } from './trading.js'
 import { DEFAULT_WEEK_PLAN } from './gym.js'
 import { DEFAULT_SCHEDULE } from './sports.js'
+import { loadPlayerStats } from '../lib/playerXP.js'
 
 const router = Router()
 
@@ -73,6 +75,19 @@ router.get('/bootstrap', (req, res) => {
         members: loadData('family_members'),
         log: loadData('family_log'),
       },
+      trading: (() => {
+        const positions = loadData('trading_positions')
+        const watchlist = loadData('trading_watchlist')
+        const settings = loadData('trading_settings', DEFAULT_TRADING_SETTINGS)
+        const netWorth = computeNetWorth(financeAccounts)
+        return {
+          positions,
+          watchlist,
+          settings,
+          stats: computeTradingStats(positions, financeAccounts, netWorth, settings.concentrationLimitPct),
+        }
+      })(),
+      player: loadPlayerStats(),
     })
   } catch (error) {
     console.error(error)

@@ -134,12 +134,48 @@ function QuickActions({
   )
 }
 
+// The "home-base agent" panel: a short, real, prioritized list of what
+// actually needs attention, computed in useAppData's dailyFocus from
+// Dylan's own data (overdue tests, an overconcentrated trading position,
+// habits not done yet, etc.) -- not a canned greeting. Clicking an item
+// jumps straight to the mode it's about; items with no specific mode
+// (e.g. a generic overdue task) aren't clickable.
+function DailyFocus({ items, setActivePage }) {
+  if (!items || !items.length) {
+    return (
+      <div className="overview-focus overview-focus-clear">
+        <CheckCircle2 size={15} strokeWidth={2.25} />
+        <span>Nothing urgent right now — you're caught up.</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="overview-focus">
+      <span className="overview-focus-heading">Today's focus</span>
+      <div className="overview-focus-list">
+        {items.map((item, index) => (
+          <button
+            key={index}
+            className={`overview-focus-item ${item.urgent ? 'urgent' : ''}`}
+            onClick={() => item.mode && setActivePage(item.mode)}
+            disabled={!item.mode}
+          >
+            {item.text}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function OverviewPage({
   overviewEyebrow,
   userName,
   modesCount,
   setUpCount,
   overviewCards,
+  dailyFocus,
   setActivePage,
   openChat,
   saving,
@@ -184,6 +220,8 @@ export default function OverviewPage({
           </div>
         </div>
       </div>
+
+      <DailyFocus items={dailyFocus} setActivePage={setActivePage} />
 
       <button className="overview-ask-ai" onClick={openChat}>
         <span className="overview-ask-ai-icon">

@@ -13,7 +13,7 @@ function createSeededRandom(seed) {
 // The original "scattered watermark" layout — organic, unstructured.
 // Used for the life areas that feel personal/soft rather than orderly.
 function scatterTiles(icons, modeKey, random) {
-  return Array.from({ length: 18 }, (_, index) => ({
+  return Array.from({ length: 13 }, (_, index) => ({
     Icon: icons[index % icons.length],
     top: `${(random() * 110 - 5).toFixed(1)}%`,
     left: `${(random() * 110 - 5).toFixed(1)}%`,
@@ -27,7 +27,7 @@ function scatterTiles(icons, modeKey, random) {
 // orderly life areas (school, finance, discipline, calendar).
 function gridTiles(icons, modeKey, random) {
   const cols = 5
-  const rows = 4
+  const rows = 3
   const tiles = []
   let index = 0
 
@@ -53,7 +53,7 @@ function gridTiles(icons, modeKey, random) {
 // life areas (sports, gym).
 function diagonalTiles(icons, modeKey, random) {
   const bands = 4
-  const perBand = 5
+  const perBand = 4
   const tiles = []
   let index = 0
 

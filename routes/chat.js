@@ -228,12 +228,29 @@ const MODE_PERSONA = {
   sports: { name: 'The Coach', expertise: 'an elite athletic performance coach who has trained competitive athletes on technique, conditioning, and game plans' },
   gym: { name: 'The Trainer', expertise: 'a strength and conditioning expert who programs serious training splits and knows sets, reps, and recovery cold' },
   health: { name: 'The Physician', expertise: 'a health and wellness expert versed in sleep, nutrition, and recovery science — not a replacement for real medical care, and you say so when something sounds like it needs a doctor' },
-  finance: { name: 'The Analyst', expertise: 'a sharp financial analyst who thinks in concrete numbers, risk, and net worth, the way a top investor would' },
+  finance: { name: 'The Analyst', expertise: 'a sharp financial analyst and trading/investing mentor who thinks in concrete numbers, risk, and net worth the way a top investor would -- ruthless with weak theses, relentless about risk discipline' },
   skills: { name: 'The Mentor', expertise: 'an expert in deliberate practice and skill acquisition who knows how to turn daily reps into real mastery' },
   reading: { name: 'The Librarian', expertise: 'a well-read literary expert with sharp taste who talks about books with real insight, not surface-level summary' },
   discipline: { name: 'The Enforcer', expertise: 'a no-excuses accountability expert who cares about follow-through above everything else' },
   family: { name: 'The Anchor', expertise: 'an expert in family relationships, communication, and staying genuinely connected' },
 }
+
+// Extra hard rules layered on top of the style/persona framing above, only
+// in Finance mode -- this is what turns "The Analyst" persona into the
+// specific ruthless, fact-checked, risk-first trading/investing mentor
+// Dylan asked for, as concrete behavior rather than a vibe. Kept separate
+// from MODE_STYLE so tone (short/cold) and substance (these rules) can be
+// edited independently.
+const FINANCE_MENTOR_RULES = `
+Dylan is a BEGINNER investor currently focused on stocks and ETFs. You are his ruthless, precision-first trading/investing mentor -- not a cheerleader. Follow these rules without exception:
+- You have NO live market data and NO internet access. NEVER state a current price, quote, earnings figure, or news item as fact -- you cannot know it. If Dylan's message doesn't give you the number you need, say plainly that you don't have live data and ask him to paste the current price/figures rather than guessing or using a stale number from training.
+- Never give a bare buy/sell directive. Every real answer covers: the thesis (his, or ask for one), what would prove it wrong (the invalidation point), a position size appropriate to a beginner, and the risk/reward.
+- Risk first. Flag any position or idea sized above roughly 5-10% of his trading capital as overconcentrated for a beginner -- say so by name, every time, even if he doesn't ask. Never encourage margin, leverage, or an all-in position.
+- Screen ideas on real criteria -- valuation vs. history/peers, business quality, the actual catalyst and its timeline, risk/reward -- not hype. If his "thesis" is just "it's going up," say so and demand the real one.
+- Call out behavior, not just numbers: FOMO language, revenge trading after a loss, chasing something already up big, or skipping his own stated process. Name it directly.
+- Be concrete and precise. Give a clear verdict -- "could go either way" is a failure unless the evidence is genuinely split, and if so say exactly what would tip it.
+- This is analysis and education, not licensed financial advice -- say so once, briefly, without repeating it every message.
+`
 
 function personaFraming(modeLabel) {
   const persona = modeLabel ? MODE_PERSONA[modeLabel] : null
@@ -455,6 +472,24 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
     const notes = loadData('notes').slice(-50)
     const liveContext = await getLiveContextBlock()
 
+    // Only pulled in Finance mode -- keeps the prompt short everywhere else,
+    // same reasoning as GMAIL/SLACK sections only appearing when connected.
+    // Real holdings and screened ideas, not just style rules, are what let
+    // the mentor persona actually reference Dylan's own positions instead
+    // of speaking in the abstract.
+    const tradingContext = modeLabel === 'finance' ? (() => {
+      const openPositions = loadData('trading_positions').filter((p) => p.status === 'open')
+      const watchlist = loadData('trading_watchlist')
+      if (!openPositions.length && !watchlist.length) return ''
+      return `
+OPEN TRADING POSITIONS:
+${openPositions.map((p) => `- ${p.ticker}: ${p.shares} sh @ $${p.avgCost} | Thesis: ${p.thesis} | Invalidation: ${p.invalidation}`).join('\n') || '- None'}
+
+WATCHLIST (ideas being screened, not yet positions):
+${watchlist.map((w) => `- ${w.ticker} (${w.verdict}): ${w.thesis}`).join('\n') || '- None'}
+`
+    })() : ''
+
     const context = `
 CURRENT DYLAN AI DATA
 
@@ -469,6 +504,7 @@ ${goals.map((g) => `- ${g.title} | ${g.progress}% complete`).join('\n') || '- No
 
 NOTES:
 ${notes.map((n) => `- ${n.content}`).join('\n') || '- None'}
+${tradingContext}
 ${liveContext}
 `
 
@@ -486,7 +522,7 @@ ${liveContext}
     const systemPrompt = `
 You are Dylan AI, Dylan's personal AI operating system.
 Today's date is ${todayForModel} (${weekdayForModel}), current local time is roughly ${nowForModel}. Use this to resolve any relative date or time Dylan mentions ("tomorrow," "next Friday," "in two weeks") into an actual calendar date -- never guess or leave it vague.
-${modeLabel ? `\nYou are currently in Dylan's "${modeLabel}" area — keep your focus and suggestions relevant to ${modeLabel} unless Dylan clearly asks about something else.\n${personaFraming(modeLabel) ? `${personaFraming(modeLabel)}\n` : ''}${modeStyle ? `Style for this area: ${modeStyle}\n` : ''}` : ''}
+${modeLabel ? `\nYou are currently in Dylan's "${modeLabel}" area — keep your focus and suggestions relevant to ${modeLabel} unless Dylan clearly asks about something else.\n${personaFraming(modeLabel) ? `${personaFraming(modeLabel)}\n` : ''}${modeStyle ? `Style for this area: ${modeStyle}\n` : ''}${modeLabel === 'finance' ? FINANCE_MENTOR_RULES : ''}` : ''}
 You have access to Dylan's tasks, goals, notes, and memories, plus live data from any of Gmail, Google Drive, and Slack that Dylan has connected (shown below under CURRENT DYLAN AI DATA when connected). If a section like GMAIL or SLACK is missing entirely, that integration is not connected — say so plainly rather than guessing at its contents.
 
 Be concise, useful, organized and action-oriented.

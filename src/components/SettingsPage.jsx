@@ -705,6 +705,32 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
                   </button>
                 </div>
 
+                <div className="settings-card">
+                  <div>
+                    <strong>Morning task list</strong>
+                    <p>Every morning, a heads-up naming everything still open in Tasks.</p>
+                  </div>
+                  <button
+                    className={`toggle ${notificationPrefs.morningSummary ? 'on' : ''}`}
+                    onClick={() => updateNotificationPref('morningSummary', !notificationPrefs.morningSummary)}
+                  >
+                    <span />
+                  </button>
+                </div>
+
+                <div className="settings-card">
+                  <div>
+                    <strong>Nightly task reminder</strong>
+                    <p>Same idea in the evening -- only sends if something's still open.</p>
+                  </div>
+                  <button
+                    className={`toggle ${notificationPrefs.nightlyTaskReminder ? 'on' : ''}`}
+                    onClick={() => updateNotificationPref('nightlyTaskReminder', !notificationPrefs.nightlyTaskReminder)}
+                  >
+                    <span />
+                  </button>
+                </div>
+
                 <button className="backup-download-button" onClick={handleTestNotification}>
                   Send a test notification
                 </button>

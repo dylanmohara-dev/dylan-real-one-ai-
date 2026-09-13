@@ -10,6 +10,14 @@ import { DEFAULT_SETTINGS, LIFE_MODES } from '../data/lifeModes.js'
 // to whatever host the tunnel maps that day, with zero reconfiguration.
 const API = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api'
 
+// Same bare local-date convention used throughout this file (and the
+// backend's todayKey() in lib/studyPlan.js) -- NOT toISOString().slice(0,10),
+// which reads off UTC and can mislabel a late-evening entry as tomorrow.
+function todayKeyLocal() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function useAppData() {
   const [message, setMessage] = useState('')
   const [activePage, setActivePage] = useState('Overview')
@@ -30,6 +38,10 @@ export function useAppData() {
   const [financeHistory, setFinanceHistory] = useState([])
   const [financeTransactions, setFinanceTransactions] = useState([])
   const [financeBudgets, setFinanceBudgets] = useState({})
+  const [tradingPositions, setTradingPositions] = useState([])
+  const [tradingWatchlist, setTradingWatchlist] = useState([])
+  const [tradingStats, setTradingStats] = useState(null)
+  const [tradingSettings, setTradingSettings] = useState({ concentrationLimitPct: 10 })
   const [skills, setSkills] = useState([])
   const [gymExercises, setGymExercises] = useState([])
   const [gymLogs, setGymLogs] = useState([])
@@ -53,6 +65,7 @@ export function useAppData() {
   // message sitting in the real transcript.
   const [streamingText, setStreamingText] = useState('')
   const [toasts, setToasts] = useState([])
+  const [playerStats, setPlayerStats] = useState({ xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
 
   const [taskInput, setTaskInput] = useState('')
   const [taskPriority, setTaskPriority] = useState('medium')
@@ -326,6 +339,10 @@ export function useAppData() {
       setFinanceHistory(data.finance?.history || [])
       setFinanceTransactions(data.finance?.transactions || [])
       setFinanceBudgets(data.finance?.budgets || {})
+      setTradingPositions(data.trading?.positions || [])
+      setTradingWatchlist(data.trading?.watchlist || [])
+      setTradingStats(data.trading?.stats || null)
+      setTradingSettings(data.trading?.settings || { concentrationLimitPct: 10 })
       setSkills(data.skills || [])
       setGymExercises(data.gym?.exercises || [])
       setGymLogs(data.gym?.logs || [])
@@ -341,6 +358,7 @@ export function useAppData() {
       setDisciplineCompletions(data.discipline?.completions || [])
       setFamilyMembers(data.family?.members || [])
       setFamilyLog(data.family?.log || [])
+      setPlayerStats(data.player || { xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
 
       return { skills: data.skills || [], goals: data.goals || [] }
     } catch (error) {
@@ -383,6 +401,30 @@ export function useAppData() {
     setToasts((prev) => prev.filter((item) => item.id !== id))
   }
 
+  // App-wide level/XP -- separate from Skills mode's own per-skill leveling,
+  // this one number goes up no matter which life area you're working in.
+  // `reason` must be one of the fixed keys in lib/playerXP.js's reward
+  // table; the server, not this call site, decides how much it's worth.
+  async function awardXP(reason) {
+    try {
+      const result = await request('/player/award', {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      })
+      setPlayerStats(result)
+      if (result.leveledUp) {
+        pushToast({
+          kind: 'levelup',
+          title: 'PLAYER LEVEL UP',
+          message: `You reached Level ${result.level}`,
+          duration: 4200,
+        })
+      }
+    } catch (error) {
+      console.error('XP award failed:', error)
+    }
+  }
+
   function detectSkillMilestones(previousSkills, nextSkills) {
     if (!Array.isArray(nextSkills)) return
 
@@ -397,6 +439,7 @@ export function useAppData() {
           title: 'LEVEL UP',
           message: `${nextSkill.name} reached Level ${nextSkill.level}`,
         })
+        awardXP('skill-levelup')
       }
 
       const newBadges = (nextSkill.badges || []).slice(prevBadgeCount)
@@ -406,6 +449,7 @@ export function useAppData() {
           title: 'BADGE UNLOCKED',
           message: badge.label,
         })
+        awardXP('skill-badge')
       })
     }
   }
@@ -423,6 +467,7 @@ export function useAppData() {
           title: 'GOAL COMPLETE',
           message: nextGoal.title,
         })
+        awardXP('goal-complete')
       }
     }
   }
@@ -525,12 +570,14 @@ export function useAppData() {
           title: 'NEW PR',
           message: `${exerciseName}: ${newBestWeight} lbs`,
         })
+        awardXP('gym-pr')
       } else if (priorLogs.length > 0 && newBest1RM > priorBest1RM) {
         pushToast({
           kind: 'pr',
           title: 'NEW EST. 1RM',
           message: `${exerciseName}: ~${Math.round(newBest1RM)} lbs`,
         })
+        awardXP('gym-pr')
       }
 
       showSuccess('Workout logged.')
@@ -760,11 +807,17 @@ export function useAppData() {
 
   async function toggleDisciplineCompletion(habitId, date) {
     try {
-      await request('/discipline/completions/toggle', {
+      const result = await request('/discipline/completions/toggle', {
         method: 'POST',
         body: JSON.stringify({ habitId, date }),
       })
       await loadData()
+
+      if (result.done) {
+        const habit = disciplineHabits.find((h) => h.id === habitId)
+        pushToast({ kind: 'task', title: 'HABIT DONE', message: habit ? habit.name : 'Habit' })
+        awardXP('habit-done')
+      }
     } catch (error) {
       showError(error.message)
     }
@@ -1137,6 +1190,140 @@ export function useAppData() {
     }
   }
 
+  // Trading: positions and a pre-trade watchlist, separate from the plain
+  // account/transaction ledger above -- see routes/trading.js. Every
+  // mutation reloads via bootstrap the same way the finance functions
+  // above do, so tradingStats (sizing %, concentration flags, realized
+  // P/L) is always recomputed server-side rather than duplicated here.
+  async function addTradingPosition(ticker, shares, avgCost, thesis, invalidation, notes = '') {
+    if (!ticker?.trim() || !shares || !avgCost || !thesis?.trim() || !invalidation?.trim()) return
+
+    setSaving(true)
+    try {
+      await request('/trading/positions', {
+        method: 'POST',
+        body: JSON.stringify({
+          ticker: ticker.trim(),
+          shares: Number(shares),
+          avgCost: Number(avgCost),
+          thesis: thesis.trim(),
+          invalidation: invalidation.trim(),
+          notes,
+        }),
+      })
+
+      await loadData()
+      showSuccess(`${ticker.trim().toUpperCase()} added to your positions.`)
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function updateTradingPosition(id, updates) {
+    setSaving(true)
+    try {
+      await request(`/trading/positions/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      })
+      await loadData()
+      showSuccess('Position updated.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function closeTradingPosition(id, exitPrice, lesson) {
+    if (!exitPrice || !lesson?.trim()) return
+    setSaving(true)
+    try {
+      await request(`/trading/positions/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'closed', exitPrice: Number(exitPrice), lesson: lesson.trim() }),
+      })
+      await loadData()
+      showSuccess('Position closed.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function updateTradingSettings(concentrationLimitPct) {
+    const numericLimit = Number(concentrationLimitPct)
+    if (!numericLimit || numericLimit <= 0 || numericLimit > 100) return
+
+    setSaving(true)
+    try {
+      await request('/trading/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ concentrationLimitPct: numericLimit }),
+      })
+      await loadData()
+      showSuccess(`Concentration limit set to ${numericLimit}%.`)
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteTradingPosition(id) {
+    try {
+      await request(`/trading/positions/${id}`, { method: 'DELETE' })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function addWatchlistItem(ticker, thesis, catalyst = '', valuation = '') {
+    if (!ticker?.trim() || !thesis?.trim()) return
+
+    setSaving(true)
+    try {
+      await request('/trading/watchlist', {
+        method: 'POST',
+        body: JSON.stringify({ ticker: ticker.trim(), thesis: thesis.trim(), catalyst, valuation }),
+      })
+      await loadData()
+      showSuccess(`${ticker.trim().toUpperCase()} added to your watchlist.`)
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function updateWatchlistItem(id, updates) {
+    setSaving(true)
+    try {
+      await request(`/trading/watchlist/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteWatchlistItem(id) {
+    try {
+      await request(`/trading/watchlist/${id}`, { method: 'DELETE' })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
   async function addSkill(name, unit) {
     if (!name?.toString().trim()) return
 
@@ -1398,11 +1585,17 @@ export function useAppData() {
 
   async function toggleAssignment(assignment) {
     try {
+      const completing = !assignment.completed
       await request(`/assignments/${assignment.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ completed: !assignment.completed }),
+        body: JSON.stringify({ completed: completing }),
       })
       await loadData()
+
+      if (completing) {
+        pushToast({ kind: 'task', title: 'ASSIGNMENT DONE', message: assignment.title })
+        awardXP('assignment-done')
+      }
     } catch (error) {
       showError(error.message)
     }
@@ -1477,11 +1670,17 @@ export function useAppData() {
 
   async function toggleTest(test) {
     try {
+      const completing = !test.completed
       await request(`/tests/${test.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ completed: !test.completed }),
+        body: JSON.stringify({ completed: completing }),
       })
       await loadData()
+
+      if (completing) {
+        pushToast({ kind: 'task', title: 'TEST LOGGED', message: test.title })
+        awardXP('test-logged')
+      }
     } catch (error) {
       showError(error.message)
     }
@@ -1547,6 +1746,7 @@ export function useAppData() {
 
       if (completing) {
         pushToast({ kind: 'task', title: 'DONE', message: task.title })
+        awardXP('task-done')
       }
     } catch (error) {
       showError(error.message)
@@ -1622,6 +1822,7 @@ export function useAppData() {
 
       if (justCompleted) {
         pushToast({ kind: 'goal', title: 'GOAL COMPLETE', message: goal.title })
+        awardXP('goal-complete')
       }
     } catch (error) {
       showError(error.message)
@@ -1831,6 +2032,30 @@ export function useAppData() {
         }
       }
 
+      if (mode.key === 'gym') {
+        const from = new Date()
+        from.setDate(from.getDate() - 6)
+        const fromKey = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`
+        const now = new Date()
+        const toKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        const sessionsThisWeek = new Set(
+          gymLogs.filter((l) => l.date >= fromKey && l.date <= toKey).map((l) => l.date)
+        ).size
+        const plannedDays = Object.values(gymWeekPlan || {}).filter(Boolean).length
+        const weeklyTarget = plannedDays || 4
+        return {
+          ...mode,
+          headline: gymLogs.length
+            ? `${sessionsThisWeek} session${sessionsThisWeek === 1 ? '' : 's'} this week`
+            : mode.headline,
+          metricValue: `${sessionsThisWeek} / ${weeklyTarget}`,
+          progress: weeklyTarget
+            ? Math.max(0, Math.min(100, Math.round((sessionsThisWeek / weeklyTarget) * 100)))
+            : 0,
+          isSetUp: gymLogs.length > 0 || gymExercises.length > 0 || plannedDays > 0,
+        }
+      }
+
       if (mode.key === 'family') {
         const from = new Date()
         from.setDate(from.getDate() - 6)
@@ -1870,6 +2095,9 @@ export function useAppData() {
     disciplineCompletions,
     familyMembers,
     familyLog,
+    gymLogs,
+    gymExercises,
+    gymWeekPlan,
   ])
 
   const setUpCount = useMemo(
@@ -1881,6 +2109,93 @@ export function useAppData() {
     setUpCount > 0
       ? `${setUpCount} OF ${LIFE_MODES.length} MODES ACTIVE`
       : 'NOTHING TRACKED YET'
+
+  // "Home-base agent" panel on Overview -- a short, real, prioritized list
+  // of what actually needs attention right now, computed from Dylan's own
+  // data rather than a generic canned message. Deliberately conservative:
+  // only fields with a reliable date format (tests' `date`, not
+  // assignments'/tasks' free-text `dueDate`, which can be things like
+  // "tomorrow night") are used for "overdue" claims, and a mode only ever
+  // surfaces a nudge here once Dylan has actually started using it
+  // (isSetUp-equivalent checks below) -- a brand-new, empty mode never
+  // gets nagged from the home page.
+  const dailyFocus = useMemo(() => {
+    function isPastDate(dateString) {
+      if (!dateString) return false
+      const parsed = new Date(dateString)
+      if (Number.isNaN(parsed.getTime())) return false
+      const startOfToday = new Date()
+      startOfToday.setHours(0, 0, 0, 0)
+      return parsed < startOfToday
+    }
+
+    const items = []
+
+    const overdueTests = tests.filter((t) => !t.completed && isPastDate(t.date))
+    if (overdueTests.length) {
+      items.push({
+        mode: 'school',
+        urgent: true,
+        text: `${overdueTests.length} test${overdueTests.length === 1 ? '' : 's'} overdue in School`,
+      })
+    }
+
+    if (tradingStats?.anyOverConcentrated) {
+      items.push({
+        mode: 'finance',
+        urgent: true,
+        text: `A trading position is sized over your ${tradingStats.concentrationLimitPct}% risk limit`,
+      })
+    }
+
+    const overdueHighPriorityTasks = tasks.filter(
+      (t) => !t.completed && t.priority === 'high' && isPastDate(t.dueDate)
+    )
+    if (overdueHighPriorityTasks.length) {
+      items.push({
+        mode: null,
+        urgent: true,
+        text: `${overdueHighPriorityTasks.length} high-priority task${overdueHighPriorityTasks.length === 1 ? '' : 's'} overdue`,
+      })
+    }
+
+    const activeHabits = disciplineHabits.filter((h) => h.active !== false)
+    if (activeHabits.length) {
+      const todayForHabits = todayKeyLocal()
+      const doneToday = disciplineCompletions.filter((c) => c.date === todayForHabits).length
+      if (doneToday < activeHabits.length) {
+        items.push({
+          mode: 'discipline',
+          urgent: false,
+          text: `${activeHabits.length - doneToday} of ${activeHabits.length} daily habits not done yet`,
+        })
+      }
+    }
+
+    if (healthEntries.length) {
+      const today = new Date().toDateString()
+      const loggedToday = new Set(
+        healthEntries.filter((entry) => new Date(entry.createdAt).toDateString() === today).map((entry) => entry.category)
+      ).size
+      if (loggedToday === 0) {
+        items.push({ mode: 'health', urgent: false, text: 'Nothing logged in Health yet today' })
+      }
+    }
+
+    if (readingBooks.some((b) => b.status === 'reading')) {
+      const todayForReading = todayKeyLocal()
+      const pagesToday = readingSessions
+        .filter((s) => s.date === todayForReading)
+        .reduce((sum, s) => sum + (Number(s.pagesRead) || 0), 0)
+      if (pagesToday === 0) {
+        items.push({ mode: 'reading', urgent: false, text: "Haven't logged today's reading pages yet" })
+      }
+    }
+
+    // Urgent items first, then cap it -- this is meant to be a glance, not
+    // another full list to read through.
+    return items.sort((a, b) => Number(b.urgent) - Number(a.urgent)).slice(0, 4)
+  }, [tests, tradingStats, tasks, disciplineHabits, disciplineCompletions, healthEntries, readingBooks, readingSessions])
 
   const currentThreadKey = activeMode ? activeMode.key : 'general'
   const chatMessages = chatThreads[currentThreadKey] || []
@@ -1909,6 +2224,7 @@ export function useAppData() {
     // toasts (game-feel celebration layer)
     toasts,
     dismissToast,
+    playerStats,
 
     // settings
     settings,
@@ -2014,6 +2330,20 @@ export function useAppData() {
     deleteFinanceTransaction,
     setFinanceBudget,
 
+    // trading
+    tradingPositions,
+    tradingWatchlist,
+    tradingStats,
+    tradingSettings,
+    addTradingPosition,
+    updateTradingPosition,
+    closeTradingPosition,
+    deleteTradingPosition,
+    addWatchlistItem,
+    updateWatchlistItem,
+    deleteWatchlistItem,
+    updateTradingSettings,
+
     // skills
     skills,
     addSkill,
@@ -2083,5 +2413,6 @@ export function useAppData() {
     overviewCards,
     setUpCount,
     overviewEyebrow,
+    dailyFocus,
   }
 }

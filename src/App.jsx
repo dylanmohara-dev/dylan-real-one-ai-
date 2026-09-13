@@ -271,6 +271,10 @@ function App() {
           history={data.financeHistory}
           transactions={data.financeTransactions}
           budgets={data.financeBudgets}
+          positions={data.tradingPositions}
+          watchlist={data.tradingWatchlist}
+          tradingStats={data.tradingStats}
+          tradingSettings={data.tradingSettings}
           saving={data.saving}
           addAccount={data.addFinanceAccount}
           updateBalance={data.updateFinanceBalance}
@@ -278,6 +282,13 @@ function App() {
           addTransaction={data.addFinanceTransaction}
           deleteTransaction={data.deleteFinanceTransaction}
           setBudget={data.setFinanceBudget}
+          addPosition={data.addTradingPosition}
+          closePosition={data.closeTradingPosition}
+          deletePosition={data.deleteTradingPosition}
+          addWatchlistItem={data.addWatchlistItem}
+          updateWatchlistItem={data.updateWatchlistItem}
+          deleteWatchlistItem={data.deleteWatchlistItem}
+          updateTradingSettings={data.updateTradingSettings}
           assistantContext={assistantContext}
           openChat={openChat}
         />
@@ -402,6 +413,7 @@ function App() {
         modesCount={LIFE_MODES.length}
         setUpCount={data.setUpCount}
         overviewCards={data.overviewCards}
+        dailyFocus={data.dailyFocus}
         setActivePage={setActivePage}
         openChat={openChat}
         saving={data.saving}
@@ -489,7 +501,7 @@ function App() {
         />
       )}
 
-      <TopSettingsBar settings={settings} setSettings={data.setSettings} />
+      <TopSettingsBar settings={settings} setSettings={data.setSettings} playerStats={data.playerStats} />
 
       <div className={`app-shell ${themeClass}`}>
         <Sidebar
@@ -516,7 +528,7 @@ function App() {
             </div>
           )}
 
-          <div className="content">{renderPage()}</div>
+          <div className="content" key={activePage}>{renderPage()}</div>
 
           <footer>Dylan AI can make mistakes. Check important information.</footer>
         </main>

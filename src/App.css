@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Lora:wght@500;600;700&family=Bebas+Neue&family=Anton&family=Quicksand:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&family=Poppins:wght@500;600;700&family=Crimson+Pro:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Fredoka:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Oswald:wght@400;500;600&family=Orbitron:wght@500;600;700;800&family=Bitter:wght@500;600;700&family=Comfortaa:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Caveat:wght@600;700&family=Audiowide&family=Rajdhani:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Lora:wght@500;600;700&family=Bebas+Neue&family=Anton&family=Quicksand:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&family=Poppins:wght@500;600;700&family=Crimson+Pro:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Fredoka:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Oswald:wght@400;500;600&family=Orbitron:wght@500;600;700;800&family=Bitter:wght@500;600;700&family=Comfortaa:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Caveat:wght@600;700&family=Audiowide&family=Rajdhani:wght@500;600;700&family=Press+Start+2P&family=Baloo+2:wght@500;600;700&display=swap');
 
 * {
   box-sizing: border-box;
@@ -8,7 +8,17 @@
 
 :root {
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+  /* Professional redesign (Dylan's explicit ask, "look like a real
+     professional app" -> clean SaaS/fintech): this variable is still
+     named --font-serif for every downstream consumer that references it
+     (the default heading fallback, plus a couple of direct call sites),
+     but its VALUE is no longer a serif at all -- Playfair Display read as
+     editorial/decorative, not dashboard software. Space Grotesk is
+     already loaded (it powers a couple of the optional design systems)
+     so this is a zero-new-dependency swap to a clean geometric sans built
+     for exactly this kind of UI. Renaming the variable itself would mean
+     re-touching every one of its consumers for no functional gain. */
+  --font-serif: "Space Grotesk", "Inter", -apple-system, sans-serif;
 
   /* Per-mode identity tokens — overridden per .theme-* below so switching
      modes changes heading typeface and card shape, not just accent color. */
@@ -38,29 +48,39 @@
   --palette-brightness: 1;
   --palette-contrast: 1.05;
 
-  /* Fixed brand accent (avatar, send button, default eyebrow) */
-  --chrome-rgb: 245, 158, 11;
-  --chrome-rgb-2: 249, 115, 22;
+  /* Fixed brand accent (avatar, send button, default eyebrow). Was a warm
+     amber/orange — replaced with a restrained blue-to-indigo pair, the
+     same family real B2B/fintech products lean on (Stripe, most SaaS
+     dashboards), instead of the warmer "friendly consumer app" amber.
+     Elements using this pair now hardcode white text directly rather
+     than the shared --text-on-accent below, since that variable still
+     has to keep working against the 9 UNCHANGED, lighter mode colors
+     (School gold, Gym orange, etc. — Dylan's own choice to keep those). */
+  --chrome-rgb: 59, 130, 246;
+  --chrome-rgb-2: 99, 102, 241;
 
-  /* Current-page accent — overridden per mode via .theme-* below */
-  --mode-accent-rgb: 245, 158, 11;
-  --mode-accent2-rgb: 249, 115, 22;
+  /* Current-page accent — overridden per mode via .theme-* below. Matches
+     chrome by default (Overview/Settings/Journal have no mode of their
+     own) so the app has one consistent "home" identity outside the 9
+     life areas, instead of inheriting the old amber by coincidence. */
+  --mode-accent-rgb: 59, 130, 246;
+  --mode-accent2-rgb: 99, 102, 241;
 
-  --bg: #0a0a0a;
-  --bg-glow-1: rgba(245, 158, 11, 0.09);
-  --bg-glow-2: rgba(249, 115, 22, 0.13);
+  --bg: #0c0e13;
+  --bg-glow-1: rgba(59, 130, 246, 0.05);
+  --bg-glow-2: rgba(99, 102, 241, 0.04);
 
-  --surface: rgba(255, 255, 255, 0.032);
-  --surface-hover: rgba(255, 255, 255, 0.055);
-  --surface-strong: rgba(16, 16, 18, 0.86);
-  --surface-input: rgba(255, 255, 255, 0.045);
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-hover: rgba(255, 255, 255, 0.07);
+  --surface-strong: rgba(17, 19, 24, 0.92);
+  --surface-input: rgba(255, 255, 255, 0.05);
 
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.16);
 
-  --text-primary: #f2f2f0;
-  --text-secondary: #9a9a9f;
-  --text-muted: #67676c;
+  --text-primary: #f1f2f4;
+  --text-secondary: #9aa0a8;
+  --text-muted: #676b73;
   --text-on-accent: #171004;
 
   color: var(--text-primary);
@@ -72,21 +92,21 @@
 }
 
 :root[data-theme="light"] {
-  --bg: #f7f5f1;
-  --bg-glow-1: rgba(245, 158, 11, 0.22);
-  --bg-glow-2: rgba(249, 115, 22, 0.13);
+  --bg: #f6f7fa;
+  --bg-glow-1: rgba(59, 130, 246, 0.09);
+  --bg-glow-2: rgba(99, 102, 241, 0.05);
 
-  --surface: rgba(0, 0, 0, 0.032);
-  --surface-hover: rgba(0, 0, 0, 0.05);
-  --surface-strong: rgba(255, 255, 255, 0.86);
+  --surface: rgba(0, 0, 0, 0.035);
+  --surface-hover: rgba(0, 0, 0, 0.055);
+  --surface-strong: rgba(255, 255, 255, 0.92);
   --surface-input: rgba(0, 0, 0, 0.035);
 
   --border: rgba(0, 0, 0, 0.09);
   --border-strong: rgba(0, 0, 0, 0.17);
 
-  --text-primary: #1a1917;
-  --text-secondary: #6b6b66;
-  --text-muted: #9c9c96;
+  --text-primary: #171a1f;
+  --text-secondary: #5b5f68;
+  --text-muted: #8b8f97;
   --text-on-accent: #171004;
 
   color-scheme: light;
@@ -430,98 +450,97 @@ select option {
    texture isn't limited to page content — full commitment per Dylan's ask. */
 
 .app-shell.theme-school .sidebar {
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 25px, rgba(var(--mode-accent-rgb), 0.088) 27px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.10), transparent 65%);
 }
 
 .app-shell.theme-sports .sidebar {
-  background-image: repeating-linear-gradient(115deg, rgba(var(--mode-accent-rgb), 0.088) 0px, rgba(var(--mode-accent-rgb), 0.088) 5px, transparent 5px, transparent 42px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.10), transparent 65%);
 }
 
 .app-shell.theme-gym .sidebar {
-  background-image: repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.11) 0px, rgba(var(--mode-accent-rgb), 0.11) 13px, transparent 13px, transparent 32px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.10), transparent 65%);
 }
 
 .app-shell.theme-health .sidebar {
-  background-image: radial-gradient(circle at 18% 22%, rgba(var(--mode-accent-rgb), 0.22), transparent 42%), radial-gradient(circle at 82% 68%, rgba(var(--mode-accent2-rgb), 0.18), transparent 48%), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.4), transparent 65%);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.10), transparent 65%);
 }
 
 .app-shell.theme-finance .sidebar {
-  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.165) 1.6px, transparent 2px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
-  background-size: 20px 20px, auto;
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.10), transparent 65%);
 }
 
 .app-shell.theme-skills .sidebar {
-  background-image: radial-gradient(circle at 28% 8%, rgba(var(--mode-accent-rgb), 0.26), transparent 38%), radial-gradient(circle at 78% 62%, rgba(var(--mode-accent2-rgb), 0.22), transparent 42%), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.4), transparent 65%);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.10), transparent 65%);
 }
 
 .app-shell.theme-reading .sidebar {
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(var(--mode-accent-rgb), 0.083) 34px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.10), transparent 65%);
 }
 
 .app-shell.theme-discipline .sidebar {
-  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.10), transparent 65%);
 }
 
 .app-shell.theme-family .sidebar {
-  background-image: radial-gradient(circle at 14% 82%, rgba(var(--mode-accent-rgb), 0.24), transparent 42%), radial-gradient(circle at 86% 14%, rgba(var(--mode-accent2-rgb), 0.20), transparent 44%), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.4), transparent 65%);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.10), transparent 65%);
 }
 
 .app-shell.theme-journal .sidebar {
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.28), transparent 58%), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.4), transparent 65%);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.10), transparent 65%);
 }
 
 .app-shell.theme-calendar .sidebar {
-  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.22), transparent 65%);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.10), transparent 65%);
 }
 
 .app-root.theme-school .top-settings-bar {
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 25px, rgba(var(--mode-accent-rgb), 0.088) 27px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.10), transparent 75%);
 }
 
 .app-root.theme-sports .top-settings-bar {
-  background-image: repeating-linear-gradient(115deg, rgba(var(--mode-accent-rgb), 0.088) 0px, rgba(var(--mode-accent-rgb), 0.088) 5px, transparent 5px, transparent 42px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.10), transparent 75%);
 }
 
 .app-root.theme-gym .top-settings-bar {
-  background-image: repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.11) 0px, rgba(var(--mode-accent-rgb), 0.11) 13px, transparent 13px, transparent 32px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.10), transparent 75%);
 }
 
 .app-root.theme-health .top-settings-bar {
-  background-image: radial-gradient(circle at 18% 22%, rgba(var(--mode-accent-rgb), 0.22), transparent 42%), radial-gradient(circle at 82% 68%, rgba(var(--mode-accent2-rgb), 0.18), transparent 48%), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.34), transparent 75%);
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.10), transparent 75%);
 }
 
 .app-root.theme-finance .top-settings-bar {
-  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.165) 1.6px, transparent 2px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
-  background-size: 20px 20px, auto;
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.10), transparent 75%);
 }
 
 .app-root.theme-skills .top-settings-bar {
-  background-image: radial-gradient(circle at 28% 8%, rgba(var(--mode-accent-rgb), 0.26), transparent 38%), radial-gradient(circle at 78% 62%, rgba(var(--mode-accent2-rgb), 0.22), transparent 42%), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.34), transparent 75%);
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.10), transparent 75%);
 }
 
 .app-root.theme-reading .top-settings-bar {
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(var(--mode-accent-rgb), 0.083) 34px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.10), transparent 75%);
 }
 
 .app-root.theme-discipline .top-settings-bar {
-  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.10), transparent 75%);
 }
 
 .app-root.theme-family .top-settings-bar {
-  background-image: radial-gradient(circle at 14% 82%, rgba(var(--mode-accent-rgb), 0.24), transparent 42%), radial-gradient(circle at 86% 14%, rgba(var(--mode-accent2-rgb), 0.20), transparent 44%), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.34), transparent 75%);
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.10), transparent 75%);
 }
 
 .app-root.theme-journal .top-settings-bar {
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.28), transparent 58%), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.34), transparent 75%);
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.10), transparent 75%);
 }
 
 .app-root.theme-calendar .top-settings-bar {
-  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.187), transparent 75%);
+  background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.10), transparent 75%);
 }
 
 /* ============ TOP SETTINGS BAR ============ */
 
 .top-settings-bar {
+  position: relative;
   flex-shrink: 0;
   width: 100%;
   height: 46px;
@@ -583,6 +602,111 @@ select option {
   opacity: 0.45;
 }
 
+.top-settings-spacer {
+  flex: 1;
+}
+
+.top-settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-input);
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.top-settings-toggle:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.top-settings-toggle.active {
+  color: var(--text-primary);
+  background: rgba(var(--mode-accent-rgb), 0.14);
+  border-color: rgba(var(--mode-accent-rgb), 0.4);
+}
+
+/* Renders as an absolutely-positioned dropdown so opening it doesn't
+   reflow the header or push the sidebar/content -- a beginner clicking
+   the gear shouldn't see the whole layout jump. */
+.top-settings-panel {
+  position: fixed;
+  top: 46px;
+  right: 22px;
+  z-index: 400;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-strong);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* App-wide level/XP pill -- always visible in the top bar, on every page,
+   on both desktop and mobile (this bar isn't hidden at the mobile
+   breakpoint). Deliberately theme-neutral: uses the same --mode-accent-rgb/
+   --mode-accent2-rgb/--mode-radius-scale custom properties every design
+   system already defines, so it picks up Pixel Quest's square corners,
+   Neon Arcade's magenta/cyan, etc. automatically instead of needing its
+   own per-design-system override block. */
+.player-level-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: calc(13px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.player-level-badge {
+  font-family: var(--mode-heading-font, inherit);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.player-level-bar {
+  width: 54px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(var(--mode-accent-rgb), 0.15);
+  overflow: hidden;
+}
+
+.player-level-bar-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, rgb(var(--mode-accent-rgb)), rgb(var(--mode-accent2-rgb)));
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+@media (max-width: 720px) {
+  /* Keep just the compact "Lv N" badge on a phone-width top bar that
+     already holds 4 other controls -- the full XP detail is still in the
+     pill's title tooltip on a long-press/hover. */
+  .player-level-bar {
+    display: none;
+  }
+}
+
 /* ============ SIDEBAR ============ */
 
 .sidebar {
@@ -615,11 +739,11 @@ select option {
   justify-content: center;
   border-radius: 50%;
   background: linear-gradient(135deg, rgb(var(--chrome-rgb)), rgb(var(--chrome-rgb-2)));
-  color: var(--text-on-accent);
+  color: #fff;
   font-family: var(--font-serif);
   font-weight: 700;
   font-size: 15px;
-  box-shadow: 0 0 20px rgba(var(--chrome-rgb), 0.3);
+  box-shadow: 0 0 12px rgba(var(--chrome-rgb), 0.18);
 }
 
 .user-avatar.small {
@@ -685,6 +809,10 @@ select option {
 
 .icon-nav-button.gear {
   margin: 4px auto 12px;
+}
+
+.icon-nav-button.mobile-chat {
+  display: none;
 }
 
 .sidebar-user-footer {
@@ -867,14 +995,14 @@ select option {
   justify-content: center;
   border: 0;
   border-radius: 50%;
-  color: var(--text-on-accent);
+  color: #fff;
   background: linear-gradient(135deg, rgb(var(--chrome-rgb)), rgb(var(--chrome-rgb-2)));
   transition: all 0.2s ease;
 }
 
 .assistant-send:hover:not(:disabled) {
   transform: scale(1.05);
-  box-shadow: 0 4px 16px rgba(var(--chrome-rgb), 0.4);
+  box-shadow: 0 4px 12px rgba(var(--chrome-rgb), 0.22);
 }
 
 .assistant-send:disabled {
@@ -893,7 +1021,7 @@ select option {
   flex-direction: column;
   background: radial-gradient(
     circle at 50% 0%,
-    rgba(var(--mode-accent-rgb), 0.07),
+    rgba(var(--mode-accent-rgb), 0.025),
     transparent 32%
   );
   transition: background 0.6s ease;
@@ -908,50 +1036,61 @@ select option {
 }
 
 /* ============ PER-MODE BACKGROUND TEXTURE ============ */
+/* Professional redesign ("Minimal Glass" is the app's base styling --
+   this block IS the default look, not an override): the previous
+   version layered a repeating dot-grid/ruled-line/diagonal-stripe
+   pattern behind every page, tuned down twice already this project but
+   still a decorative full-page texture. Dylan asked for the app to
+   read as professional software, explicitly choosing to keep each
+   mode's own accent color but drop the heavy texture -- so each mode
+   now gets a single, very faint top-of-page color wash (the kind of
+   restrained per-section tint real dashboards use) instead of a
+   pattern. Per-mode identity still reads through the accent color on
+   headings/icons/badges elsewhere; the page canvas itself stays flat
+   and neutral. */
 
 .app-shell.theme-school .main-content {
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 25px, rgba(var(--mode-accent-rgb), 0.088) 27px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.02), transparent 40%);
 }
 
 .app-shell.theme-sports .main-content {
-  background-image: repeating-linear-gradient(115deg, rgba(var(--mode-accent-rgb), 0.088) 0px, rgba(var(--mode-accent-rgb), 0.088) 5px, transparent 5px, transparent 42px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.02), transparent 40%);
 }
 
 .app-shell.theme-gym .main-content {
-  background-image: repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.11) 0px, rgba(var(--mode-accent-rgb), 0.11) 13px, transparent 13px, transparent 32px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.02), transparent 40%);
 }
 
 .app-shell.theme-health .main-content {
-  background-image: radial-gradient(circle at 18% 22%, rgba(var(--mode-accent-rgb), 0.22), transparent 42%), radial-gradient(circle at 82% 68%, rgba(var(--mode-accent2-rgb), 0.18), transparent 48%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.02), transparent 40%);
 }
 
 .app-shell.theme-finance .main-content {
-  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.165) 1.6px, transparent 2px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
-  background-size: 20px 20px, auto;
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.02), transparent 40%);
 }
 
 .app-shell.theme-skills .main-content {
-  background-image: radial-gradient(circle at 28% 8%, rgba(var(--mode-accent-rgb), 0.26), transparent 38%), radial-gradient(circle at 78% 62%, rgba(var(--mode-accent2-rgb), 0.22), transparent 42%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.02), transparent 40%);
 }
 
 .app-shell.theme-reading .main-content {
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 32px, rgba(var(--mode-accent-rgb), 0.083) 34px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.02), transparent 40%);
 }
 
 .app-shell.theme-discipline .main-content {
-  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.099) 0px, rgba(var(--mode-accent-rgb), 0.099) 1.5px, transparent 1.5px, transparent 30px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.02), transparent 40%);
 }
 
 .app-shell.theme-family .main-content {
-  background-image: radial-gradient(circle at 14% 82%, rgba(var(--mode-accent-rgb), 0.24), transparent 42%), radial-gradient(circle at 86% 14%, rgba(var(--mode-accent2-rgb), 0.20), transparent 44%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.02), transparent 40%);
 }
 
 .app-shell.theme-journal .main-content {
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.28), transparent 58%), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.12), transparent 34%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.02), transparent 40%);
 }
 
 .app-shell.theme-calendar .main-content {
-  background-image: repeating-linear-gradient(0deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.094) 0px, rgba(var(--mode-accent-rgb), 0.094) 1.5px, transparent 1.5px, transparent 62px), radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.066), transparent 34%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--mode-accent-rgb), 0.02), transparent 40%);
 }
 
 /* ============ OVERVIEW MODE-CARD IDENTITY ============
@@ -963,56 +1102,55 @@ select option {
 .mode-card.theme-school {
   --mode-heading-font: 'Lora', Georgia, serif;
   --mode-radius-scale: 0.85;
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 14px, rgba(var(--card-rgb), 0.10) 15px);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
 }
 
 .mode-card.theme-sports {
   --mode-heading-font: 'Bebas Neue', 'Anton', sans-serif;
   --mode-radius-scale: 0.5;
-  background-image: repeating-linear-gradient(115deg, rgba(var(--card-rgb), 0.10) 0px, rgba(var(--card-rgb), 0.10) 3px, transparent 3px, transparent 22px);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
 }
 
 .mode-card.theme-gym {
   --mode-heading-font: 'Anton', 'Bebas Neue', sans-serif;
   --mode-radius-scale: 0.35;
-  background-image: repeating-linear-gradient(45deg, rgba(var(--card-rgb), 0.13) 0px, rgba(var(--card-rgb), 0.13) 7px, transparent 7px, transparent 18px);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
 }
 
 .mode-card.theme-health {
   --mode-heading-font: 'Quicksand', 'Nunito', sans-serif;
   --mode-radius-scale: 1.6;
-  background-image: radial-gradient(circle at 18% 12%, rgba(var(--card-rgb), 0.16), transparent 46%), radial-gradient(circle at 88% 78%, rgba(var(--card-rgb2), 0.13), transparent 50%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
 }
 
 .mode-card.theme-finance {
   --mode-heading-font: 'Space Grotesk', 'IBM Plex Mono', monospace;
   --mode-radius-scale: 0.7;
-  background-image: radial-gradient(rgba(var(--card-rgb), 0.22) 1.3px, transparent 1.6px);
-  background-size: 14px 14px;
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
 }
 
 .mode-card.theme-skills {
   --mode-heading-font: 'Poppins', sans-serif;
   --mode-radius-scale: 1.15;
-  background-image: radial-gradient(circle at 20% 0%, rgba(var(--card-rgb), 0.18), transparent 42%), radial-gradient(circle at 90% 70%, rgba(var(--card-rgb2), 0.14), transparent 46%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
 }
 
 .mode-card.theme-reading {
   --mode-heading-font: 'Crimson Pro', Georgia, serif;
   --mode-radius-scale: 1.3;
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 18px, rgba(var(--card-rgb), 0.10) 19px);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
 }
 
 .mode-card.theme-discipline {
   --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;
   --mode-radius-scale: 0.25;
-  background-image: repeating-linear-gradient(0deg, rgba(var(--card-rgb), 0.12) 0px, rgba(var(--card-rgb), 0.12) 1px, transparent 1px, transparent 16px), repeating-linear-gradient(90deg, rgba(var(--card-rgb), 0.12) 0px, rgba(var(--card-rgb), 0.12) 1px, transparent 1px, transparent 16px);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
 }
 
 .mode-card.theme-family {
   --mode-heading-font: 'Fredoka', sans-serif;
   --mode-radius-scale: 1.8;
-  background-image: radial-gradient(circle at 12% 88%, rgba(var(--card-rgb), 0.16), transparent 46%), radial-gradient(circle at 90% 10%, rgba(var(--card-rgb2), 0.13), transparent 48%);
+  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
 }
 
 
@@ -1027,7 +1165,7 @@ select option {
 .mode-background-icon {
   position: absolute;
   color: rgb(var(--mode-accent-rgb));
-  opacity: 0.05;
+  opacity: 0.028;
 }
 
 .content {
@@ -1187,7 +1325,7 @@ footer {
   justify-content: center;
   border-radius: 10px;
   background: linear-gradient(135deg, rgb(var(--chrome-rgb)), rgb(var(--chrome-rgb-2)));
-  color: var(--text-on-accent);
+  color: #fff;
 }
 
 .overview-ask-ai-text {
@@ -1218,6 +1356,74 @@ footer {
 .overview-ask-ai:hover .overview-ask-ai-arrow {
   transform: translateX(4px);
   color: rgb(var(--chrome-rgb));
+}
+
+.overview-focus {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  animation: fadeUp 0.3s ease;
+}
+
+.overview-focus-heading {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.overview-focus-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.overview-focus-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  padding: 6px 2px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.overview-focus-item::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-muted);
+}
+
+.overview-focus-item.urgent::before {
+  background: #ff7272;
+}
+
+.overview-focus-item:not(:disabled):hover {
+  background: rgba(var(--chrome-rgb), 0.08);
+}
+
+.overview-focus-item:disabled {
+  cursor: default;
+}
+
+.overview-focus-clear {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 .quick-actions {
@@ -1334,7 +1540,7 @@ footer {
   height: 6px;
   border-radius: 50%;
   background: rgb(var(--card-rgb));
-  box-shadow: 0 0 8px rgba(var(--card-rgb), 0.7);
+  box-shadow: 0 0 5px rgba(var(--card-rgb), 0.45);
 }
 
 .mode-card h3 {
@@ -1462,7 +1668,7 @@ footer {
 
 .form-card button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(var(--mode-accent-rgb), 0.28);
+  box-shadow: 0 4px 12px rgba(var(--mode-accent-rgb), 0.18);
 }
 
 .form-card button:disabled {
@@ -2408,7 +2614,7 @@ footer {
   flex-shrink: 0;
   border: 0;
   border-radius: 11px;
-  color: var(--text-on-accent);
+  color: #fff;
   background: linear-gradient(135deg, rgb(var(--chrome-rgb)), rgb(var(--chrome-rgb-2)));
   font-size: 18px;
   transition: all 0.2s ease;
@@ -2749,6 +2955,235 @@ footer {
   }
 }
 
+/* ============ MODE-SWITCH FLASH: PER-MODE FLAVORS ============
+   The background sweep (color, timing) still comes from anim-fade/anim-wipe
+   above -- these seven only change how the icon+label move, so each life
+   area's transition reads as genuinely its own rather than one shape
+   recolored nine times. flavor-dissolve matches the original default. */
+
+.mode-flash-content.flavor-dissolve {
+  animation: modeFadeContent 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.mode-flash-content.flavor-riseIn {
+  animation: flavorRiseIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.mode-flash-content.flavor-swoosh {
+  animation: flavorSwoosh 0.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.mode-flash-content.flavor-punch {
+  animation: flavorPunch 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.mode-flash-content.flavor-pulse {
+  animation: flavorPulse 0.9s ease-in-out forwards;
+}
+
+.mode-flash-content.flavor-iris {
+  animation: flavorIris 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.mode-flash-content.flavor-snap {
+  animation: flavorSnap 0.5s steps(3, end) forwards;
+}
+
+@keyframes flavorRiseIn {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+@keyframes flavorSwoosh {
+  0% {
+    opacity: 0;
+    transform: translateX(-60px) rotate(-4deg);
+  }
+  30% {
+    opacity: 1;
+    transform: translateX(0) rotate(0deg);
+  }
+  70% {
+    opacity: 1;
+    transform: translateX(0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(60px) rotate(4deg);
+  }
+}
+
+@keyframes flavorPunch {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  50% {
+    transform: scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes flavorPulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  35% {
+    transform: scale(0.98);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes flavorIris {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+    filter: blur(6px);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+    filter: blur(4px);
+  }
+}
+
+@keyframes flavorSnap {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ============ PAGE-CONTENT TRANSITION ============
+   A quick, professional fade+rise on every mode/page switch -- gives the
+   app a sense of motion even with the big full-screen flash off (the new
+   default), without being a second flashy thing layered on top of it. */
+
+.content {
+  animation: contentFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes contentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============ OVERVIEW CARD STAGGER ============
+   The 9 mode-preview cards reveal in a quick staggered wave instead of all
+   appearing at once -- a small, common professional-app touch (Linear,
+   Notion) that reads as considered rather than static. */
+
+.mode-grid .mode-card {
+  animation: cardFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.mode-grid .mode-card:nth-child(1) { animation-delay: 0ms; }
+.mode-grid .mode-card:nth-child(2) { animation-delay: 40ms; }
+.mode-grid .mode-card:nth-child(3) { animation-delay: 80ms; }
+.mode-grid .mode-card:nth-child(4) { animation-delay: 120ms; }
+.mode-grid .mode-card:nth-child(5) { animation-delay: 160ms; }
+.mode-grid .mode-card:nth-child(6) { animation-delay: 200ms; }
+.mode-grid .mode-card:nth-child(7) { animation-delay: 240ms; }
+.mode-grid .mode-card:nth-child(8) { animation-delay: 280ms; }
+.mode-grid .mode-card:nth-child(9) { animation-delay: 320ms; }
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============ MOTION SAFETY ============
+   Anyone with "reduce motion" set at the OS level gets a static app --
+   every decorative animation added above (and the pre-existing toast/
+   flash ones) is switched off, never just slowed down. */
+
+@media (prefers-reduced-motion: reduce) {
+  .content,
+  .mode-grid .mode-card,
+  .mode-flash-content,
+  .mode-flash.anim-fade,
+  .mode-flash.anim-fade .mode-flash-content,
+  .mode-flash.anim-wipe::before,
+  .mode-flash.anim-wipe .mode-flash-content,
+  .game-toast,
+  .game-toast-levelup .game-toast-icon,
+  .player-level-bar-fill {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* ============ ANIMATIONS ============ */
 
 @keyframes fadeUp {
@@ -3014,7 +3449,7 @@ footer {
   border: 0;
   border-radius: 10px;
   background: linear-gradient(135deg, rgb(var(--chrome-rgb)), rgb(var(--chrome-rgb-2)));
-  color: var(--text-on-accent);
+  color: #fff;
   font-size: 12.5px;
   font-weight: 600;
   transition: all 0.2s ease;
@@ -3043,7 +3478,7 @@ footer {
   justify-content: center;
   border-radius: 14px;
   background: linear-gradient(135deg, rgb(var(--chrome-rgb)), rgb(var(--chrome-rgb-2)));
-  color: var(--text-on-accent);
+  color: #fff;
   animation: dotPulse 1.4s infinite ease-in-out;
 }
 
@@ -3142,6 +3577,16 @@ footer {
     gap: 14px;
     padding: 0 12px;
     overflow-x: auto;
+  }
+
+  .top-settings-panel {
+    right: 12px;
+    left: 12px;
+    max-width: calc(100% - 24px);
+  }
+
+  .top-settings-toggle span {
+    display: none;
   }
 
   .sidebar {
@@ -3803,6 +4248,161 @@ footer {
   box-shadow: none;
 }
 
+/* ============ TRADING (inside Finance mode) ============ */
+
+.trading-risk-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(var(--mode-accent-rgb), 0.08);
+  margin-bottom: 16px;
+}
+
+.trading-risk-banner.warning {
+  border-color: rgba(255, 114, 114, 0.5);
+  background: rgba(255, 114, 114, 0.1);
+  color: #ff9a9a;
+}
+
+.trading-risk-banner strong {
+  display: block;
+  font-size: 14px;
+}
+
+.trading-risk-banner span {
+  display: block;
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.trading-position-sizing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.trading-position-sizing.over {
+  color: #ff7272;
+  opacity: 1;
+}
+
+.trading-close-button {
+  margin-top: 8px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.trading-close-button:hover {
+  border-color: rgba(var(--mode-accent-rgb), 0.6);
+}
+
+.trading-realized {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.trading-realized.up {
+  color: #4ade80;
+}
+
+.trading-realized.down {
+  color: #ff7272;
+}
+
+.trading-verdict-select {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  padding: 2px 6px;
+}
+
+.trading-verdict-select.pass {
+  opacity: 0.6;
+}
+
+.trading-verdict-select.ready {
+  border-color: rgba(74, 222, 128, 0.6);
+}
+
+.trading-settings-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.trading-risk-limit-edit {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.75;
+}
+
+.trading-risk-limit-edit:hover {
+  opacity: 1;
+  border-color: rgba(var(--mode-accent-rgb), 0.6);
+}
+
+.trading-risk-limit-form {
+  justify-content: flex-end;
+}
+
+.trading-risk-limit-form input {
+  width: 70px;
+}
+
+.trading-stale-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.7;
+  color: #f5c86b;
+}
+
+.trading-promote-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  color: inherit;
+}
+
+.trading-promote-button:hover {
+  border-color: rgba(var(--mode-accent-rgb), 0.6);
+}
+
+.trading-close-form textarea {
+  width: 100%;
+}
+
 /* ============ SKILLS ============ */
 
 .skills-grid {
@@ -4187,6 +4787,12 @@ footer {
   pointer-events: none;
 }
 
+@media (display-mode: standalone) {
+  .game-toast-stack {
+    top: calc(22px + env(safe-area-inset-top));
+  }
+}
+
 .game-toast {
   pointer-events: auto;
   display: flex;
@@ -4198,10 +4804,10 @@ footer {
   border: 1px solid var(--border-strong);
   border-radius: calc(12px * var(--mode-radius-scale, 1));
   background: var(--surface-strong);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
   cursor: pointer;
   text-align: left;
-  animation: toastPopIn 0.32s cubic-bezier(0.2, 1.4, 0.4, 1);
+  animation: toastPopIn 0.24s ease-out;
 }
 
 .game-toast-icon {
@@ -4241,6 +4847,19 @@ footer {
 }
 .game-toast-levelup .game-toast-icon {
   background: rgba(251, 191, 36, 0.16);
+  animation: levelUpBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+}
+
+@keyframes levelUpBounce {
+  0% {
+    transform: scale(0.6) rotate(-12deg);
+  }
+  60% {
+    transform: scale(1.15) rotate(6deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 .game-toast-badge .game-toast-icon,
@@ -4281,7 +4900,7 @@ footer {
 @keyframes toastPopIn {
   from {
     opacity: 0;
-    transform: translateX(24px) scale(0.92);
+    transform: translateX(16px);
   }
   to {
     opacity: 1;
@@ -4608,8 +5227,8 @@ button:disabled:active {
   pointer-events: none;
   background-image:
     repeating-linear-gradient(
-      rgba(var(--mode-accent-rgb), 0.16) 0,
-      rgba(var(--mode-accent-rgb), 0.16) 1px,
+      rgba(var(--mode-accent-rgb), 0.075) 0,
+      rgba(var(--mode-accent-rgb), 0.075) 1px,
       transparent 1px,
       transparent 32px
     ),
@@ -4617,8 +5236,8 @@ button:disabled:active {
       to right,
       transparent 0,
       transparent 44px,
-      rgba(239, 68, 68, 0.35) 44px,
-      rgba(239, 68, 68, 0.35) 45px,
+      rgba(239, 68, 68, 0.18) 44px,
+      rgba(239, 68, 68, 0.18) 45px,
       transparent 45px
     );
 }
@@ -5108,6 +5727,88 @@ button:disabled:active {
 .app-shell.design-winter-frost .sidebar,
 .app-shell.design-winter-frost .top-settings-bar {
   border-color: rgba(var(--mode-accent-rgb), 0.22);
+}
+
+/* --- Pixel Quest --- */
+.app-shell.design-pixel-quest,
+.app-root.design-pixel-quest {
+  /* Signature color -- coin gold + power green regardless of mode, the
+     brightest, most "video game" pairing of the set. Square corners
+     (radius-scale 0) instead of rounding anything is the real shape
+     decision here, same as Command Deck's clipped corners or Blueprint's
+     dashed lines -- a design system should change more than just hue. */
+  --mode-accent-rgb: 255, 183, 3;
+  --mode-accent2-rgb: 34, 197, 94;
+  --bg-glow-1: rgba(255, 183, 3, 0.2);
+  --bg-glow-2: rgba(34, 197, 94, 0.16);
+  --bg: #0b0e1a;
+  --mode-heading-font: 'Press Start 2P', var(--font-sans);
+  --mode-body-font: 'Baloo 2', var(--font-sans);
+  --mode-radius-scale: 0;
+  --mode-border-width: 4px;
+  --mode-tracking: 0.01em;
+}
+
+/* Stepped, jerky easing instead of anything smooth -- a hover "hop" and a
+   press-down "stomp," the one design system that deliberately refuses to
+   ease like all the others. Transform-only so it never changes a button's
+   size or footprint, which matters here because this selector matches
+   every button in the app, tiny icon buttons and toggles included. */
+.app-shell.design-pixel-quest button,
+.app-shell.design-pixel-quest .mode-chat-launcher,
+.app-shell.design-pixel-quest .assistant-pill {
+  transition: transform 0.08s steps(2, jump-end);
+}
+
+.app-shell.design-pixel-quest button:hover,
+.app-shell.design-pixel-quest .mode-chat-launcher:hover,
+.app-shell.design-pixel-quest .assistant-pill:hover {
+  transform: translateY(-2px);
+}
+
+.app-shell.design-pixel-quest button:active,
+.app-shell.design-pixel-quest .mode-chat-launcher:active,
+.app-shell.design-pixel-quest .assistant-pill:active {
+  transform: translateY(1px);
+}
+
+.app-shell.design-pixel-quest .icon-nav-button.active {
+  box-shadow: 0 0 0 2px rgba(var(--mode-accent2-rgb), 0.8);
+}
+
+.app-shell.design-pixel-quest .main-content {
+  position: relative;
+}
+
+/* Sparse pixel-star scatter -- small, hard-edged dots (no blur) in the two
+   signature colors. Every other design system's background texture in
+   this file is soft or blurred; this is the one exception, on purpose. */
+.app-shell.design-pixel-quest .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(rgba(var(--mode-accent-rgb), 0.5) 2px, transparent 2px),
+    radial-gradient(rgba(var(--mode-accent2-rgb), 0.4) 2px, transparent 2px);
+  background-size: 38px 38px, 54px 54px;
+  background-position: 0 0, 20px 24px;
+}
+
+.app-shell.design-pixel-quest .sidebar,
+.app-shell.design-pixel-quest .top-settings-bar {
+  border-color: rgba(10, 12, 20, 0.9);
+  box-shadow: 4px 4px 0 rgba(var(--mode-accent2-rgb), 0.6);
+}
+
+.app-shell.design-pixel-quest .assistant-panel,
+.app-shell.design-pixel-quest .mode-card,
+.app-shell.design-pixel-quest .settings-card,
+.app-shell.design-pixel-quest .skill-card,
+.app-shell.design-pixel-quest .goal-card,
+.app-shell.design-pixel-quest .mode-chat-launcher {
+  border-color: rgba(10, 12, 20, 0.85);
+  box-shadow: 4px 4px 0 rgba(var(--mode-accent-rgb), 0.5);
 }
 
 /* Thinking-time readout: live while the model works, final once it lands. */
@@ -6418,6 +7119,7 @@ button:disabled:active {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-muted);
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
 }
 
 .gym-tabs button:hover {
@@ -6824,4 +7526,86 @@ button:disabled:active {
 
 .sports-sport-field input {
   max-width: 220px;
+}
+
+/* ============ MOBILE BOTTOM NAV (phone-mode auto layout) ============
+   Below this width the sidebar becomes a fixed bottom tab bar instead of
+   a 280px left rail -- no manual "desktop/phone" setting, it just detects
+   screen width like every other breakpoint in this file already does.
+
+   Only 6 destinations live in the bar: Overview, Journal, Calendar,
+   Connections, Settings, and a dedicated Chat button. The other 27 life
+   modes are NOT duplicated here -- they stay reachable from Overview's
+   own mode grid, exactly how desktop users already reach them from
+   Overview too. Cramming 33 icons into a bottom bar would be worse than
+   the 280px rail it replaces.
+
+   The always-visible assistant panel/composer has no room on a phone
+   screen, so it's hidden here and replaced by the new Chat button, which
+   opens the existing ChatOverlay -- already a fixed, full-viewport modal,
+   so nothing about it needed to change for mobile.
+
+   Deliberately appended at the END of this file, not edited into the
+   original ~750px block above (~line 3140), so it wins the cascade over
+   every .app-shell.design-* override defined later in this file (14 of
+   them touch .sidebar/.assistant-panel) regardless of which design
+   system is active. */
+@media (max-width: 720px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    gap: 2px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    border-right: none;
+    border-top: 1px solid var(--border);
+    z-index: 40;
+  }
+
+  .sidebar-avatar-row,
+  .sidebar-user-footer,
+  .assistant-panel,
+  .assistant-input-row {
+    display: none;
+  }
+
+  .icon-nav {
+    flex-direction: row;
+    flex: 1;
+    justify-content: space-around;
+    gap: 2px;
+    padding-bottom: 0;
+  }
+
+  .icon-nav .icon-nav-button:not(.overview) {
+    display: none;
+  }
+
+  .icon-nav-button {
+    width: 46px;
+    height: 46px;
+  }
+
+  .icon-nav-button.gear {
+    margin: 0;
+  }
+
+  .icon-nav-button.mobile-chat {
+    display: flex;
+  }
+
+  .content {
+    padding: 20px 16px calc(84px + env(safe-area-inset-bottom));
+  }
+
+  .main-content > footer {
+    display: none;
+  }
 }

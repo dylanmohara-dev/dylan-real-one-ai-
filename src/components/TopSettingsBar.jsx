@@ -1,69 +1,120 @@
-export default function TopSettingsBar({ settings, setSettings }) {
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Settings2, X } from 'lucide-react'
+
+// Beginner-facing top bar: the level/XP pill always shows (it's the one
+// piece of at-a-glance feedback everyone wants), but the four display
+// controls (Name / Theme / Transitions / Enter Animation) are things a
+// brand-new user sets once and then never touches again. Keeping them
+// permanently on screen was pure clutter for that person, so they now
+// live behind a small gear toggle instead of being deleted -- nothing
+// here was the only place to reach these controls became true, so
+// hiding them by default is safe rather than a loss of functionality.
+export default function TopSettingsBar({ settings, setSettings, playerStats }) {
+  const [open, setOpen] = useState(false)
+
   return (
     <header className="top-settings-bar">
-      <div className="top-settings-group">
-        <label>Name</label>
-        <input
-          className="top-settings-name"
-          value={settings.userName}
-          onChange={(event) =>
-            setSettings((prev) => ({
-              ...prev,
-              userName: event.target.value,
-            }))
-          }
-          placeholder="Your name"
-        />
+      <div
+        className="player-level-pill"
+        title={`Level ${playerStats.level} — ${playerStats.xpIntoLevel} / ${playerStats.xpForNextLevel} XP to next level`}
+      >
+        <span className="player-level-badge">Lv {playerStats.level}</span>
+        <span className="player-level-bar">
+          <span
+            className="player-level-bar-fill"
+            style={{
+              width: `${
+                playerStats.xpForNextLevel
+                  ? Math.min(100, (playerStats.xpIntoLevel / playerStats.xpForNextLevel) * 100)
+                  : 0
+              }%`,
+            }}
+          />
+        </span>
       </div>
 
-      <div className="top-settings-group">
-        <label>Theme</label>
-        <select
-          value={settings.appearance}
-          onChange={(event) =>
-            setSettings((prev) => ({
-              ...prev,
-              appearance: event.target.value,
-            }))
-          }
-        >
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-        </select>
-      </div>
+      <div className="top-settings-spacer" />
 
-      <div className="top-settings-group">
-        <label>Transitions</label>
-        <button
-          className={`toggle ${settings.signatureTransitions ? 'on' : ''}`}
-          onClick={() =>
-            setSettings((prev) => ({
-              ...prev,
-              signatureTransitions: !prev.signatureTransitions,
-            }))
-          }
-        >
-          <span />
-        </button>
-      </div>
+      <button
+        type="button"
+        className={`top-settings-toggle ${open ? 'active' : ''}`}
+        onClick={() => setOpen((prev) => !prev)}
+        title={open ? 'Hide display settings' : 'Display settings'}
+        aria-expanded={open}
+      >
+        {open ? <X size={14} /> : <Settings2 size={14} />}
+        <span>Display</span>
+      </button>
 
-      <div className="top-settings-group">
-        <label>Enter Animation</label>
-        <select
-          value={settings.enterAnimation}
-          disabled={!settings.signatureTransitions}
-          onChange={(event) =>
-            setSettings((prev) => ({
-              ...prev,
-              enterAnimation: event.target.value,
-            }))
-          }
-        >
-          <option value="wipe">Wipe</option>
-          <option value="fade">Fade</option>
-          <option value="none">None</option>
-        </select>
-      </div>
+      {open && createPortal(
+        <div className="top-settings-panel">
+          <div className="top-settings-group">
+            <label>Name</label>
+            <input
+              className="top-settings-name"
+              value={settings.userName}
+              onChange={(event) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  userName: event.target.value,
+                }))
+              }
+              placeholder="Your name"
+            />
+          </div>
+
+          <div className="top-settings-group">
+            <label>Theme</label>
+            <select
+              value={settings.appearance}
+              onChange={(event) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  appearance: event.target.value,
+                }))
+              }
+            >
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+
+          <div className="top-settings-group">
+            <label>Transitions</label>
+            <button
+              className={`toggle ${settings.signatureTransitions ? 'on' : ''}`}
+              onClick={() =>
+                setSettings((prev) => ({
+                  ...prev,
+                  signatureTransitions: !prev.signatureTransitions,
+                }))
+              }
+            >
+              <span />
+            </button>
+          </div>
+
+          <div className="top-settings-group">
+            <label>Enter Animation</label>
+            <select
+              value={settings.enterAnimation}
+              disabled={!settings.signatureTransitions}
+              onChange={(event) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  enterAnimation: event.target.value,
+                }))
+              }
+            >
+              <option value="wipe">Wipe</option>
+              <option value="fade">Fade</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+        </div>,
+        document.body
+      )}
     </header>
   )
 }

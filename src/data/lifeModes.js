@@ -15,8 +15,13 @@ export const DEFAULT_SETTINGS = {
   memorySuggestions: true,
   appearance: 'dark',
   userName: 'Dylan',
+  // A full-screen color-flash splash on every single navigation read as a
+  // game loading screen, not professional software -- 'wipe' and 'fade'
+  // both still exist and work exactly as before for anyone who wants them
+  // (Settings -> Display -> Enter Animation), this only changes what a
+  // fresh/default install starts with.
   signatureTransitions: true,
-  enterAnimation: 'wipe',
+  enterAnimation: 'none',
   onboardingComplete: false,
   designSystem: 'minimal-glass',
   colorPalette: 'vivid',
@@ -112,6 +117,12 @@ export const DESIGN_SYSTEMS = [
     name: 'Winter Frost',
     tagline: 'Ice blue + silver, always',
     description: "Overrides every mode's color with ice blue and silver. Crisp Cormorant Garamond headings and a scatter of faint snowflake dots on a near-black frozen backdrop.",
+  },
+  {
+    key: 'pixel-quest',
+    name: 'Pixel Quest',
+    tagline: 'Coin gold + power green, always',
+    description: "Overrides every mode's color with coin gold and power green. Blocky 8-bit Press Start 2P headings, square corners, thick black borders with a hard offset shadow instead of a glow, a scatter of pixel stars, and buttons that jump on hover and stomp down when pressed.",
   },
 ]
 
@@ -244,7 +255,7 @@ export const LIFE_MODES = [
     metricValue: '—',
     assistantMessage:
       "Tell me about your positions and goals — I'll help you track Finance.",
-    prompts: ['Log a trade', 'Check my net worth goal'],
+    prompts: ['Review my portfolio risk', 'Screen a new stock idea', 'Check my net worth goal'],
   },
   {
     key: 'skills',
