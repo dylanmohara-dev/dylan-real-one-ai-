@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Sparkles, Droplet, Moon, BookOpen, CheckCircle2, Heart } from 'lucide-react'
+import { Sparkles, Droplet, Moon, BookOpen, CheckCircle2, Heart, Flame } from 'lucide-react'
 import { WELCOME_GREETINGS } from '../data/lifeModes.js'
 import FootballIcon from './FootballIcon.jsx'
 
@@ -270,7 +270,15 @@ export default function OverviewPage({
                   {card.title}
                 </span>
 
-                <span className="mode-card-dot" />
+                <span className="mode-card-top-right">
+                  {card.streak > 0 && (
+                    <span className="mode-card-streak" title={`${card.streak} day streak`}>
+                      <Flame size={11} strokeWidth={2.5} />
+                      {card.streak}
+                    </span>
+                  )}
+                  <span className="mode-card-dot" />
+                </span>
               </div>
 
               <h3 className="serif">{card.headline}</h3>

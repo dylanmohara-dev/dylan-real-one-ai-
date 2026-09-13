@@ -13,6 +13,7 @@ import {
   OLLAMA_TIMEOUT_MS,
   OLLAMA_PING_TIMEOUT_MS,
   KEEP_ALIVE,
+  MAX_CHAT_HISTORY_MESSAGES,
 } from '../lib/aiConfig.js'
 
 const router = Router()
@@ -298,10 +299,28 @@ router.post('/chat', async (req, res) => {
   // or React render time.
   const startedAt = Date.now()
 
-  const { messages, mode, image } = req.body
-  if (!Array.isArray(messages) || messages.length === 0) {
+  const { messages: incomingMessages, mode, image } = req.body
+  if (!Array.isArray(incomingMessages) || incomingMessages.length === 0) {
     return res.status(400).json({ error: 'Messages are required' })
   }
+
+  // Bounded sliding window on how much prior conversation actually gets sent
+  // to the model. chatThreads persists in localStorage indefinitely per mode
+  // (never trimmed on the frontend), so a long-running thread would otherwise
+  // resend its ENTIRE history on every single message -- strictly more
+  // prefill work every time, which is real, measurable slowness on a small
+  // local model. Worse: Ollama's OpenAI-compatible endpoint (what OLLAMA_URL
+  // points at) has no per-request way to raise num_ctx -- confirmed against
+  // Ollama's own docs, which say the only way is a custom Modelfile -- so an
+  // unbounded history is also a real risk of silently pushing the system
+  // prompt itself (the JSON-action contract, today's date, all of it) out of
+  // whatever the context window actually is. Anything worth keeping across a
+  // long conversation already has its own durable path via save_memory (see
+  // the MEMORIES block below), so trimming raw turns here costs nothing that
+  // actually matters.
+  const messages = incomingMessages.length > MAX_CHAT_HISTORY_MESSAGES
+    ? incomingMessages.slice(-MAX_CHAT_HISTORY_MESSAGES)
+    : incomingMessages
 
   // From here on, every response this route sends -- success or failure --
   // goes out as Server-Sent Events, so the frontend has exactly one response

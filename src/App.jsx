@@ -1,5 +1,5 @@
 import './App.css'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { LayoutGrid, Lock, CalendarDays } from 'lucide-react'
 import { useAppData } from './hooks/useAppData.js'
 import { useJournal } from './hooks/useJournal.js'
@@ -33,6 +33,7 @@ import ModeTransition from './components/ModeTransition.jsx'
 import CalendarPage from './components/CalendarPage.jsx'
 import ConnectionsPage from './components/ConnectionsPage.jsx'
 import ChatOverlay from './components/ChatOverlay.jsx'
+import SearchOverlay from './components/SearchOverlay.jsx'
 import OnboardingWizard from './components/OnboardingWizard.jsx'
 import GameToast from './components/GameToast.jsx'
 
@@ -45,6 +46,21 @@ function App() {
   const slack = useSlack()
   const [chatOverlayOpen, setChatOverlayOpen] = useState(false)
   const openChat = () => setChatOverlayOpen(true)
+  const [searchOverlayOpen, setSearchOverlayOpen] = useState(false)
+
+  // Ctrl/Cmd+K opens search from anywhere in the app -- the standard
+  // convention (Linear, Notion, Slack, GitHub all use it), and the fastest
+  // path to "find that thing I logged" without reaching for the mouse.
+  useEffect(() => {
+    function handleGlobalKeyDown(event) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setSearchOverlayOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [])
 
   function completeOnboarding({ name }) {
     // Write directly (and synchronously) to localStorage rather than relying on
@@ -501,7 +517,12 @@ function App() {
         />
       )}
 
-      <TopSettingsBar settings={settings} setSettings={data.setSettings} playerStats={data.playerStats} />
+      <TopSettingsBar
+        settings={settings}
+        setSettings={data.setSettings}
+        playerStats={data.playerStats}
+        onOpenSearch={() => setSearchOverlayOpen(true)}
+      />
 
       <div className={`app-shell ${themeClass}`}>
         <Sidebar
@@ -550,6 +571,13 @@ function App() {
           sendMessage={sendMessage}
           confirmPendingEvent={data.confirmPendingEvent}
           cancelPendingEvent={data.cancelPendingEvent}
+        />
+
+        <SearchOverlay
+          open={searchOverlayOpen}
+          onClose={() => setSearchOverlayOpen(false)}
+          searchAll={data.searchAll}
+          setActivePage={setActivePage}
         />
       </div>
     </div>

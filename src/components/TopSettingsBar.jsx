@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Settings2, X } from 'lucide-react'
+import { Search, Settings2, X } from 'lucide-react'
 
 // Beginner-facing top bar: the level/XP pill always shows (it's the one
 // piece of at-a-glance feedback everyone wants), but the four display
@@ -10,7 +10,7 @@ import { Settings2, X } from 'lucide-react'
 // live behind a small gear toggle instead of being deleted -- nothing
 // here was the only place to reach these controls became true, so
 // hiding them by default is safe rather than a loss of functionality.
-export default function TopSettingsBar({ settings, setSettings, playerStats }) {
+export default function TopSettingsBar({ settings, setSettings, playerStats, onOpenSearch }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -35,6 +35,16 @@ export default function TopSettingsBar({ settings, setSettings, playerStats }) {
       </div>
 
       <div className="top-settings-spacer" />
+
+      <button
+        type="button"
+        className="top-settings-search"
+        onClick={onOpenSearch}
+        title="Search everything (Ctrl/Cmd+K)"
+      >
+        <Search size={14} />
+        <span>Search</span>
+      </button>
 
       <button
         type="button"

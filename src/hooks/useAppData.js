@@ -18,6 +18,48 @@ function todayKeyLocal() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function daysAgoKeyLocal(n) {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Consecutive days, counting back from today, that have at least one
+// matching row -- stops at the first gap. Exactly the same algorithm
+// DisciplinePage.jsx's own currentStreak() uses for a single habit; this
+// version is generic over a Set of date keys so the Overview summary
+// below can reuse it for Discipline (per-habit) and Health (any category)
+// without re-deriving it from scratch or importing a component file.
+function streakFromDateKeys(dateKeys) {
+  let streak = 0
+  for (let i = 0; ; i += 1) {
+    const key = i === 0 ? todayKeyLocal() : daysAgoKeyLocal(i)
+    if (!dateKeys.has(key)) break
+    streak += 1
+  }
+  return streak
+}
+
+function habitCurrentStreak(completions, habitId) {
+  const doneDates = new Set(completions.filter((c) => c.habitId === habitId).map((c) => c.date))
+  return streakFromDateKeys(doneDates)
+}
+
+// Health entries logged before this feature existed have no `date` field
+// -- same fallback HealthPage.jsx's own currentStreak() uses, reading the
+// local calendar day off `createdAt` instead of treating them as unlogged.
+function healthLoggingStreak(healthEntries) {
+  const loggedDays = new Set(
+    healthEntries.map((entry) => entry.date || todayKeyForTimestamp(entry.createdAt))
+  )
+  return streakFromDateKeys(loggedDays)
+}
+
+function todayKeyForTimestamp(timestamp) {
+  const d = timestamp ? new Date(timestamp) : new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function useAppData() {
   const [message, setMessage] = useState('')
   const [activePage, setActivePage] = useState('Overview')
@@ -210,6 +252,19 @@ export function useAppData() {
     }
 
     return data
+  }
+
+  // Global search across tasks/notes/goals/memories/classes/assignments/
+  // tests/health/finance/gym/skills/reading/discipline/family -- see
+  // routes/search.js for the full source list and why journal is
+  // deliberately excluded (it's passcode-protected; a plaintext global
+  // search would defeat that). A short, local, disk-only lookup -- 5s is
+  // generous, not a sign this is expected to be slow.
+  async function searchAll(query) {
+    const trimmed = query.trim()
+    if (trimmed.length < 2) return []
+    const data = await request(`/search?q=${encodeURIComponent(trimmed)}`, {}, 5000)
+    return data.results || []
   }
 
   /*
@@ -1933,6 +1988,7 @@ export function useAppData() {
           metricValue: `${healthLoggedToday} / 4`,
           progress: Math.round((healthLoggedToday / 4) * 100),
           isSetUp: healthEntries.length > 0,
+          streak: healthLoggingStreak(healthEntries),
         }
       }
 
@@ -1996,6 +2052,7 @@ export function useAppData() {
           metricValue: `Lv. ${topSkill.level}`,
           progress: avgProgress,
           isSetUp: true,
+          streak: Math.max(0, ...skills.map((item) => item.streak || 0)),
         }
       }
 
@@ -2023,12 +2080,17 @@ export function useAppData() {
         const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
         const activeHabits = disciplineHabits.filter((h) => h.active !== false)
         const doneToday = disciplineCompletions.filter((c) => c.date === todayKey).length
+        const disciplineStreak = Math.max(
+          0,
+          ...activeHabits.map((habit) => habitCurrentStreak(disciplineCompletions, habit.id))
+        )
         return {
           ...mode,
           headline: activeHabits.length ? `${activeHabits.length} habit${activeHabits.length === 1 ? '' : 's'} tracked` : mode.headline,
           metricValue: `${doneToday} / ${activeHabits.length}`,
           progress: activeHabits.length ? Math.max(0, Math.min(100, Math.round((doneToday / activeHabits.length) * 100))) : 0,
           isSetUp: disciplineHabits.length > 0,
+          streak: disciplineStreak,
         }
       }
 
@@ -2220,6 +2282,9 @@ export function useAppData() {
     sendMessage,
     memorySuggestion,
     setMemorySuggestion,
+
+    // search
+    searchAll,
 
     // toasts (game-feel celebration layer)
     toasts,
