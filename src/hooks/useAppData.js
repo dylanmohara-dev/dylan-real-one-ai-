@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { DEFAULT_SETTINGS, LIFE_MODES } from '../data/lifeModes.js'
+import { playSound } from '../lib/soundEffects.js'
 
 // In dev (npm run dev), Vite and Express run as two separate servers on
 // this Mac, so the dev server always talks to localhost:3001 directly.
@@ -60,6 +61,36 @@ function todayKeyForTimestamp(timestamp) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+// Matches Skills mode's own STREAK_BADGES thresholds (routes/skills.js) --
+// one canonical milestone ladder app-wide rather than a second, different
+// set of numbers for Discipline/Health streaks to hit.
+const STREAK_MILESTONES = [3, 7, 30, 100]
+
+function hitMilestone(streak) {
+  return STREAK_MILESTONES.includes(streak) ? streak : null
+}
+
+// A single day's net-worth move big enough to be worth calling out --
+// below this it's normal noise (a grocery run, a paycheck), not a
+// "notable day." finance_history (routes/finance.js) keeps at most one
+// snapshot per calendar day, so "yesterday" here really means the most
+// recent snapshot dated before today, however many days back that is.
+const NET_WORTH_SWING_THRESHOLD_PCT = 5
+
+function checkNetWorthSwing(history) {
+  if (!Array.isArray(history) || history.length < 2) return null
+
+  const today = todayKeyLocal()
+  const sorted = [...history].sort((a, b) => (a.date < b.date ? -1 : 1))
+  const todayEntry = [...sorted].reverse().find((point) => point.date === today)
+  const priorEntry = [...sorted].reverse().find((point) => point.date !== today)
+  if (!todayEntry || !priorEntry || !priorEntry.netWorth) return null
+
+  const pct = ((todayEntry.netWorth - priorEntry.netWorth) / Math.abs(priorEntry.netWorth)) * 100
+  if (Math.abs(pct) < NET_WORTH_SWING_THRESHOLD_PCT) return null
+  return { pct, netWorth: todayEntry.netWorth }
+}
+
 export function useAppData() {
   const [message, setMessage] = useState('')
   const [activePage, setActivePage] = useState('Overview')
@@ -107,6 +138,12 @@ export function useAppData() {
   // message sitting in the real transcript.
   const [streamingText, setStreamingText] = useState('')
   const [toasts, setToasts] = useState([])
+  // Full-screen achievement unlocks -- a queue (not a single slot) so two
+  // milestones firing back-to-back (a PR right as a streak also ticks
+  // over) show one after another instead of one clobbering the other.
+  // The head of the queue IS the active achievement -- no separate
+  // 'current' state to keep in sync with it.
+  const [achievementQueue, setAchievementQueue] = useState([])
   const [playerStats, setPlayerStats] = useState({ xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
 
   const [taskInput, setTaskInput] = useState('')
@@ -204,6 +241,9 @@ export function useAppData() {
     localStorage.setItem('dylan-ai-settings', JSON.stringify(settings))
 
     document.documentElement.dataset.theme = settings.appearance
+    // Read by App.css to scale celebration-animation duration/intensity
+    // without prop-drilling settings into every component that animates.
+    document.documentElement.dataset.animationIntensity = settings.animationIntensity || 'normal'
   }, [settings])
 
   useEffect(() => {
@@ -415,7 +455,23 @@ export function useAppData() {
       setFamilyLog(data.family?.log || [])
       setPlayerStats(data.player || { xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
 
-      return { skills: data.skills || [], goals: data.goals || [] }
+      // Returned (not just set into state) so a caller that just mutated
+      // something can compare against the FRESH value in the same tick --
+      // React state updates from the setX calls above haven't landed yet
+      // by the time this returns, so reading e.g. `skills` here would give
+      // the stale pre-mutation value. Kept intentionally narrow: only the
+      // slices callers actually diff against for celebration/milestone
+      // detection, not the whole payload.
+      return {
+        skills: data.skills || [],
+        goals: data.goals || [],
+        discipline: {
+          habits: data.discipline?.habits || [],
+          completions: data.discipline?.completions || [],
+        },
+        health: { entries: data.health?.entries || [] },
+        finance: { history: data.finance?.history || [] },
+      }
     } catch (error) {
       setErrorMessage(error.message)
       return null
@@ -456,6 +512,74 @@ export function useAppData() {
     setToasts((prev) => prev.filter((item) => item.id !== id))
   }
 
+  // Respects the Settings -> Display sound toggle -- one gate here rather
+  // than checking settings.soundEffects at every single call site.
+  function maybePlaySound(cue) {
+    if (settings.soundEffects) playSound(cue)
+  }
+
+  // "New Achievement" unlock screen: a bigger, rarer, full-screen moment
+  // for the handful of things that deserve more than a corner toast --
+  // level-ups, PRs, goal completions, and streak milestones. Deliberately
+  // separate from pushToast's stack: those are frequent and ambient, this
+  // is meant to feel like an event worth stopping for a second.
+  const activeAchievement = achievementQueue[0] || null
+
+  function pushAchievement(achievement) {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    setAchievementQueue((prev) => [...prev, { id, duration: 3200, ...achievement }])
+  }
+
+  function dismissAchievement() {
+    setAchievementQueue((prev) => prev.slice(1))
+  }
+
+  // Auto-advances the queue after each achievement's own duration. The
+  // setState call lives inside the timeout callback, not the effect body
+  // itself, so this doesn't trip react-hooks/set-state-in-effect -- the
+  // same class of bug this file has hit (and fixed correctly) three times
+  // already in SearchOverlay, useCountUp, and the Gym progression effect.
+  useEffect(() => {
+    if (!activeAchievement) return undefined
+    const timer = setTimeout(() => {
+      setAchievementQueue((prev) => prev.slice(1))
+    }, activeAchievement.duration)
+    return () => clearTimeout(timer)
+  }, [activeAchievement])
+
+  // A big net-worth move is a "day" event, not a "per-edit" one -- logging
+  // three small transactions against the same underlying swing shouldn't
+  // fire the celebration three times, so it's gated to once per calendar
+  // day via localStorage rather than component state (which would reset
+  // on reload and re-fire). A gain gets the full Achievement treatment; a
+  // drop gets a calm, non-celebratory toast -- a reward-shaped animation
+  // for losing money would be a genuinely bad design choice, not just a
+  // stylistic one.
+  function maybeCelebrateNetWorthSwing(fresh) {
+    if (!fresh?.finance?.history) return
+    const swing = checkNetWorthSwing(fresh.finance.history)
+    if (!swing) return
+
+    const flagKey = `dylan-ai-networth-swing-${todayKeyLocal()}`
+    if (localStorage.getItem(flagKey)) return
+    localStorage.setItem(flagKey, '1')
+
+    if (swing.pct > 0) {
+      pushAchievement({
+        kind: 'finance',
+        title: 'NET WORTH UP',
+        subtitle: `+${swing.pct.toFixed(1)}% today`,
+      })
+      maybePlaySound('achievement')
+    } else {
+      pushToast({
+        kind: 'alert',
+        title: 'NET WORTH DOWN',
+        message: `${swing.pct.toFixed(1)}% today`,
+      })
+    }
+  }
+
   // App-wide level/XP -- separate from Skills mode's own per-skill leveling,
   // this one number goes up no matter which life area you're working in.
   // `reason` must be one of the fixed keys in lib/playerXP.js's reward
@@ -468,12 +592,17 @@ export function useAppData() {
       })
       setPlayerStats(result)
       if (result.leveledUp) {
-        pushToast({
+        // Upgraded from a corner toast to the full Achievement unlock --
+        // a level-up is the single biggest "you're making progress" event
+        // in the whole app, it deserves more than the same treatment as
+        // an ordinary task completion.
+        pushAchievement({
           kind: 'levelup',
-          title: 'PLAYER LEVEL UP',
-          message: `You reached Level ${result.level}`,
-          duration: 4200,
+          title: 'LEVEL UP',
+          subtitle: `You reached Level ${result.level}`,
+          duration: 3600,
         })
+        maybePlaySound('levelup')
       }
     } catch (error) {
       console.error('XP award failed:', error)
@@ -499,11 +628,25 @@ export function useAppData() {
 
       const newBadges = (nextSkill.badges || []).slice(prevBadgeCount)
       newBadges.forEach((badge) => {
-        pushToast({
-          kind: 'badge',
-          title: 'BADGE UNLOCKED',
-          message: badge.label,
-        })
+        // A streak badge (routes/skills.js's STREAK_BADGES) is exactly the
+        // "milestone celebration" ask -- 3/7/30/100 consecutive days on
+        // one skill is worth the full-screen unlock, not a corner toast.
+        // Level badges stay as toasts; they fire more often and a modal
+        // for every one would get old fast.
+        if (badge.type === 'streak') {
+          pushAchievement({
+            kind: 'milestone',
+            title: `${badge.threshold}-DAY STREAK`,
+            subtitle: nextSkill.name,
+          })
+          maybePlaySound('milestone')
+        } else {
+          pushToast({
+            kind: 'badge',
+            title: 'BADGE UNLOCKED',
+            message: badge.label,
+          })
+        }
         awardXP('skill-badge')
       })
     }
@@ -620,18 +763,22 @@ export function useAppData() {
       const exerciseName = exercise ? exercise.name : 'Exercise'
 
       if (priorLogs.length > 0 && newBestWeight > priorBestWeight) {
-        pushToast({
+        // A real PR gets the full Achievement unlock, not just a toast --
+        // one of the explicit "make it feel like a videogame" triggers.
+        pushAchievement({
           kind: 'pr',
           title: 'NEW PR',
-          message: `${exerciseName}: ${newBestWeight} lbs`,
+          subtitle: `${exerciseName}: ${newBestWeight} lbs`,
         })
+        maybePlaySound('pr')
         awardXP('gym-pr')
       } else if (priorLogs.length > 0 && newBest1RM > priorBest1RM) {
-        pushToast({
+        pushAchievement({
           kind: 'pr',
           title: 'NEW EST. 1RM',
-          message: `${exerciseName}: ~${Math.round(newBest1RM)} lbs`,
+          subtitle: `${exerciseName}: ~${Math.round(newBest1RM)} lbs`,
         })
+        maybePlaySound('pr')
         awardXP('gym-pr')
       }
 
@@ -866,12 +1013,30 @@ export function useAppData() {
         method: 'POST',
         body: JSON.stringify({ habitId, date }),
       })
-      await loadData()
+      const fresh = await loadData()
 
       if (result.done) {
         const habit = disciplineHabits.find((h) => h.id === habitId)
         pushToast({ kind: 'task', title: 'HABIT DONE', message: habit ? habit.name : 'Habit' })
         awardXP('habit-done')
+
+        // habitCurrentStreak counts back from TODAY, so this only means
+        // something when the date just toggled on is today -- checking
+        // off a past day doesn't represent an active streak crossing a
+        // milestone right now, so it's silently skipped rather than fired
+        // on a technicality.
+        if (fresh && date === todayKeyLocal()) {
+          const newStreak = habitCurrentStreak(fresh.discipline.completions, habitId)
+          const milestone = hitMilestone(newStreak)
+          if (milestone) {
+            pushAchievement({
+              kind: 'milestone',
+              title: `${milestone}-DAY STREAK`,
+              subtitle: habit ? habit.name : 'Habit',
+            })
+            maybePlaySound('milestone')
+          }
+        }
       }
     } catch (error) {
       showError(error.message)
@@ -1118,7 +1283,20 @@ export function useAppData() {
         body: JSON.stringify({ category, value: value.toString().trim(), note, amount, date }),
       })
 
-      await loadData()
+      const fresh = await loadData()
+
+      if (fresh) {
+        const newStreak = healthLoggingStreak(fresh.health.entries)
+        const milestone = hitMilestone(newStreak)
+        if (milestone) {
+          pushAchievement({
+            kind: 'milestone',
+            title: `${milestone}-DAY STREAK`,
+            subtitle: 'Health logging',
+          })
+          maybePlaySound('milestone')
+        }
+      }
 
       showSuccess('Logged.')
     } catch (error) {
@@ -1180,7 +1358,8 @@ export function useAppData() {
         body: JSON.stringify({ balance: Number(balance) }),
       })
 
-      await loadData()
+      const fresh = await loadData()
+      maybeCelebrateNetWorthSwing(fresh)
       showSuccess('Balance updated.')
     } catch (error) {
       showError(error.message)
@@ -1212,7 +1391,8 @@ export function useAppData() {
         body: JSON.stringify({ accountId, type, category, amount: Number(amount), date, note }),
       })
 
-      await loadData()
+      const fresh = await loadData()
+      maybeCelebrateNetWorthSwing(fresh)
       showSuccess(type === 'expense' ? 'Expense logged.' : 'Income logged.')
     } catch (error) {
       showError(error.message)
@@ -1410,7 +1590,17 @@ export function useAppData() {
         method: 'POST',
         body: JSON.stringify({ skillId, quantity, note }),
       })
-      await loadData()
+      // Real gap fixed here, not just new feature: detectSkillMilestones
+      // previously only ran after an AI-chat action touched a skill, so
+      // level-ups and badge unlocks earned through the normal "log
+      // practice" button -- the actual everyday path -- never celebrated
+      // at all. Same fix as the AI-chat call site: diff the pre-call
+      // skills against loadData()'s freshly-returned ones.
+      const previousSkills = skills
+      const fresh = await loadData()
+      if (fresh) {
+        detectSkillMilestones(previousSkills, fresh.skills)
+      }
       showSuccess('Practice logged.')
     } catch (error) {
       showError(error.message)
@@ -1802,6 +1992,14 @@ export function useAppData() {
       if (completing) {
         pushToast({ kind: 'task', title: 'DONE', message: task.title })
         awardXP('task-done')
+        // A high-priority task is the "task/goal completion" trigger for
+        // the Achievement layer -- every ordinary task still gets the
+        // small toast above, so finishing routine tasks doesn't turn into
+        // a wall of full-screen popups.
+        if (task.priority === 'high') {
+          pushAchievement({ kind: 'task', title: 'PRIORITY DONE', subtitle: task.title })
+          maybePlaySound('achievement')
+        }
       }
     } catch (error) {
       showError(error.message)
@@ -1876,7 +2074,8 @@ export function useAppData() {
       await loadData()
 
       if (justCompleted) {
-        pushToast({ kind: 'goal', title: 'GOAL COMPLETE', message: goal.title })
+        pushAchievement({ kind: 'goal', title: 'GOAL COMPLETE', subtitle: goal.title })
+        maybePlaySound('achievement')
         awardXP('goal-complete')
       }
     } catch (error) {
@@ -2289,6 +2488,9 @@ export function useAppData() {
     // toasts (game-feel celebration layer)
     toasts,
     dismissToast,
+    activeAchievement,
+    dismissAchievement,
+    maybePlaySound,
     playerStats,
 
     // settings

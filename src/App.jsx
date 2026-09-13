@@ -34,6 +34,8 @@ import CalendarPage from './components/CalendarPage.jsx'
 import ConnectionsPage from './components/ConnectionsPage.jsx'
 import ChatOverlay from './components/ChatOverlay.jsx'
 import SearchOverlay from './components/SearchOverlay.jsx'
+import StatsOverlay from './components/StatsOverlay.jsx'
+import AchievementModal from './components/AchievementModal.jsx'
 import OnboardingWizard from './components/OnboardingWizard.jsx'
 import GameToast from './components/GameToast.jsx'
 
@@ -47,6 +49,7 @@ function App() {
   const [chatOverlayOpen, setChatOverlayOpen] = useState(false)
   const openChat = () => setChatOverlayOpen(true)
   const [searchOverlayOpen, setSearchOverlayOpen] = useState(false)
+  const [statsOverlayOpen, setStatsOverlayOpen] = useState(false)
 
   // Ctrl/Cmd+K opens search from anywhere in the app -- the standard
   // convention (Linear, Notion, Slack, GitHub all use it), and the fastest
@@ -60,6 +63,22 @@ function App() {
     }
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [])
+
+  // A quiet click cue on every real button press, app-wide -- one
+  // delegated listener here rather than touching every button in every
+  // mode page individually. Gated by data.maybePlaySound itself (reads
+  // settings.soundEffects), so turning the Sound toggle off silences this
+  // completely with no separate check needed here.
+  useEffect(() => {
+    function handleGlobalClick(event) {
+      if (event.target.closest('button')) {
+        data.maybePlaySound('click')
+      }
+    }
+    window.addEventListener('click', handleGlobalClick)
+    return () => window.removeEventListener('click', handleGlobalClick)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function completeOnboarding({ name }) {
@@ -522,6 +541,12 @@ function App() {
         setSettings={data.setSettings}
         playerStats={data.playerStats}
         onOpenSearch={() => setSearchOverlayOpen(true)}
+        onOpenStats={() => setStatsOverlayOpen(true)}
+      />
+
+      <AchievementModal
+        achievement={data.activeAchievement}
+        onDismiss={data.dismissAchievement}
       />
 
       <div className={`app-shell ${themeClass}`}>
@@ -578,6 +603,24 @@ function App() {
           onClose={() => setSearchOverlayOpen(false)}
           searchAll={data.searchAll}
           setActivePage={setActivePage}
+        />
+
+        <StatsOverlay
+          open={statsOverlayOpen}
+          onClose={() => setStatsOverlayOpen(false)}
+          playerStats={data.playerStats}
+          skills={data.skills}
+          disciplineHabits={data.disciplineHabits}
+          disciplineCompletions={data.disciplineCompletions}
+          healthEntries={data.healthEntries}
+          gymExercises={data.gymExercises}
+          gymLogs={data.gymLogs}
+          tasks={data.tasks}
+          goals={data.goals}
+          assignments={data.assignments}
+          tests={data.tests}
+          financeHistory={data.financeHistory}
+          financeNetWorth={data.financeNetWorth}
         />
       </div>
     </div>

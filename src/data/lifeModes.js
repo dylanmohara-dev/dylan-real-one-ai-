@@ -25,6 +25,12 @@ export const DEFAULT_SETTINGS = {
   onboardingComplete: false,
   designSystem: 'minimal-glass',
   colorPalette: 'vivid',
+  // 'subtle' | 'normal' | 'flashy' -- scales duration/scale of the
+  // celebration-layer animations (toasts, mode flash, achievement unlocks).
+  // Separate from Transitions/Enter Animation above, which only control
+  // the full-screen navigation flash.
+  animationIntensity: 'normal',
+  soundEffects: true,
 }
 
 // Global "skin" layer, independent of the 9 per-mode color themes above.

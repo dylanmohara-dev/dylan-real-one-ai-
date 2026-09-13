@@ -10,14 +10,16 @@ import { Search, Settings2, X } from 'lucide-react'
 // live behind a small gear toggle instead of being deleted -- nothing
 // here was the only place to reach these controls became true, so
 // hiding them by default is safe rather than a loss of functionality.
-export default function TopSettingsBar({ settings, setSettings, playerStats, onOpenSearch }) {
+export default function TopSettingsBar({ settings, setSettings, playerStats, onOpenSearch, onOpenStats }) {
   const [open, setOpen] = useState(false)
 
   return (
     <header className="top-settings-bar">
-      <div
+      <button
+        type="button"
         className="player-level-pill"
-        title={`Level ${playerStats.level} — ${playerStats.xpIntoLevel} / ${playerStats.xpForNextLevel} XP to next level`}
+        onClick={onOpenStats}
+        title={`Level ${playerStats.level} — ${playerStats.xpIntoLevel} / ${playerStats.xpForNextLevel} XP to next level. Click for career stats.`}
       >
         <span className="player-level-badge">Lv {playerStats.level}</span>
         <span className="player-level-bar">
@@ -32,7 +34,7 @@ export default function TopSettingsBar({ settings, setSettings, playerStats, onO
             }}
           />
         </span>
-      </div>
+      </button>
 
       <div className="top-settings-spacer" />
 
@@ -121,6 +123,38 @@ export default function TopSettingsBar({ settings, setSettings, playerStats, onO
               <option value="fade">Fade</option>
               <option value="none">None</option>
             </select>
+          </div>
+
+          <div className="top-settings-group">
+            <label>Animation Feel</label>
+            <select
+              value={settings.animationIntensity || 'normal'}
+              onChange={(event) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  animationIntensity: event.target.value,
+                }))
+              }
+            >
+              <option value="subtle">Subtle</option>
+              <option value="normal">Normal</option>
+              <option value="flashy">Flashy</option>
+            </select>
+          </div>
+
+          <div className="top-settings-group">
+            <label>Sound</label>
+            <button
+              className={`toggle ${settings.soundEffects ? 'on' : ''}`}
+              onClick={() =>
+                setSettings((prev) => ({
+                  ...prev,
+                  soundEffects: !prev.soundEffects,
+                }))
+              }
+            >
+              <span />
+            </button>
           </div>
         </div>,
         document.body

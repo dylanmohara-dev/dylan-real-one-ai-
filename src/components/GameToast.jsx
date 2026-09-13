@@ -1,4 +1,4 @@
-import { Trophy, Sparkles, CheckCircle2, Target, Dumbbell } from 'lucide-react'
+import { Trophy, Sparkles, CheckCircle2, Target, Dumbbell, TrendingDown } from 'lucide-react'
 
 const ICONS = {
   levelup: Sparkles,
@@ -6,6 +6,7 @@ const ICONS = {
   task: CheckCircle2,
   goal: Target,
   pr: Dumbbell,
+  alert: TrendingDown,
   info: Sparkles,
 }
 

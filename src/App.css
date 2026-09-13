@@ -3507,6 +3507,310 @@ footer {
   }
 }
 
+/* ============ ANIMATION INTENSITY (Settings -> Display -> Animation Feel) ============ */
+/* Scales duration/scale of the celebration layer only (toasts, mode flash,
+   achievement unlocks) -- not a rewrite of every animation in the app.
+   Read off documentElement.dataset (set by useAppData's settings effect)
+   rather than a class, since it needs to reach components (GameToast,
+   AchievementModal) that don't otherwise receive `settings` as a prop.
+   prefers-reduced-motion still wins outright regardless of this setting --
+   see the existing reduced-motion blocks throughout this file. */
+:root {
+  --celebrate-speed: 1;
+  --celebrate-scale: 1;
+}
+
+[data-animation-intensity='subtle'] {
+  --celebrate-speed: 1.5;
+  --celebrate-scale: 0.7;
+}
+
+[data-animation-intensity='flashy'] {
+  --celebrate-speed: 0.7;
+  --celebrate-scale: 1.3;
+}
+
+/* ============ GAME TOAST: ALERT KIND (net worth down) ============ */
+/* Deliberately NOT a warm/celebratory color -- a big net-worth drop is
+   informational, not a reward, so it gets Finance mode's own accent
+   rather than any of the other toast kinds' green/gold/purple. */
+.game-toast-alert .game-toast-icon,
+.game-toast-alert .game-toast-copy strong {
+  color: rgb(239, 68, 68);
+}
+.game-toast-alert .game-toast-icon {
+  background: rgba(239, 68, 68, 0.14);
+}
+
+/* ============ ACHIEVEMENT MODAL ============ */
+
+.achievement-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 6, 12, 0.55);
+  backdrop-filter: blur(3px);
+  padding: 20px;
+  animation: achievementBackdropIn calc(0.2s * var(--celebrate-speed)) ease-out;
+}
+
+@keyframes achievementBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.achievement-modal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 340px;
+  padding: 32px 28px 24px;
+  border-radius: calc(20px * var(--mode-radius-scale, 1));
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  text-align: center;
+  animation: achievementCardIn calc(0.5s * var(--celebrate-speed)) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes achievementCardIn {
+  0% {
+    opacity: 0;
+    transform: scale(calc(0.75 * var(--celebrate-scale))) translateY(18px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(calc(1.03 * var(--celebrate-scale)));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.achievement-modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+  animation: achievementIconPop calc(0.7s * var(--celebrate-speed)) cubic-bezier(0.34, 1.56, 0.64, 1) calc(0.1s * var(--celebrate-speed)) both;
+}
+
+@keyframes achievementIconPop {
+  0% { transform: scale(0.4) rotate(-18deg); opacity: 0; }
+  60% { transform: scale(calc(1.12 * var(--celebrate-scale))) rotate(8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.achievement-modal-eyebrow {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.achievement-modal-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.achievement-modal-subtitle {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.achievement-modal-dismiss {
+  margin-top: 10px;
+  padding: 8px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.achievement-modal-dismiss:hover {
+  background: var(--surface);
+}
+
+/* Per-kind accent -- icon + glow only, the card shell stays consistent so
+   the modal reads as one system rather than nine different popups. */
+.achievement-modal-levelup .achievement-modal-icon { color: #fbbf24; background: rgba(251, 191, 36, 0.16); box-shadow: 0 0 32px rgba(251, 191, 36, 0.35); }
+.achievement-modal-pr .achievement-modal-icon { color: rgb(249, 115, 22); background: rgba(249, 115, 22, 0.16); box-shadow: 0 0 32px rgba(249, 115, 22, 0.3); }
+.achievement-modal-goal .achievement-modal-icon { color: rgb(var(--mode-accent-rgb, 96, 165, 250)); background: rgba(var(--mode-accent-rgb, 96, 165, 250), 0.16); box-shadow: 0 0 32px rgba(var(--mode-accent-rgb, 96, 165, 250), 0.3); }
+.achievement-modal-milestone .achievement-modal-icon { color: #f97316; background: rgba(249, 115, 22, 0.16); box-shadow: 0 0 32px rgba(249, 115, 22, 0.3); }
+.achievement-modal-finance .achievement-modal-icon { color: #22c55e; background: rgba(34, 197, 94, 0.16); box-shadow: 0 0 32px rgba(34, 197, 94, 0.3); }
+.achievement-modal-task .achievement-modal-icon { color: #22c55e; background: rgba(34, 197, 94, 0.16); box-shadow: 0 0 32px rgba(34, 197, 94, 0.3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .achievement-modal-backdrop,
+  .achievement-modal-card,
+  .achievement-modal-icon {
+    animation: none !important;
+  }
+}
+
+/* ============ STATS OVERLAY (Career Stats -- click the level pill) ============ */
+
+.stats-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: rgba(4, 6, 12, 0.55);
+  backdrop-filter: blur(3px);
+  padding: 8vh 20px 20px;
+  overflow-y: auto;
+  animation: achievementBackdropIn calc(0.2s * var(--celebrate-speed)) ease-out;
+}
+
+.stats-overlay-panel {
+  width: 100%;
+  max-width: 560px;
+  border-radius: calc(18px * var(--mode-radius-scale, 1));
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  padding: 22px 24px 26px;
+  animation: searchPanelIn calc(0.28s * var(--celebrate-speed)) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stats-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.stats-overlay-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.stats-overlay-close {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stats-overlay-close:hover {
+  background: var(--surface);
+}
+
+.stats-overlay-hero {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.stats-overlay-hero-level {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.stats-overlay-hero-xp {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.stats-overlay-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.stats-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  animation: cardFadeIn 0.3s ease-out both;
+}
+
+.stats-card-icon {
+  color: rgb(var(--mode-accent-rgb, 96, 165, 250));
+  margin-bottom: 2px;
+}
+
+.stats-card-value {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.stats-card-label {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.stats-overlay-bests {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.stats-overlay-bests-title {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.stats-overlay-best-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-overlay-best-row:last-child {
+  border-bottom: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stats-overlay-backdrop,
+  .stats-overlay-panel,
+  .stats-card {
+    animation: none !important;
+  }
+}
+
 /* ============ ONBOARDING WIZARD ============ */
 
 .onboarding-backdrop {
