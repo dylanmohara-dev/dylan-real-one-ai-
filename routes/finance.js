@@ -14,6 +14,19 @@ const DEBT_TYPES = ['credit', 'loan']
 function round2(value) {
   return Math.round((Number(value) || 0) * 100) / 100
 }
+// Bare local YYYY-MM-DD -- NOT toISOString().slice(0, 10), which reads off
+// UTC. This exact bug was already found and fixed in skills.js, discipline.js,
+// reading.js, and family.js this session (evening activity in any US
+// timezone gets tagged as tomorrow's date under the UTC version) -- it was
+// simply missed here, in the one place whose whole job is producing the
+// net-worth/spending TREND data Dylan says isn't shown well. A wrong day
+// on a history snapshot or an undated transaction silently corrupts every
+// "this week" / "this month" rollup built on top of it.
+function todayKeyLocal() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
 export const EXPENSE_CATEGORIES = [
   'groceries',
   'dining',
@@ -38,7 +51,7 @@ export function computeNetWorth(accounts) {
 
 function recordHistorySnapshot(accounts) {
   const history = loadData('finance_history')
-  const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  const today = todayKeyLocal()
   const netWorth = computeNetWorth(accounts)
 
   const existingIndex = history.findIndex((point) => point.date === today)
@@ -171,7 +184,7 @@ router.post('/transactions', (req, res) => {
       type,
       category: type === 'expense' ? category : 'income',
       amount: numericAmount,
-      date: date || new Date().toISOString().slice(0, 10),
+      date: date || todayKeyLocal(),
       note: (note || '').trim(),
       createdAt: new Date().toISOString(),
     }
@@ -215,6 +228,87 @@ router.delete('/transactions/:id', (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Could not delete transaction' })
+  }
+})
+
+// Bulk import: Dylan's real ask was "connect to my fidelity account to see
+// my real up to date number exactly." A genuine live sync needs Plaid (or
+// similar) -- Dylan registering his own developer account, real API keys,
+// an OAuth consent flow with Fidelity through Plaid's institution list,
+// and Plaid's paid production tier (their free/sandbox tier only talks to
+// fake test institutions, not real ones). None of that is buildable
+// without Dylan personally doing that signup and handing over real
+// credentials, so building a "Connect Fidelity" button that can't
+// actually connect would just be lying to him with a UI. What IS honestly
+// buildable right now: importing his real exported transaction history in
+// bulk, instead of retyping each one -- this is also the most direct fix
+// for "logging transactions feels like a chore" of anything in this pass.
+// One combined balance delta + one history snapshot for the whole batch,
+// not one write per row, so importing 200 rows doesn't do 200 separate
+// file writes.
+router.post('/transactions/import', (req, res) => {
+  try {
+    const { accountId, transactions: rows } = req.body
+    if (!accountId) return res.status(400).json({ error: 'accountId is required' })
+    if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: 'transactions must be a non-empty array' })
+
+    const accounts = loadData('finance_accounts')
+    const account = accounts.find((a) => a.id === accountId)
+    if (!account) return res.status(404).json({ error: 'Account not found' })
+
+    const isDebtAccount = DEBT_TYPES.includes(account.type)
+    const existing = loadData('finance_transactions')
+    const imported = []
+    const skipped = []
+
+    for (const row of rows) {
+      const type = row.type === 'income' ? 'income' : row.type === 'expense' ? 'expense' : null
+      const amount = Number(row.amount)
+      const date = (row.date || '').toString().trim()
+      const validDate = /^\d{4}-\d{2}-\d{2}$/.test(date)
+
+      if (!type || !Number.isFinite(amount) || amount <= 0 || !validDate) {
+        skipped.push({ row, reason: 'missing/invalid type, amount, or date (expected YYYY-MM-DD)' })
+        continue
+      }
+
+      const category = type === 'expense' && EXPENSE_CATEGORIES.includes(row.category) ? row.category : type === 'expense' ? 'other' : 'income'
+      const direction = type === 'expense' ? -1 : 1
+      const signedDelta = isDebtAccount ? -direction * amount : direction * amount
+      account.balance = round2((Number(account.balance) || 0) + signedDelta)
+
+      const transaction = {
+        id: `${Date.now()}-${imported.length}`,
+        accountId,
+        type,
+        category,
+        amount,
+        date,
+        note: (row.note || '').toString().trim(),
+        createdAt: new Date().toISOString(),
+        importedAt: new Date().toISOString(),
+      }
+      existing.push(transaction)
+      imported.push(transaction)
+    }
+
+    if (imported.length) {
+      account.updatedAt = new Date().toISOString()
+      saveData('finance_accounts', accounts)
+      saveData('finance_transactions', existing)
+    }
+    const history = recordHistorySnapshot(accounts)
+
+    res.json({
+      imported: imported.length,
+      skipped,
+      account,
+      netWorth: computeNetWorth(accounts),
+      history,
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not import transactions' })
   }
 })
 

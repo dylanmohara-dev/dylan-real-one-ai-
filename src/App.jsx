@@ -318,6 +318,7 @@ function App() {
           deleteAccount={data.deleteFinanceAccount}
           addTransaction={data.addFinanceTransaction}
           deleteTransaction={data.deleteFinanceTransaction}
+          importTransactions={data.importFinanceTransactions}
           setBudget={data.setFinanceBudget}
           addPosition={data.addTradingPosition}
           closePosition={data.closeTradingPosition}

@@ -81,6 +81,128 @@ function isStale(dateString) {
   return Date.now() - new Date(dateString).getTime() > STALE_MS
 }
 
+function formatShortDate(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+// history (from recordHistorySnapshot) is pushed in chronological order --
+// finds the latest point at or before N days ago, so "vs 7 days ago" means
+// something even on days no snapshot happened to land exactly on.
+function netWorthDaysAgo(history, days) {
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+  const cutoffKey = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`
+  let candidate = null
+  for (const point of history) {
+    if (point.date <= cutoffKey) candidate = point
+  }
+  return candidate ? candidate.netWorth : null
+}
+
+function shiftMonthKey(monthKey, deltaMonths) {
+  const [y, m] = monthKey.split('-').map(Number)
+  const date = new Date(y, m - 1 + deltaMonths, 1)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
+function totalSpentInMonth(transactions, monthKey) {
+  return transactions
+    .filter((t) => t.type === 'expense' && t.date.slice(0, 7) === monthKey)
+    .reduce((sum, t) => sum + t.amount, 0)
+}
+
+// Unlike BudgetTab's per-category bars (which only show a category once
+// Dylan has manually set a limit for it), this shows EVERY category with
+// real spend this month, sorted by size -- so "doesn't show spending
+// trends well" doesn't depend on having already configured budgets first.
+function spendingByCategory(transactions, monthKey) {
+  const totals = {}
+  transactions
+    .filter((t) => t.type === 'expense' && t.date.slice(0, 7) === monthKey)
+    .forEach((t) => {
+      totals[t.category] = (totals[t.category] || 0) + t.amount
+    })
+  return Object.entries(totals)
+    .map(([category, amount]) => ({ category, amount }))
+    .sort((a, b) => b.amount - a.amount)
+}
+
+// Minimal RFC4180-ish CSV parser -- handles quoted fields (so a
+// description like "Amazon, Inc" with a comma inside quotes doesn't split
+// into two columns) and escaped "" quotes, which a naive text.split(',')
+// would get wrong on real bank/brokerage exports.
+function parseCSV(text) {
+  const rows = []
+  let row = []
+  let field = ''
+  let inQuotes = false
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i]
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          field += '"'
+          i += 1
+        } else {
+          inQuotes = false
+        }
+      } else {
+        field += char
+      }
+    } else if (char === '"') {
+      inQuotes = true
+    } else if (char === ',') {
+      row.push(field)
+      field = ''
+    } else if (char === '\n' || char === '\r') {
+      if (char === '\r' && text[i + 1] === '\n') i += 1
+      row.push(field)
+      field = ''
+      if (row.some((cell) => cell !== '')) rows.push(row)
+      row = []
+    } else {
+      field += char
+    }
+  }
+  if (field !== '' || row.length) {
+    row.push(field)
+    if (row.some((cell) => cell !== '')) rows.push(row)
+  }
+  return rows
+}
+
+// Finds the column whose header contains one of the given candidate words
+// (checked in priority order) -- so a real export's actual column names
+// ("Transaction Date", "Amount ($)", "Description") get matched without
+// Dylan having to rename anything before pasting.
+function guessColumnIndex(header, candidates) {
+  const lower = header.map((h) => h.toLowerCase().trim())
+  for (const candidate of candidates) {
+    const idx = lower.findIndex((h) => h.includes(candidate))
+    if (idx !== -1) return idx
+  }
+  return -1
+}
+
+// Most US bank/brokerage exports use M/D/YYYY, not ISO -- converts that to
+// the YYYY-MM-DD every date field in this app actually uses. Anything
+// already in that shape, or anything unrecognized, passes through
+// unchanged (the backend's own validation rejects the latter rather than
+// silently importing a wrong date).
+function normalizeDate(raw) {
+  const value = (raw || '').toString().trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const mdy = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/)
+  if (mdy) {
+    let [, m, d, y] = mdy
+    if (y.length === 2) y = `20${y}`
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+  }
+  return value
+}
+
 function Sparkline({ history }) {
   if (history.length < 2) {
     return <p className="finance-sparkline-empty">Add a second day of balances to see a trend line here.</p>
@@ -172,6 +294,11 @@ function OverviewTab({ accounts, netWorth, history, saving, addAccount, updateBa
 
   const previousNetWorth = history.length > 1 ? history[history.length - 2].netWorth : null
   const delta = previousNetWorth === null ? null : netWorth - previousNetWorth
+  // "Since last update" is ambiguous -- it could be yesterday or a month
+  // ago depending on how often Dylan edits a balance. "vs 7 days ago" is a
+  // real, fixed comparison window, which is what an actual trend needs.
+  const weekAgoNetWorth = netWorthDaysAgo(history, 7)
+  const weekDelta = weekAgoNetWorth === null ? null : netWorth - weekAgoNetWorth
   const displayedNetWorth = useCountUp(netWorth)
 
   return (
@@ -186,8 +313,22 @@ function OverviewTab({ accounts, netWorth, history, saving, addAccount, updateBa
               {formatMoney(Math.abs(delta))} since last update
             </span>
           )}
+          {weekDelta !== null && (
+            <span className={`finance-hero-delta ${weekDelta >= 0 ? 'up' : 'down'}`}>
+              {weekDelta >= 0 ? <ArrowUpRight size={13} strokeWidth={2.5} /> : <ArrowDownRight size={13} strokeWidth={2.5} />}
+              {formatMoney(Math.abs(weekDelta))} vs 7 days ago
+            </span>
+          )}
         </div>
-        <Sparkline history={history} />
+        <div className="finance-sparkline-wrap">
+          <Sparkline history={history} />
+          {history.length >= 2 && (
+            <div className="finance-sparkline-range">
+              <span>{formatShortDate(history[0].date)}</span>
+              <span>{formatShortDate(history[history.length - 1].date)}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="finance-add-row">
@@ -331,7 +472,167 @@ function TransactionForm({ accounts, saving, addTransaction }) {
   )
 }
 
-function TransactionsTab({ accounts, transactions, saving, addTransaction, deleteTransaction }) {
+function SpendingTrendCard({ transactions }) {
+  const month = currentMonthKey()
+  const lastMonth = shiftMonthKey(month, -1)
+  const thisMonthTotal = totalSpentInMonth(transactions, month)
+  const lastMonthTotal = totalSpentInMonth(transactions, lastMonth)
+  const breakdown = spendingByCategory(transactions, month)
+  const delta = lastMonthTotal > 0 ? thisMonthTotal - lastMonthTotal : null
+
+  if (breakdown.length === 0) return null
+
+  return (
+    <div className="finance-spending-trend">
+      <div className="finance-spending-trend-header">
+        <span className="eyebrow">SPENDING THIS MONTH</span>
+        <strong>{formatMoney(thisMonthTotal)}</strong>
+        {delta !== null && (
+          <span className={`finance-hero-delta ${delta <= 0 ? 'up' : 'down'}`}>
+            {delta <= 0 ? <ArrowDownRight size={13} strokeWidth={2.5} /> : <ArrowUpRight size={13} strokeWidth={2.5} />}
+            {formatMoney(Math.abs(delta))} vs last month ({formatMoney(lastMonthTotal)})
+          </span>
+        )}
+      </div>
+      <div className="finance-spending-breakdown">
+        {breakdown.map(({ category, amount }) => {
+          const pct = Math.round((amount / thisMonthTotal) * 100)
+          return (
+            <div className="finance-spending-row" key={category}>
+              <span className="finance-spending-category">{CATEGORY_LABELS[category] || category}</span>
+              <div className="skill-xp-bar">
+                <div className="skill-xp-bar-fill" style={{ width: `${pct}%` }} />
+              </div>
+              <span className="finance-spending-amount">
+                {formatMoney(amount)} ({pct}%)
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function ImportTransactionsForm({ accounts, saving, importTransactions }) {
+  const [accountId, setAccountId] = useState(accounts[0]?.id || '')
+  const [csvText, setCsvText] = useState('')
+  const [flipSign, setFlipSign] = useState(false)
+  const [preview, setPreview] = useState(null)
+  const [result, setResult] = useState(null)
+
+  if (!accounts.length) return null
+
+  function handleFile(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setCsvText(reader.result?.toString() || '')
+    reader.readAsText(file)
+    event.target.value = ''
+  }
+
+  function handleParse() {
+    const rows = parseCSV(csvText.trim())
+    if (rows.length < 2) {
+      setPreview(null)
+      return
+    }
+    const header = rows[0]
+    setPreview({
+      header,
+      dataRows: rows.slice(1),
+      dateIdx: guessColumnIndex(header, ['date']),
+      amountIdx: guessColumnIndex(header, ['amount', 'debit', 'credit']),
+      descIdx: guessColumnIndex(header, ['description', 'memo', 'name', 'payee']),
+    })
+    setResult(null)
+  }
+
+  async function handleImport() {
+    if (!preview || preview.dateIdx === -1 || preview.amountIdx === -1) return
+    const rows = preview.dataRows
+      .map((r) => {
+        const rawAmount = Number((r[preview.amountIdx] || '').replace(/[$,]/g, ''))
+        if (!Number.isFinite(rawAmount) || rawAmount === 0) return null
+        const signedAmount = flipSign ? -rawAmount : rawAmount
+        return {
+          date: normalizeDate(r[preview.dateIdx]),
+          type: signedAmount < 0 ? 'expense' : 'income',
+          amount: Math.abs(signedAmount),
+          note: preview.descIdx !== -1 ? r[preview.descIdx] : '',
+        }
+      })
+      .filter(Boolean)
+    const res = await importTransactions(accountId, rows)
+    setResult(res)
+    if (res.imported > 0) {
+      setCsvText('')
+      setPreview(null)
+    }
+  }
+
+  return (
+    <div className="form-card finance-import-form">
+      <label htmlFor="finance-import-account-select">Import into account</label>
+      <select id="finance-import-account-select" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+        {accounts.map((account) => (
+          <option key={account.id} value={account.id}>
+            {account.name}
+          </option>
+        ))}
+      </select>
+      <label htmlFor="finance-import-file">Paste CSV or upload a file (a real Fidelity/bank export)</label>
+      <input id="finance-import-file" type="file" accept=".csv,text/csv" onChange={handleFile} />
+      <textarea
+        value={csvText}
+        onChange={(e) => setCsvText(e.target.value)}
+        placeholder="...or paste CSV rows here -- needs a Date column and an Amount column"
+        rows={4}
+      />
+      <label className="finance-import-flip">
+        <input type="checkbox" checked={flipSign} onChange={(e) => setFlipSign(e.target.checked)} />
+        Flip sign (check this if expenses show as positive numbers in this export)
+      </label>
+      <button type="button" onClick={handleParse} disabled={!csvText.trim()}>
+        Preview
+      </button>
+
+      {preview && (
+        <div className="finance-import-preview">
+          {preview.dateIdx === -1 || preview.amountIdx === -1 ? (
+            <p className="finance-import-warning">
+              Couldn't find a Date and Amount column automatically -- check the CSV has header names like "Date" and
+              "Amount".
+            </p>
+          ) : (
+            <>
+              <p>
+                Found {preview.dataRows.length} row{preview.dataRows.length === 1 ? '' : 's'}. Reading "
+                {preview.header[preview.dateIdx]}" as the date and "{preview.header[preview.amountIdx]}" as the amount
+                {preview.descIdx !== -1 ? `, "${preview.header[preview.descIdx]}" as the note` : ''}.
+              </p>
+              <button type="button" onClick={handleImport} disabled={saving}>
+                Import {preview.dataRows.length} transaction{preview.dataRows.length === 1 ? '' : 's'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {result && (
+        <p className="finance-import-result">
+          Imported {result.imported}
+          {result.skipped?.length
+            ? `, skipped ${result.skipped.length} row${result.skipped.length === 1 ? '' : 's'} that didn't parse.`
+            : '.'}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function TransactionsTab({ accounts, transactions, saving, addTransaction, deleteTransaction, importTransactions }) {
   const accountById = Object.fromEntries(accounts.map((account) => [account.id, account]))
   const sorted = transactions
     .slice()
@@ -340,6 +641,8 @@ function TransactionsTab({ accounts, transactions, saving, addTransaction, delet
   return (
     <div className="finance-transactions">
       <TransactionForm accounts={accounts} saving={saving} addTransaction={addTransaction} />
+      <ImportTransactionsForm accounts={accounts} saving={saving} importTransactions={importTransactions} />
+      <SpendingTrendCard transactions={transactions} />
 
       <div className="items-list">
         {sorted.length ? (
@@ -891,6 +1194,7 @@ export default function FinancePage({
   deleteAccount,
   addTransaction,
   deleteTransaction,
+  importTransactions,
   setBudget,
   addPosition,
   closePosition,
@@ -954,6 +1258,7 @@ export default function FinancePage({
           saving={saving}
           addTransaction={addTransaction}
           deleteTransaction={deleteTransaction}
+          importTransactions={importTransactions}
         />
       )}
 

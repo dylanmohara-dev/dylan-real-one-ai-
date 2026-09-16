@@ -4699,6 +4699,19 @@ footer {
   text-align: right;
 }
 
+.finance-sparkline-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.finance-sparkline-range {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 9.5px;
+}
+
 .finance-add-row {
   display: flex;
   gap: 9px;
@@ -4908,6 +4921,99 @@ footer {
 
 .finance-tx-icon.income {
   color: #4ade80;
+}
+
+/* Spending-by-category trend (Transactions tab) -- shows every category
+   with real spend this month, not just ones with a budget limit set. */
+.finance-spending-trend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  background: rgba(var(--mode-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--mode-accent-rgb), 0.3);
+}
+
+.finance-spending-trend-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.finance-spending-trend-header strong {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.finance-spending-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.finance-spending-row {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.finance-spending-category {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.finance-spending-amount {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* CSV bulk import -- the honest, buildable alternative to a live Fidelity
+   connection (see routes/finance.js's comment on why). */
+.finance-import-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.finance-import-form textarea {
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.finance-import-flip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.finance-import-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: calc(10px * var(--mode-radius-scale, 1));
+  background: var(--surface-input);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.finance-import-warning {
+  color: #fbbf24;
+  margin: 0;
+}
+
+.finance-import-result {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 .finance-budgets {

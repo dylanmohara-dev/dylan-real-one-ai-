@@ -1571,6 +1571,34 @@ export function useAppData() {
     }
   }
 
+  // Bulk CSV import -- see routes/finance.js's own comment on why this,
+  // not a live Fidelity connection, is what's actually buildable here.
+  // Returns {imported, skipped} so the form can tell Dylan exactly how
+  // many rows landed and show him which ones didn't parse, rather than a
+  // single opaque success/failure for the whole batch.
+  async function importFinanceTransactions(accountId, rows) {
+    setSaving(true)
+    try {
+      const result = await request('/finance/transactions/import', {
+        method: 'POST',
+        body: JSON.stringify({ accountId, transactions: rows }),
+      })
+      const fresh = await loadData()
+      maybeCelebrateNetWorthSwing(fresh)
+      showSuccess(
+        result.skipped?.length
+          ? `Imported ${result.imported}, skipped ${result.skipped.length}.`
+          : `Imported ${result.imported} transaction${result.imported === 1 ? '' : 's'}.`
+      )
+      return result
+    } catch (error) {
+      showError(error.message)
+      return { imported: 0, skipped: [] }
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // monthlyLimit of 0/empty clears that category's budget entirely rather
   // than saving a zero limit -- see routes/finance.js.
   async function setFinanceBudget(category, monthlyLimit) {
@@ -2786,6 +2814,7 @@ export function useAppData() {
     deleteFinanceAccount,
     addFinanceTransaction,
     deleteFinanceTransaction,
+    importFinanceTransactions,
     setFinanceBudget,
 
     // trading
