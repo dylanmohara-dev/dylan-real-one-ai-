@@ -7824,6 +7824,23 @@ button:disabled:active {
   cursor: pointer;
 }
 
+/* Weekly-cadence habits + the always-visible "Best" streak target, so the
+   longest-ever run stays in view every day instead of buried in the
+   separate Stats overlay. */
+.discipline-stats-line {
+  gap: 10px;
+}
+
+.discipline-best {
+  opacity: 0.75;
+}
+
+.discipline-frequency-editor {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
 /* ---------- Gym mode: tabs, Today view, Routines ---------- */
 
 .gym-tabs {

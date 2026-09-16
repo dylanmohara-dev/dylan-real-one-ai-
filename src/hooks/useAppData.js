@@ -1111,10 +1111,10 @@ export function useAppData() {
   }
 
   // Discipline
-  async function addDisciplineHabit(name) {
+  async function addDisciplineHabit(name, options = {}) {
     setSaving(true)
     try {
-      await request('/discipline/habits', { method: 'POST', body: JSON.stringify({ name }) })
+      await request('/discipline/habits', { method: 'POST', body: JSON.stringify({ name, ...options }) })
       await loadData()
       showSuccess('Habit added.')
     } catch (error) {

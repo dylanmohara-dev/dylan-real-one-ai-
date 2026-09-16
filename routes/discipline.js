@@ -12,17 +12,27 @@ router.get('/habits', (req, res) => {
   res.json({ habits: loadData('discipline_habits') })
 })
 
+// Every habit used to be forced into the same box: a plain daily
+// yes/no checkbox. That's wrong for a habit like "gym" or "call mom"
+// that's realistically 2-3x/week, not every single day -- Dylan's own
+// "can't track the kind of habits you want" complaint. frequency lets a
+// habit opt into a weekly target (timesPerWeek, clamped 2-6) instead of
+// the daily-only default; DisciplinePage.jsx branches its streak math on
+// this field.
 router.post('/habits', (req, res) => {
   try {
-    const { name } = req.body
+    const { name, frequency, timesPerWeek } = req.body
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'A habit name is required' })
     }
     const habits = loadData('discipline_habits')
+    const isWeekly = frequency === 'weekly'
     const habit = {
       id: Date.now().toString(),
       name: name.trim(),
       active: true,
+      frequency: isWeekly ? 'weekly' : 'daily',
+      ...(isWeekly ? { timesPerWeek: Math.min(6, Math.max(2, Number(timesPerWeek) || 3)) } : {}),
       createdAt: new Date().toISOString(),
     }
     habits.push(habit)
@@ -46,6 +56,13 @@ router.put('/habits/:id', (req, res) => {
       return res.status(404).json({ error: 'Habit not found' })
     }
     habits[index] = { ...habits[index], ...req.body, id: habits[index].id }
+    // A habit switched back to daily shouldn't keep a stale timesPerWeek
+    // sitting on it -- harmless today (daily's own code path never reads
+    // it), but leaving it there is exactly the kind of imprecise leftover
+    // state that turns into a real bug the next time this schema changes.
+    if (habits[index].frequency !== 'weekly') {
+      delete habits[index].timesPerWeek
+    }
     saveData('discipline_habits', habits)
     res.json({ habit: habits[index] })
   } catch (error) {
