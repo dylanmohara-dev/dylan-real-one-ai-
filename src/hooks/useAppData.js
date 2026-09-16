@@ -131,6 +131,7 @@ export function useAppData() {
   const [disciplineCompletions, setDisciplineCompletions] = useState([])
   const [familyMembers, setFamilyMembers] = useState([])
   const [familyLog, setFamilyLog] = useState([])
+  const [familyGoals, setFamilyGoals] = useState({ weeklyMinutesGoal: 360 })
   // Growing text shown in the loading slot while a chat reply streams in
   // token by token -- cleared at the start/end of every sendMessage call.
   // Separate from chatThreads on purpose: chatThreads only ever gets the
@@ -455,6 +456,7 @@ export function useAppData() {
       setDisciplineCompletions(data.discipline?.completions || [])
       setFamilyMembers(data.family?.members || [])
       setFamilyLog(data.family?.log || [])
+      setFamilyGoals(data.family?.goals || { weeklyMinutesGoal: 360 })
       setPlayerStats(data.player || { xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
 
       // Returned (not just set into state) so a caller that just mutated
@@ -1216,6 +1218,18 @@ export function useAppData() {
       showError(error.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function setFamilyGoal(weeklyMinutesGoal) {
+    try {
+      await request('/family/goals', {
+        method: 'POST',
+        body: JSON.stringify({ weeklyMinutesGoal }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
     }
   }
 
@@ -2501,7 +2515,7 @@ export function useAppData() {
           .filter((entry) => entry.type === 'checkin' && entry.date >= fromKey && entry.date <= toKey)
           .reduce((sum, entry) => sum + (Number(entry.minutesSpent) || 0), 0)
         const weekHours = Math.round((weekMinutes / 60) * 10) / 10
-        const goalHours = 6
+        const goalHours = Math.round(((familyGoals.weeklyMinutesGoal || 360) / 60) * 10) / 10
         return {
           ...mode,
           headline: familyMembers.length ? `${familyMembers.length} family member${familyMembers.length === 1 ? '' : 's'} tracked` : mode.headline,
@@ -2530,6 +2544,7 @@ export function useAppData() {
     disciplineCompletions,
     familyMembers,
     familyLog,
+    familyGoals,
     gymLogs,
     gymExercises,
     gymWeekPlan,
@@ -2842,10 +2857,12 @@ export function useAppData() {
     // family
     familyMembers,
     familyLog,
+    familyGoals,
     addFamilyMember,
     deleteFamilyMember,
     addFamilyLog,
     deleteFamilyLogEntry,
+    setFamilyGoal,
 
     // chat streaming
     streamingText,

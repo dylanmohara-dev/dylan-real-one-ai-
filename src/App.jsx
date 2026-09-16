@@ -430,11 +430,13 @@ function App() {
         <FamilyPage
           familyMembers={data.familyMembers}
           familyLog={data.familyLog}
+          familyGoals={data.familyGoals}
           saving={data.saving}
           addFamilyMember={data.addFamilyMember}
           deleteFamilyMember={data.deleteFamilyMember}
           addFamilyLog={data.addFamilyLog}
           deleteFamilyLogEntry={data.deleteFamilyLogEntry}
+          setFamilyGoal={data.setFamilyGoal}
           assistantContext={assistantContext}
           openChat={openChat}
         />

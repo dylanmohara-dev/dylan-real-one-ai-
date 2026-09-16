@@ -75,6 +75,7 @@ router.get('/bootstrap', (req, res) => {
       family: {
         members: loadData('family_members'),
         log: loadData('family_log'),
+        goals: loadData('family_goals', { weeklyMinutesGoal: 360 }),
       },
       trading: (() => {
         const positions = loadData('trading_positions')

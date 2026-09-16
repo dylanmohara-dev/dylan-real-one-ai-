@@ -2246,6 +2246,28 @@ footer {
   align-items: flex-start;
 }
 
+/* Family/Faith mode: the "who's being neglected" banner and the stale-
+   check-in flag on the People tab -- both new, since the old single
+   combined "5.2H this week" stat had no way to surface which specific
+   relationship needed attention. */
+.family-attention-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: var(--mode-border-width, 1px) solid rgba(234, 88, 12, 0.4);
+  border-radius: calc(10px * var(--mode-radius-scale, 1));
+  background: rgba(234, 88, 12, 0.1);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.family-stale {
+  color: rgb(234, 88, 12);
+  font-weight: 600;
+}
+
 .check-button {
   width: 24px;
   height: 24px;

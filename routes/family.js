@@ -69,6 +69,7 @@ router.post('/log', (req, res) => {
       date,
       memberId: type === 'checkin' ? memberId : null,
       minutesSpent: type === 'checkin' ? Number(minutesSpent) || 0 : 0,
+      practiceType: type === 'faith' ? (req.body.practiceType || '').trim() : null,
       note: (note || '').trim(),
       createdAt: new Date().toISOString(),
     }
@@ -96,6 +97,28 @@ router.delete('/log/:id', (req, res) => {
   const remaining = log.filter((entry) => entry.id !== req.params.id)
   saveData('family_log', remaining)
   res.json({ success: true })
+})
+
+const DEFAULT_FAMILY_GOALS = { weeklyMinutesGoal: 360 } // 6 hours, matching the old hardcoded default
+
+router.get('/goals', (req, res) => {
+  res.json({ goals: loadData('family_goals', DEFAULT_FAMILY_GOALS) })
+})
+
+router.post('/goals', (req, res) => {
+  try {
+    const { weeklyMinutesGoal } = req.body
+    const goal = Number(weeklyMinutesGoal)
+    if (!goal || goal <= 0) {
+      return res.status(400).json({ error: 'weeklyMinutesGoal must be a positive number' })
+    }
+    const goals = { ...loadData('family_goals', DEFAULT_FAMILY_GOALS), weeklyMinutesGoal: goal }
+    saveData('family_goals', goals)
+    res.json({ goals })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save family goal' })
+  }
 })
 
 export default router
