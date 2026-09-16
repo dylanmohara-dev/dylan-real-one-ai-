@@ -1102,55 +1102,90 @@ select option {
 .mode-card.theme-school {
   --mode-heading-font: 'Lora', Georgia, serif;
   --mode-radius-scale: 0.85;
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
+  /* Notebook ruled lines, matching the full School page's own texture. */
+  background-image: repeating-linear-gradient(
+    rgba(var(--card-rgb), 0.09) 0,
+    rgba(var(--card-rgb), 0.09) 1px,
+    transparent 1px,
+    transparent 14px
+  );
 }
 
 .mode-card.theme-sports {
   --mode-heading-font: 'Bebas Neue', 'Anton', sans-serif;
   --mode-radius-scale: 0.5;
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
+  /* Field yard-lines, matching the full Sports page's own texture. */
+  background-image: repeating-linear-gradient(
+    rgba(var(--card-rgb), 0.08) 0,
+    rgba(var(--card-rgb), 0.08) 2px,
+    transparent 2px,
+    transparent 20px
+  );
 }
 
 .mode-card.theme-gym {
   --mode-heading-font: 'Anton', 'Bebas Neue', sans-serif;
   --mode-radius-scale: 0.35;
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
+  /* Crosshatch floor-mat diamonds, matching the full Gym page's texture. */
+  background-image:
+    repeating-linear-gradient(45deg, rgba(var(--card-rgb), 0.06) 0, rgba(var(--card-rgb), 0.06) 1px, transparent 1px, transparent 12px),
+    repeating-linear-gradient(-45deg, rgba(var(--card-rgb), 0.06) 0, rgba(var(--card-rgb), 0.06) 1px, transparent 1px, transparent 12px);
 }
 
 .mode-card.theme-health {
   --mode-heading-font: 'Quicksand', 'Nunito', sans-serif;
   --mode-radius-scale: 1.6;
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
+  /* Soft dot scatter, matching the full Health page's own texture. */
+  background-image: radial-gradient(rgba(var(--card-rgb), 0.16) 1.5px, transparent 1.5px);
+  background-size: 16px 16px;
 }
 
 .mode-card.theme-finance {
   --mode-heading-font: 'Space Grotesk', 'IBM Plex Mono', monospace;
   --mode-radius-scale: 0.7;
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
+  /* Ledger grid, matching the full Finance page's own texture. */
+  background-image:
+    repeating-linear-gradient(rgba(var(--card-rgb), 0.07) 0, rgba(var(--card-rgb), 0.07) 1px, transparent 1px, transparent 14px),
+    repeating-linear-gradient(90deg, rgba(var(--card-rgb), 0.07) 0, rgba(var(--card-rgb), 0.07) 1px, transparent 1px, transparent 14px);
 }
 
 .mode-card.theme-skills {
   --mode-heading-font: 'Poppins', sans-serif;
   --mode-radius-scale: 1.15;
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
+  /* Sparse constellation dots, matching the full Skills page's texture. */
+  background-image:
+    radial-gradient(rgba(var(--card-rgb), 0.2) 1px, transparent 1px),
+    radial-gradient(rgba(var(--card-rgb2), 0.16) 1.5px, transparent 1.5px);
+  background-size: 34px 34px, 48px 48px;
+  background-position: 0 0, 17px 24px;
 }
 
 .mode-card.theme-reading {
   --mode-heading-font: 'Crimson Pro', Georgia, serif;
   --mode-radius-scale: 1.3;
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
+  /* Fine paper grain, matching the full Reading page's own texture. */
+  background-image: radial-gradient(rgba(var(--card-rgb), 0.14) 1px, transparent 1px);
+  background-size: 8px 8px;
 }
 
 .mode-card.theme-discipline {
   --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;
   --mode-radius-scale: 0.25;
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
+  /* Tight checklist grid, matching the full Discipline page's texture. */
+  background-image:
+    repeating-linear-gradient(rgba(var(--card-rgb), 0.08) 0, rgba(var(--card-rgb), 0.08) 1px, transparent 1px, transparent 9px),
+    repeating-linear-gradient(90deg, rgba(var(--card-rgb), 0.08) 0, rgba(var(--card-rgb), 0.08) 1px, transparent 1px, transparent 9px);
 }
 
 .mode-card.theme-family {
   --mode-heading-font: 'Fredoka', sans-serif;
   --mode-radius-scale: 1.8;
-  background-image: radial-gradient(circle at 50% 0%, rgba(var(--card-rgb), 0.05), transparent 45%);
+  /* Soft warm bubble scatter, matching the full Family page's texture. */
+  background-image:
+    radial-gradient(rgba(var(--card-rgb), 0.14) 2px, transparent 2px),
+    radial-gradient(rgba(var(--card-rgb2), 0.1) 2px, transparent 2px);
+  background-size: 30px 30px, 30px 30px;
+  background-position: 0 0, 15px 15px;
 }
 
 
@@ -6092,6 +6127,100 @@ button:disabled:active {
       rgba(239, 68, 68, 0.18) 45px,
       transparent 45px
     );
+}
+
+/* --- Sports: field yard-lines --- */
+.app-shell.theme-sports .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    rgba(var(--mode-accent-rgb), 0.07) 0,
+    rgba(var(--mode-accent-rgb), 0.07) 2px,
+    transparent 2px,
+    transparent 48px
+  );
+}
+
+/* --- Gym: crosshatch floor-mat diamonds --- */
+.app-shell.theme-gym .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.05) 0, rgba(var(--mode-accent-rgb), 0.05) 1px, transparent 1px, transparent 22px),
+    repeating-linear-gradient(-45deg, rgba(var(--mode-accent-rgb), 0.05) 0, rgba(var(--mode-accent-rgb), 0.05) 1px, transparent 1px, transparent 22px);
+}
+
+/* --- Health: soft dot scatter --- */
+.app-shell.theme-health .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.12) 1.5px, transparent 1.5px);
+  background-size: 26px 26px;
+}
+
+/* --- Finance: ledger grid --- */
+.app-shell.theme-finance .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(rgba(var(--mode-accent-rgb), 0.06) 0, rgba(var(--mode-accent-rgb), 0.06) 1px, transparent 1px, transparent 24px),
+    repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.06) 0, rgba(var(--mode-accent-rgb), 0.06) 1px, transparent 1px, transparent 24px);
+}
+
+/* --- Skills: sparse constellation --- */
+.app-shell.theme-skills .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(rgba(var(--mode-accent-rgb), 0.16) 1px, transparent 1px),
+    radial-gradient(rgba(var(--mode-accent2-rgb), 0.12) 1.5px, transparent 1.5px),
+    radial-gradient(rgba(var(--mode-accent-rgb), 0.09) 1px, transparent 1px);
+  background-size: 90px 90px, 130px 130px, 60px 60px;
+  background-position: 0 0, 40px 60px, 20px 100px;
+}
+
+/* --- Reading: fine paper grain --- */
+.app-shell.theme-reading .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.1) 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+
+/* --- Discipline: tight checklist grid --- */
+.app-shell.theme-discipline .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(rgba(var(--mode-accent-rgb), 0.07) 0, rgba(var(--mode-accent-rgb), 0.07) 1px, transparent 1px, transparent 14px),
+    repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.07) 0, rgba(var(--mode-accent-rgb), 0.07) 1px, transparent 1px, transparent 14px);
+}
+
+/* --- Family: soft warm bubble scatter --- */
+.app-shell.theme-family .main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(rgba(var(--mode-accent-rgb), 0.12) 2px, transparent 2px),
+    radial-gradient(rgba(var(--mode-accent2-rgb), 0.08) 2px, transparent 2px);
+  background-size: 70px 70px, 70px 70px;
+  background-position: 0 0, 35px 35px;
 }
 
 /* Fine halftone dot texture — a much tighter grain than Comic Pop's bold
