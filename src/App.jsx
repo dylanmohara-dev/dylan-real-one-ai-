@@ -357,6 +357,7 @@ function App() {
           gymLogs={data.gymLogs}
           gymRoutines={data.gymRoutines}
           gymWeekPlan={data.gymWeekPlan}
+          gymWeekPlanOverrides={data.gymWeekPlanOverrides}
           gymDayNotes={data.gymDayNotes}
           saving={data.saving}
           addGymExercise={data.addGymExercise}
@@ -368,6 +369,7 @@ function App() {
           updateGymRoutine={data.updateGymRoutine}
           deleteGymRoutine={data.deleteGymRoutine}
           setGymWeekPlanDay={data.setGymWeekPlanDay}
+          setGymWeekPlanOverride={data.setGymWeekPlanOverride}
           setGymDayNote={data.setGymDayNote}
           assistantContext={assistantContext}
           openChat={openChat}
@@ -380,11 +382,13 @@ function App() {
         <SportsPage
           sportsSessions={data.sportsSessions}
           sportsSchedule={data.sportsSchedule}
+          sportsScheduleOverrides={data.sportsScheduleOverrides}
           sportsSettings={data.sportsSettings}
           saving={data.saving}
           addSportsSession={data.addSportsSession}
           deleteSportsSession={data.deleteSportsSession}
           setSportsScheduleDay={data.setSportsScheduleDay}
+          setSportsScheduleOverride={data.setSportsScheduleOverride}
           setSportsSport={data.setSportsSport}
           assistantContext={assistantContext}
           openChat={openChat}

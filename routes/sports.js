@@ -117,7 +117,7 @@ export const DEFAULT_SCHEDULE = Object.fromEntries(WEEKDAYS.map((day) => [day, n
 
 router.get('/schedule', (req, res) => {
   const stored = loadData('sports_schedule', DEFAULT_SCHEDULE)
-  res.json({ schedule: { ...DEFAULT_SCHEDULE, ...stored } })
+  res.json({ schedule: { ...DEFAULT_SCHEDULE, ...stored }, overrides: loadData('sports_schedule_overrides', {}) })
 })
 
 router.post('/schedule', (req, res) => {
@@ -133,6 +133,34 @@ router.post('/schedule', (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Could not save schedule' })
+  }
+})
+
+// Per-date overrides: the recurring Mon-Sun template above is a single
+// fixed shape that can never represent a real season, where a game gets
+// rescheduled, a bye week happens, or an extra practice gets added on a
+// day that's normally off -- Dylan's own "weekly schedule doesn't match
+// reality" complaint. An override for one specific date takes priority
+// over that date's weekday default without touching the recurring
+// template at all; posting null/empty clears the override and reverts
+// that date back to the normal weekday value.
+router.post('/schedule/override', (req, res) => {
+  try {
+    const { date, type } = req.body || {}
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'A valid date (YYYY-MM-DD) is required' })
+    }
+    const overrides = loadData('sports_schedule_overrides', {})
+    if (type) {
+      overrides[date] = type
+    } else {
+      delete overrides[date]
+    }
+    saveData('sports_schedule_overrides', overrides)
+    res.json({ overrides })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save schedule override' })
   }
 })
 

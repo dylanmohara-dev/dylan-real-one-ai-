@@ -3,6 +3,17 @@ import { loadData, saveData } from '../lib/dataStore.js'
 
 const router = Router()
 
+// Bare local YYYY-MM-DD -- NOT toISOString().slice(0, 10), which reads off
+// UTC. Same bug class already found and fixed in skills.js, discipline.js,
+// reading.js, family.js, and finance.js this session -- an evening
+// workout logged with no explicit date gets tagged as tomorrow's date in
+// any US timezone, corrupting the very week-plan/log adherence comparison
+// this pass adds below.
+function todayKeyLocal() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
 // Exercises: a small personal library ("Bench Press", "Squat", ...). Not
 // prescriptive -- Dylan defines his own, no built-in exercise database.
 router.get('/exercises', (req, res) => {
@@ -79,7 +90,7 @@ router.post('/logs', (req, res) => {
     const log = {
       id: Date.now().toString(),
       exerciseId,
-      date: date || new Date().toISOString().slice(0, 10),
+      date: date || todayKeyLocal(),
       sets: cleanSets,
       createdAt: new Date().toISOString(),
     }
@@ -159,7 +170,8 @@ router.delete('/routines/:id', (req, res) => {
 
   // A day still pointing at a routine that no longer exists would silently
   // break the "today's workout" view -- clear it out of the week plan
-  // wherever it was assigned, in the same request that deletes it.
+  // wherever it was assigned, in the same request that deletes it. Same
+  // cleanup for any per-date override pointing at it.
   const weekPlan = loadData('gym_week_plan', DEFAULT_WEEK_PLAN)
   let changed = false
   for (const day of WEEKDAYS) {
@@ -169,6 +181,16 @@ router.delete('/routines/:id', (req, res) => {
     }
   }
   if (changed) saveData('gym_week_plan', weekPlan)
+
+  const overrides = loadData('gym_week_plan_overrides', {})
+  let overridesChanged = false
+  for (const date of Object.keys(overrides)) {
+    if (overrides[date] === req.params.id) {
+      delete overrides[date]
+      overridesChanged = true
+    }
+  }
+  if (overridesChanged) saveData('gym_week_plan_overrides', overrides)
 
   res.json({ success: true })
 })
@@ -184,7 +206,7 @@ router.get('/week-plan', (req, res) => {
   // Merge over the default so a week-plan file saved before some future
   // day key existed (or a hand-edited/partial file) never crashes the
   // frontend on a missing key -- every day always comes back defined.
-  res.json({ weekPlan: { ...DEFAULT_WEEK_PLAN, ...stored } })
+  res.json({ weekPlan: { ...DEFAULT_WEEK_PLAN, ...stored }, overrides: loadData('gym_week_plan_overrides', {}) })
 })
 
 router.post('/week-plan', (req, res) => {
@@ -200,6 +222,34 @@ router.post('/week-plan', (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Could not save week plan' })
+  }
+})
+
+// Per-date overrides: a fixed Mon-Sun -> routine mapping assumes training
+// repeats identically every calendar week forever, tied to weekday names.
+// That's wrong for a rotating split (Push/Pull/Legs/Rest, cycling
+// regardless of which weekday it lands on) or just a day where Dylan
+// swaps what he's doing -- Dylan's own "routines/week plan don't fit your
+// training" complaint. An override for one specific date takes priority
+// over that date's weekday routine without touching the recurring
+// template; posting a null/empty routineId clears the override.
+router.post('/week-plan/override', (req, res) => {
+  try {
+    const { date, routineId } = req.body || {}
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: 'A valid date (YYYY-MM-DD) is required' })
+    }
+    const overrides = loadData('gym_week_plan_overrides', {})
+    if (routineId) {
+      overrides[date] = routineId
+    } else {
+      delete overrides[date]
+    }
+    saveData('gym_week_plan_overrides', overrides)
+    res.json({ overrides })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save week plan override' })
   }
 })
 

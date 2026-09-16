@@ -31,6 +31,46 @@ const SCHEDULE_LABELS = { practice: 'Practice', game: 'Game', off: 'Off' }
 const INTENSITY_LABELS = { light: 'Light', moderate: 'Moderate', hard: 'Hard' }
 const RESULT_LABELS = { win: 'Win', loss: 'Loss', tie: 'Tie' }
 
+// A single Mon-Sun template can never represent a real season -- games
+// get rescheduled, bye weeks happen, extra practices get added. A
+// per-date override always wins over that date's normal weekday value;
+// see routes/sports.js's own comment for the full reasoning.
+function dateWeekdayKey(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  return WEEKDAY_KEYS[new Date(y, m - 1, d).getDay()]
+}
+
+function effectiveScheduleType(schedule, overrides, dateKey) {
+  if (overrides && dateKey in overrides) return overrides[dateKey] || null
+  return schedule?.[dateWeekdayKey(dateKey)] || null
+}
+
+// Compares the last `days` days' effective schedule against what was
+// actually logged -- this is the direct answer to "does my schedule
+// match reality," instead of the schedule and the log being two
+// completely disconnected views of the week.
+function scheduleAdherence(schedule, overrides, sessions, days) {
+  const rows = []
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const dateKey = daysAgoKey(i)
+    const planned = effectiveScheduleType(schedule, overrides, dateKey)
+    const actual = sessions.filter((s) => s.date === dateKey)
+    const actualTypes = new Set(actual.map((s) => s.type))
+    let status
+    if (!planned || planned === 'off') {
+      status = actual.length > 0 ? 'extra' : 'match'
+    } else if (actualTypes.has(planned)) {
+      status = 'match'
+    } else if (actual.length > 0) {
+      status = 'different'
+    } else {
+      status = 'missed'
+    }
+    rows.push({ dateKey, weekdayKey: dateWeekdayKey(dateKey), planned, actual, status })
+  }
+  return rows
+}
+
 function sortSessionsRecentFirst(sessions) {
   return sessions
     .slice()
@@ -196,10 +236,55 @@ function SessionCard({ session, deleteSportsSession }) {
   )
 }
 
-function TodayTab({ sportsSchedule, sportsSessions, saving, addSportsSession }) {
+function TodayOverrideControl({ dateKey, scheduledType, overrides, setSportsScheduleOverride }) {
+  const [editing, setEditing] = useState(false)
+  const hasOverride = dateKey in (overrides || {})
+
+  if (!editing) {
+    return (
+      <button type="button" className="reading-goal-edit-link" onClick={() => setEditing(true)}>
+        {hasOverride ? 'Change (overridden today)' : "Change today's plan"}
+      </button>
+    )
+  }
+
+  return (
+    <div className="reading-goal-edit-form">
+      <select
+        value={scheduledType || ''}
+        onChange={(event) => {
+          setSportsScheduleOverride(dateKey, event.target.value || null)
+          setEditing(false)
+        }}
+      >
+        <option value="">Nothing scheduled</option>
+        <option value="practice">Practice</option>
+        <option value="game">Game</option>
+        <option value="off">Off</option>
+      </select>
+      {hasOverride && (
+        <button
+          type="button"
+          onClick={() => {
+            setSportsScheduleOverride(dateKey, null)
+            setEditing(false)
+          }}
+        >
+          Revert to normal
+        </button>
+      )}
+      <button type="button" onClick={() => setEditing(false)}>
+        Cancel
+      </button>
+    </div>
+  )
+}
+
+function TodayTab({ sportsSchedule, sportsScheduleOverrides, sportsSessions, saving, addSportsSession, setSportsScheduleOverride }) {
+  const dateKey = todayKey()
   const todayWeekdayKey = WEEKDAY_KEYS[new Date().getDay()]
-  const scheduledType = sportsSchedule?.[todayWeekdayKey] || null
-  const todaysSessions = sportsSessions.filter((s) => s.date === todayKey())
+  const scheduledType = effectiveScheduleType(sportsSchedule, sportsScheduleOverrides, dateKey)
+  const todaysSessions = sportsSessions.filter((s) => s.date === dateKey)
 
   return (
     <div className="gym-today">
@@ -208,11 +293,17 @@ function TodayTab({ sportsSchedule, sportsSessions, saving, addSportsSession }) 
         <h2 className="serif">
           {scheduledType ? SCHEDULE_LABELS[scheduledType] || 'Scheduled' : 'Nothing scheduled'}
         </h2>
+        <TodayOverrideControl
+          dateKey={dateKey}
+          scheduledType={scheduledType}
+          overrides={sportsScheduleOverrides}
+          setSportsScheduleOverride={setSportsScheduleOverride}
+        />
       </div>
 
       <SessionForm
         defaultType={scheduledType === 'game' ? 'game' : 'practice'}
-        defaultDate={todayKey()}
+        defaultDate={dateKey}
         saving={saving}
         addSportsSession={addSportsSession}
       />
@@ -252,36 +343,88 @@ function LogTab({ sportsSessions, saving, addSportsSession, deleteSportsSession 
   )
 }
 
-function ScheduleTab({ sportsSchedule, setSportsScheduleDay }) {
+const ADHERENCE_LABELS = {
+  match: 'Matched',
+  different: 'Different than planned',
+  missed: 'Nothing logged',
+  extra: 'Logged, unscheduled',
+}
+
+// Only the last 7 days' MISMATCHES are worth showing -- a wall of "Monday:
+// Matched, Tuesday: Matched..." is noise. This is the direct, concrete
+// answer to "does my schedule match reality," instead of the schedule and
+// the actual log being two silently disconnected views of the week.
+function ScheduleRealityCheck({ sportsSchedule, sportsScheduleOverrides, sportsSessions }) {
+  const rows = scheduleAdherence(sportsSchedule, sportsScheduleOverrides, sportsSessions, 7)
+  const mismatches = rows.filter((row) => row.status !== 'match')
+
   return (
-    <div className="gym-week-plan">
-      <span className="eyebrow">WEEKLY SCHEDULE</span>
-      {WEEKDAY_ORDER.map((day) => (
-        <div className="gym-week-plan-row" key={day}>
-          <span className="gym-week-plan-day">{WEEKDAY_LABELS[day]}</span>
-          <select
-            value={sportsSchedule?.[day] || ''}
-            onChange={(event) => setSportsScheduleDay(day, event.target.value || null)}
-          >
-            <option value="">Not set</option>
-            <option value="practice">Practice</option>
-            <option value="game">Game</option>
-            <option value="off">Off</option>
-          </select>
+    <div className="reality-check">
+      <span className="eyebrow">LAST 7 DAYS: SCHEDULE VS. REALITY</span>
+      {mismatches.length === 0 ? (
+        <p className="reality-check-empty">Every day this week matched what was actually logged.</p>
+      ) : (
+        <div className="items-list">
+          {mismatches.map((row) => (
+            <div className="item-card" key={row.dateKey}>
+              <div className="item-content">
+                <strong>
+                  {WEEKDAY_LABELS[row.weekdayKey]} ({row.dateKey})
+                </strong>
+                <div className="item-meta">
+                  <span>
+                    Scheduled: {row.planned ? SCHEDULE_LABELS[row.planned] : 'Nothing'} &middot; {ADHERENCE_LABELS[row.status]}
+                    {row.actual.length > 0 ? ` (logged: ${row.actual.map((s) => SCHEDULE_LABELS[s.type] || s.type).join(', ')})` : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
+  )
+}
+
+function ScheduleTab({ sportsSchedule, sportsScheduleOverrides, sportsSessions, setSportsScheduleDay }) {
+  return (
+    <>
+      <div className="gym-week-plan">
+        <span className="eyebrow">WEEKLY SCHEDULE</span>
+        {WEEKDAY_ORDER.map((day) => (
+          <div className="gym-week-plan-row" key={day}>
+            <span className="gym-week-plan-day">{WEEKDAY_LABELS[day]}</span>
+            <select
+              value={sportsSchedule?.[day] || ''}
+              onChange={(event) => setSportsScheduleDay(day, event.target.value || null)}
+            >
+              <option value="">Not set</option>
+              <option value="practice">Practice</option>
+              <option value="game">Game</option>
+              <option value="off">Off</option>
+            </select>
+          </div>
+        ))}
+      </div>
+      <ScheduleRealityCheck
+        sportsSchedule={sportsSchedule}
+        sportsScheduleOverrides={sportsScheduleOverrides}
+        sportsSessions={sportsSessions}
+      />
+    </>
   )
 }
 
 export default function SportsPage({
   sportsSessions,
   sportsSchedule,
+  sportsScheduleOverrides,
   sportsSettings,
   saving,
   addSportsSession,
   deleteSportsSession,
   setSportsScheduleDay,
+  setSportsScheduleOverride,
   setSportsSport,
   assistantContext,
   openChat,
@@ -354,9 +497,11 @@ export default function SportsPage({
       {activeTab === 'today' && (
         <TodayTab
           sportsSchedule={sportsSchedule}
+          sportsScheduleOverrides={sportsScheduleOverrides}
           sportsSessions={sportsSessions}
           saving={saving}
           addSportsSession={addSportsSession}
+          setSportsScheduleOverride={setSportsScheduleOverride}
         />
       )}
 
@@ -370,7 +515,12 @@ export default function SportsPage({
       )}
 
       {activeTab === 'schedule' && (
-        <ScheduleTab sportsSchedule={sportsSchedule} setSportsScheduleDay={setSportsScheduleDay} />
+        <ScheduleTab
+          sportsSchedule={sportsSchedule}
+          sportsScheduleOverrides={sportsScheduleOverrides}
+          sportsSessions={sportsSessions}
+          setSportsScheduleDay={setSportsScheduleDay}
+        />
       )}
     </div>
   )

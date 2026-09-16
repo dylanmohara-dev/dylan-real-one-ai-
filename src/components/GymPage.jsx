@@ -35,6 +35,46 @@ const WEEKDAY_LABELS = {
   sunday: 'Sunday',
 }
 
+// A fixed Mon-Sun -> routine mapping assumes training repeats identically
+// every calendar week, tied to weekday names -- wrong for a rotating
+// split (Push/Pull/Legs/Rest, cycling regardless of weekday) or a one-off
+// swap. A per-date override always wins; see routes/gym.js's comment.
+function dateWeekdayKey(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  return WEEKDAY_KEYS[new Date(y, m - 1, d).getDay()]
+}
+
+function effectiveRoutineId(weekPlan, overrides, dateKey) {
+  if (overrides && dateKey in overrides) return overrides[dateKey] || null
+  return weekPlan?.[dateWeekdayKey(dateKey)] || null
+}
+
+// Compares the last `days` days' effective plan against which exercises
+// actually got logged -- the direct answer to "does my routine fit what
+// I'm actually training," instead of the week plan and the real logs
+// being two disconnected views.
+function planAdherence(weekPlan, overrides, logs, routines, days) {
+  const rows = []
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const dateKey = daysAgoKey(i)
+    const routineId = effectiveRoutineId(weekPlan, overrides, dateKey)
+    const routine = routineId ? routines.find((r) => r.id === routineId) : null
+    const loggedToday = logs.filter((l) => l.date === dateKey)
+    let status
+    if (!routine) {
+      status = loggedToday.length > 0 ? 'extra' : 'match'
+    } else {
+      const plannedExerciseIds = new Set(routine.exerciseIds)
+      const hitAny = loggedToday.some((l) => plannedExerciseIds.has(l.exerciseId))
+      if (loggedToday.length === 0) status = 'missed'
+      else if (hitAny) status = 'match'
+      else status = 'different'
+    }
+    rows.push({ dateKey, weekdayKey: dateWeekdayKey(dateKey), routine, loggedCount: loggedToday.length, status })
+  }
+  return rows
+}
+
 function bestSetForLog(log) {
   return (log.sets || []).reduce(
     (best, set) => {
@@ -346,9 +386,56 @@ function DayNoteBox({ gymDayNotes, saving, setGymDayNote }) {
   )
 }
 
-function TodayTab({ gymExercises, gymLogs, gymRoutines, gymWeekPlan, gymDayNotes, saving, addGymLog, setGymDayNote }) {
+function TodayRoutineOverrideControl({ dateKey, routineId, routines, overrides, setGymWeekPlanOverride }) {
+  const [editing, setEditing] = useState(false)
+  const hasOverride = dateKey in (overrides || {})
+
+  if (!editing) {
+    return (
+      <button type="button" className="reading-goal-edit-link" onClick={() => setEditing(true)}>
+        {hasOverride ? 'Change (overridden today)' : "Swap today's routine"}
+      </button>
+    )
+  }
+
+  return (
+    <div className="reading-goal-edit-form">
+      <select
+        value={routineId || ''}
+        onChange={(event) => {
+          setGymWeekPlanOverride(dateKey, event.target.value || null)
+          setEditing(false)
+        }}
+      >
+        <option value="">Rest day</option>
+        {routines.map((r) => (
+          <option key={r.id} value={r.id}>
+            {r.name}
+          </option>
+        ))}
+      </select>
+      {hasOverride && (
+        <button
+          type="button"
+          onClick={() => {
+            setGymWeekPlanOverride(dateKey, null)
+            setEditing(false)
+          }}
+        >
+          Revert to normal
+        </button>
+      )}
+      <button type="button" onClick={() => setEditing(false)}>
+        Cancel
+      </button>
+    </div>
+  )
+}
+
+function TodayTab({ gymExercises, gymLogs, gymRoutines, gymWeekPlan, gymWeekPlanOverrides, gymDayNotes, saving, addGymLog, setGymDayNote, setGymWeekPlanOverride }) {
+  const dateKey = todayKey()
   const todayWeekdayKey = WEEKDAY_KEYS[new Date().getDay()]
-  const routineId = gymWeekPlan?.[todayWeekdayKey] || null
+  const routineId = effectiveRoutineId(gymWeekPlan, gymWeekPlanOverrides, dateKey)
   const routine = gymRoutines.find((r) => r.id === routineId) || null
   const routineExercises = routine
     ? routine.exerciseIds.map((id) => gymExercises.find((e) => e.id === id)).filter(Boolean)
@@ -359,6 +446,13 @@ function TodayTab({ gymExercises, gymLogs, gymRoutines, gymWeekPlan, gymDayNotes
       <div className="gym-today-header">
         <span className="eyebrow">{WEEKDAY_LABELS[todayWeekdayKey]}</span>
         <h2 className="serif">{routine ? routine.name : 'Rest day'}</h2>
+        <TodayRoutineOverrideControl
+          dateKey={dateKey}
+          routineId={routineId}
+          routines={gymRoutines}
+          overrides={gymWeekPlanOverrides}
+          setGymWeekPlanOverride={setGymWeekPlanOverride}
+        />
       </div>
 
       <DayNoteBox gymDayNotes={gymDayNotes} saving={saving} setGymDayNote={setGymDayNote} />
@@ -583,8 +677,10 @@ function ExercisesTab({ gymExercises, gymLogs, saving, addGymExercise, deleteGym
 
 function RoutinesTab({
   gymExercises,
+  gymLogs,
   gymRoutines,
   gymWeekPlan,
+  gymWeekPlanOverrides,
   saving,
   addGymRoutine,
   updateGymRoutine,
@@ -716,6 +812,57 @@ function RoutinesTab({
           </div>
         ))}
       </div>
+
+      <PlanRealityCheck
+        gymWeekPlan={gymWeekPlan}
+        gymWeekPlanOverrides={gymWeekPlanOverrides}
+        gymLogs={gymLogs}
+        gymRoutines={gymRoutines}
+      />
+    </div>
+  )
+}
+
+const GYM_ADHERENCE_LABELS = {
+  match: 'Trained on plan',
+  different: "Trained, but not this routine's exercises",
+  missed: 'Nothing logged',
+  extra: 'Logged, unscheduled',
+}
+
+// Same "only show the last 7 days' mismatches" reasoning as Sports'
+// ScheduleRealityCheck -- a wall of "Monday: Trained on plan" every day is
+// noise. This is the direct answer to "routines/week plan don't fit your
+// training": it shows exactly where the plan and the real logs diverge,
+// which a rigid weekday->routine mapping has no way to surface on its own.
+function PlanRealityCheck({ gymWeekPlan, gymWeekPlanOverrides, gymLogs, gymRoutines }) {
+  const rows = planAdherence(gymWeekPlan, gymWeekPlanOverrides, gymLogs, gymRoutines, 7)
+  const mismatches = rows.filter((row) => row.status !== 'match')
+
+  return (
+    <div className="reality-check">
+      <span className="eyebrow">LAST 7 DAYS: PLAN VS. REALITY</span>
+      {mismatches.length === 0 ? (
+        <p className="reality-check-empty">Every day this week matched what was actually logged.</p>
+      ) : (
+        <div className="items-list">
+          {mismatches.map((row) => (
+            <div className="item-card" key={row.dateKey}>
+              <div className="item-content">
+                <strong>
+                  {WEEKDAY_LABELS[row.weekdayKey]} ({row.dateKey})
+                </strong>
+                <div className="item-meta">
+                  <span>
+                    Planned: {row.routine ? row.routine.name : 'Rest day'} &middot; {GYM_ADHERENCE_LABELS[row.status]}
+                    {row.loggedCount > 0 ? ` (${row.loggedCount} exercise${row.loggedCount === 1 ? '' : 's'} logged)` : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -725,6 +872,7 @@ export default function GymPage({
   gymLogs,
   gymRoutines,
   gymWeekPlan,
+  gymWeekPlanOverrides,
   gymDayNotes,
   saving,
   addGymExercise,
@@ -736,6 +884,7 @@ export default function GymPage({
   updateGymRoutine,
   deleteGymRoutine,
   setGymWeekPlanDay,
+  setGymWeekPlanOverride,
   setGymDayNote,
   assistantContext,
   openChat,
@@ -802,6 +951,8 @@ export default function GymPage({
           gymLogs={gymLogs}
           gymRoutines={gymRoutines}
           gymWeekPlan={gymWeekPlan}
+          gymWeekPlanOverrides={gymWeekPlanOverrides}
+          setGymWeekPlanOverride={setGymWeekPlanOverride}
           gymDayNotes={gymDayNotes}
           saving={saving}
           addGymLog={addGymLog}
@@ -825,8 +976,10 @@ export default function GymPage({
       {activeTab === 'routines' && (
         <RoutinesTab
           gymExercises={gymExercises}
+          gymLogs={gymLogs}
           gymRoutines={gymRoutines}
           gymWeekPlan={gymWeekPlan}
+          gymWeekPlanOverrides={gymWeekPlanOverrides}
           saving={saving}
           addGymRoutine={addGymRoutine}
           updateGymRoutine={updateGymRoutine}

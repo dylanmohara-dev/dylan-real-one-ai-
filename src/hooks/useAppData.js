@@ -120,9 +120,11 @@ export function useAppData() {
   const [gymLogs, setGymLogs] = useState([])
   const [gymRoutines, setGymRoutines] = useState([])
   const [gymWeekPlan, setGymWeekPlan] = useState({})
+  const [gymWeekPlanOverrides, setGymWeekPlanOverrides] = useState({})
   const [gymDayNotes, setGymDayNotes] = useState([])
   const [sportsSessions, setSportsSessions] = useState([])
   const [sportsSchedule, setSportsSchedule] = useState({})
+  const [sportsScheduleOverrides, setSportsScheduleOverrides] = useState({})
   const [sportsSettings, setSportsSettings] = useState({ sport: '' })
   const [readingBooks, setReadingBooks] = useState([])
   const [readingSessions, setReadingSessions] = useState([])
@@ -445,9 +447,11 @@ export function useAppData() {
       setGymLogs(data.gym?.logs || [])
       setGymRoutines(data.gym?.routines || [])
       setGymWeekPlan(data.gym?.weekPlan || {})
+      setGymWeekPlanOverrides(data.gym?.weekPlanOverrides || {})
       setGymDayNotes(data.gym?.dayNotes || [])
       setSportsSessions(data.sports?.sessions || [])
       setSportsSchedule(data.sports?.schedule || {})
+      setSportsScheduleOverrides(data.sports?.scheduleOverrides || {})
       setSportsSettings(data.sports?.settings || { sport: '' })
       setReadingBooks(data.reading?.books || [])
       setReadingSessions(data.reading?.sessions || [])
@@ -981,6 +985,22 @@ export function useAppData() {
     }
   }
 
+  // date is 'YYYY-MM-DD'; routineId null clears the override, reverting
+  // that date back to its normal weekday routine. See routes/gym.js for
+  // why this exists -- a rotating split or a one-off swap doesn't fit the
+  // fixed weekday template.
+  async function setGymWeekPlanOverride(date, routineId) {
+    try {
+      await request('/gym/week-plan/override', {
+        method: 'POST',
+        body: JSON.stringify({ date, routineId }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
   // date is a bare 'YYYY-MM-DD' key; note '' clears that day's note. No
   // success toast -- this saves as you type/blur, same as the week plan.
   async function setGymDayNote(date, note) {
@@ -1032,6 +1052,22 @@ export function useAppData() {
       await request('/sports/schedule', {
         method: 'POST',
         body: JSON.stringify({ [day]: type }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // date is 'YYYY-MM-DD'; type null clears the override, reverting that
+  // date back to its normal weekday schedule. See routes/sports.js for
+  // why this exists -- a real season deviates from any fixed weekly
+  // template (rescheduled games, bye weeks, extra practices).
+  async function setSportsScheduleOverride(date, type) {
+    try {
+      await request('/sports/schedule/override', {
+        method: 'POST',
+        body: JSON.stringify({ date, type }),
       })
       await loadData()
     } catch (error) {
@@ -2845,6 +2881,7 @@ export function useAppData() {
     gymLogs,
     gymRoutines,
     gymWeekPlan,
+    gymWeekPlanOverrides,
     gymDayNotes,
     addGymExercise,
     deleteGymExercise,
@@ -2855,13 +2892,16 @@ export function useAppData() {
     updateGymRoutine,
     deleteGymRoutine,
     setGymWeekPlanDay,
+    setGymWeekPlanOverride,
     setGymDayNote,
     // sports
     sportsSessions,
     sportsSchedule,
+    sportsScheduleOverrides,
     addSportsSession,
     deleteSportsSession,
     setSportsScheduleDay,
+    setSportsScheduleOverride,
     sportsSettings,
     setSportsSport,
 

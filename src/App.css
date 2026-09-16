@@ -8374,6 +8374,25 @@ button:disabled:active {
   vertical-align: -2px;
 }
 
+/* Shared by Sports' ScheduleRealityCheck and Gym's PlanRealityCheck --
+   the "planned vs. actually logged, last 7 days" mismatch view. Deliberately
+   mode-neutral (not .sports-* or .gym-*) since both modes render it the
+   same way via .items-list / .item-card. */
+.reality-check {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  margin-top: 14px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.reality-check-empty {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
 @media (max-width: 720px) {
   .sports-session-form-fields {
     grid-template-columns: 1fr 1fr;

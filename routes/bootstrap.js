@@ -56,11 +56,13 @@ router.get('/bootstrap', (req, res) => {
         logs: loadData('gym_logs'),
         routines: loadData('gym_routines'),
         weekPlan: { ...DEFAULT_WEEK_PLAN, ...loadData('gym_week_plan', DEFAULT_WEEK_PLAN) },
+        weekPlanOverrides: loadData('gym_week_plan_overrides', {}),
         dayNotes: loadData('gym_day_notes'),
       },
       sports: {
         sessions: loadData('sports_sessions'),
         schedule: { ...DEFAULT_SCHEDULE, ...loadData('sports_schedule', DEFAULT_SCHEDULE) },
+        scheduleOverrides: loadData('sports_schedule_overrides', {}),
         settings: loadData('sports_settings', { sport: '' }),
       },
       reading: {
