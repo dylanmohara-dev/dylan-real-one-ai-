@@ -8,6 +8,16 @@ const router = Router()
 const STREAK_BADGES = [3, 7, 30, 100]
 const LEVEL_BADGES = [5, 10, 25]
 
+// Every logged session earns this much XP on top of its raw quantity.
+// Without it, XP was pure quantity (1 unit = 1 xp), which unfairly
+// punished any skill tracked by session count or small numbers ("guitar,
+// 1 session" earned 1 xp) next to one tracked by volume ("pushups, 30
+// reps" earned 30 xp for the same amount of real-world effort) -- this
+// was Dylan's own "XP/level system doesn't feel rewarding" complaint,
+// traced to the fact that reward depended on which unit he happened to
+// type in, not on whether he showed up.
+const BASE_SESSION_XP = 10
+
 // Bare local YYYY-MM-DD -- NOT toISOString().slice(0, 10), which reads off
 // UTC. On any machine west of UTC (all of the US, including wherever this
 // server actually runs), that UTC-based version tags practice logged in
@@ -40,6 +50,16 @@ function computeLevel(xp) {
   }
 
   return { level, xpIntoLevel: remaining, xpForNextLevel: required }
+}
+
+// Total cumulative xp needed to have already cleared levels 1..targetLevel-1
+// (i.e. the xp value at which computeLevel() first reports targetLevel).
+// Kept as a sum over the same 50*N-per-level curve computeLevel() uses,
+// rather than a separate formula, so the two can never disagree.
+function xpRequiredThroughLevel(targetLevel) {
+  let total = 0
+  for (let n = 1; n < targetLevel; n++) total += 50 * n
+  return total
 }
 
 function quantityByDate(sessions, skillId) {
@@ -137,6 +157,24 @@ function skillVideos(skillId) {
     .map(({ filePath, ...meta }) => meta) // never leak the on-disk path to the client
 }
 
+// A badge earned some day is motivating; a badge with no visible way to
+// tell how close you are to the NEXT one just sits there. This is the
+// other half of "XP/level system doesn't feel rewarding" -- badges were
+// binary (earned or not), with nothing showing progress toward the next
+// threshold the way the level XP bar already does.
+function nextBadgeProgress(level, streak, xp) {
+  const nextStreakThreshold = STREAK_BADGES.find((t) => t > streak) || null
+  const nextLevelThreshold = LEVEL_BADGES.find((t) => t > level) || null
+  return {
+    streak: nextStreakThreshold
+      ? { threshold: nextStreakThreshold, remainingDays: nextStreakThreshold - streak }
+      : null,
+    level: nextLevelThreshold
+      ? { threshold: nextLevelThreshold, remainingXp: Math.max(0, xpRequiredThroughLevel(nextLevelThreshold) - (xp || 0)) }
+      : null,
+  }
+}
+
 function enrichSkill(skill, allSessions) {
   const sessions = allSessions
     .filter((s) => s.skillId === skill.id)
@@ -156,6 +194,7 @@ function enrichSkill(skill, allSessions) {
     maxStreak,
     todayQuantity: totals[todayKey()] || 0,
     badges: computeBadges(level, maxStreak),
+    nextBadgeProgress: nextBadgeProgress(level, streak, skill.xp || 0),
     sessions: sessions.slice(0, 20),
     videos: skillVideos(skill.id),
   }
@@ -209,8 +248,9 @@ router.post('/', (req, res) => {
 })
 
 // Removing a skill deactivates it rather than deleting it outright, so its
-// session history and earned badges survive if it's ever re-added — but it
-// frees up a slot in the active 3 immediately.
+// session history and earned badges survive if it's ever re-added. Skills
+// has been uncapped since Session 6 -- there is no fixed slot count to
+// free up here anymore.
 router.delete('/:id', (req, res) => {
   const skills = loadData('skills')
   const skill = skills.find((item) => item.id === req.params.id)
@@ -247,7 +287,7 @@ router.post('/sessions', (req, res) => {
     })
     saveData('skill_sessions', sessions)
 
-    skill.xp = (skill.xp || 0) + numericQuantity
+    skill.xp = (skill.xp || 0) + numericQuantity + BASE_SESSION_XP
     saveData('skills', skills)
 
     res.json(buildPayload())
@@ -269,7 +309,7 @@ router.delete('/sessions/:id', (req, res) => {
     const skills = loadData('skills')
     const skill = skills.find((s) => s.id === session.skillId)
     if (skill) {
-      skill.xp = Math.max(0, (skill.xp || 0) - Number(session.quantity || 0))
+      skill.xp = Math.max(0, (skill.xp || 0) - Number(session.quantity || 0) - BASE_SESSION_XP)
       saveData('skills', skills)
     }
   }

@@ -600,7 +600,7 @@ Dylan: "drank a liter of water"
 Dylan: "went for a 3 mile run"
 {"reply": "Logged: activity — ran 3 miles.", "action": {"type": "log_health", "category": "activity", "value": "3 miles", "note": "run"}}
 
-log_skill_practice — use this whenever Dylan mentions practicing or logging progress on a tracked skill (he can track up to 3 at once). Fields: skillName (which skill he means, even a partial/casual name — required if he's tracking more than one skill), quantity (a number, in whatever unit that skill uses — reps, pages, problems, etc.), note (optional short detail).
+log_skill_practice — use this whenever Dylan mentions practicing or logging progress on a tracked skill (he can track any number of skills at once -- there is no cap). Fields: skillName (which skill he means, even a partial/casual name — required if he's tracking more than one skill), quantity (a number, in whatever unit that skill uses — reps, pages, problems, etc.), note (optional short detail).
 
 Dylan: "did 20 reps of squats for gym skill"
 {"reply": "Logged 20 reps for Gym Skill.", "action": {"type": "log_skill_practice", "skillName": "gym skill", "quantity": 20, "note": ""}}

@@ -5254,6 +5254,17 @@ footer {
   font-weight: 600;
 }
 
+/* Shows how close the next streak/level badge is -- badges used to be
+   purely binary (earned or not), with no sense of progress in between. */
+.skill-badge-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 14px;
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+
 .skill-video-section {
   margin-bottom: 14px;
   padding-bottom: 14px;

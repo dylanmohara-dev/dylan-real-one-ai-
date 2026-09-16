@@ -192,6 +192,23 @@ function SkillCard({ skill, saving, removeSkill, deleteSkillSession, uploadSkill
         </div>
       )}
 
+      {(skill.nextBadgeProgress?.streak || skill.nextBadgeProgress?.level) && (
+        <div className="skill-badge-progress">
+          {skill.nextBadgeProgress.streak && (
+            <span>
+              {skill.nextBadgeProgress.streak.remainingDays} more day
+              {skill.nextBadgeProgress.streak.remainingDays === 1 ? '' : 's'} for a{' '}
+              {skill.nextBadgeProgress.streak.threshold}-day streak badge
+            </span>
+          )}
+          {skill.nextBadgeProgress.level && (
+            <span>
+              {skill.nextBadgeProgress.level.remainingXp} XP to a Level {skill.nextBadgeProgress.level.threshold} badge
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="skill-video-section">
         <span className="skill-recent-heading">
           <Video size={11} strokeWidth={2.25} /> Proof of practice
