@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 
 // Standard US 4.0 scale. No school-specific customization yet (some
@@ -19,19 +20,38 @@ function gradeToGPA(percent) {
   return 0.0
 }
 
-// A class's average is a straight (unweighted) mean of every graded
-// assignment and test in it — no assignments-vs-tests weighting yet,
-// same "simple first, real" scope discipline as everything else this
-// session. null means "nothing graded yet", not "0%" — an ungraded
-// class should never look like it's failing.
+// A class's average is weighted by category, not a flat mean of every
+// graded item -- a $5 homework assignment and a final exam counting
+// identically was a real, previously-documented gap (see the git history
+// for this exact comment before this changed). These weights are a
+// reasonable default, same caveat as gradeToGPA's 4.0 scale above: not a
+// claim they match Dylan's actual school's real weighting, just a far
+// better default than treating everything as equal. category defaults to
+// 'homework' (assignments) / 'test' (tests) for any item saved before
+// this field existed, matching the backend's own POST default.
+const CATEGORY_LABELS = { homework: 'Homework', quiz: 'Quiz', test: 'Test', project: 'Project' }
+const CATEGORY_WEIGHTS = { homework: 15, quiz: 25, test: 50, project: 10 }
+
+function itemCategory(item, fallback) {
+  return CATEGORY_WEIGHTS[item.category] ? item.category : fallback
+}
+
 function classAverage(classId, assignments, tests) {
   const graded = [
-    ...assignments.filter((a) => a.classId === classId && a.grade !== null && a.grade !== undefined),
-    ...tests.filter((t) => t.classId === classId && t.grade !== null && t.grade !== undefined),
+    ...assignments
+      .filter((a) => a.classId === classId && a.grade !== null && a.grade !== undefined)
+      .map((a) => ({ ...a, category: itemCategory(a, 'homework') })),
+    ...tests
+      .filter((t) => t.classId === classId && t.grade !== null && t.grade !== undefined)
+      .map((t) => ({ ...t, category: itemCategory(t, 'test') })),
   ]
   if (!graded.length) return null
-  const sum = graded.reduce((total, item) => total + Number(item.grade), 0)
-  return sum / graded.length
+  const totalWeight = graded.reduce((sum, item) => sum + CATEGORY_WEIGHTS[item.category], 0)
+  const weightedSum = graded.reduce(
+    (sum, item) => sum + Number(item.grade) * CATEGORY_WEIGHTS[item.category],
+    0
+  )
+  return weightedSum / totalWeight
 }
 
 // Grade weighting: the standard US high school convention — Honors gets
@@ -165,11 +185,13 @@ export default function SchoolPage({
   addAssignment,
   toggleAssignment,
   setAssignmentGrade,
+  setAssignmentCategory,
   deleteAssignment,
   tasks,
   addTest,
   toggleTest,
   setTestGrade,
+  setTestCategory,
   deleteTest,
   generateStudyPlan,
   clearStudyPlan,
@@ -181,6 +203,44 @@ export default function SchoolPage({
   const classTests = (classId) => tests.filter((t) => t.classId === classId)
   const { weighted: weightedGPA, unweighted: unweightedGPA, gradedCount } = computeGPAs(classes, assignments, tests)
   const deadlines = upcomingItems(classes, assignments, tests)
+
+  // Decluttering fix: Dylan's own complaint was that "Coming up" felt
+  // cluttered -- it used to be one flat list, unlimited length, with no
+  // distinction between "due today" and "due in six weeks." Grouping by
+  // real urgency and collapsing the long tail behind a click is the
+  // actual fix; nothing about which items show is changed, only how
+  // they're organized.
+  const [showLaterDeadlines, setShowLaterDeadlines] = useState(false)
+  const overdueDeadlines = deadlines.filter((item) => item.daysUntil < 0)
+  const thisWeekDeadlines = deadlines.filter((item) => item.daysUntil >= 0 && item.daysUntil <= 7)
+  const laterDeadlines = deadlines.filter((item) => item.daysUntil > 7)
+
+  function renderDeadlineItem(item) {
+    const tone = item.daysUntil < 0 ? 'overdue' : item.daysUntil <= 2 ? 'soon' : 'normal'
+    return (
+      <div
+        className={`deadline-item deadline-${tone} deadline-clickable`}
+        key={item.id}
+        onClick={() => setSelectedClassId(item.classId)}
+      >
+        <button
+          className="check-button"
+          onClick={(event) => {
+            event.stopPropagation()
+            if (item.kind === 'Assignment') toggleAssignment(item.raw)
+            else toggleTest(item.raw)
+          }}
+          title="Mark done"
+        ></button>
+        <span className="deadline-kind">{item.kind}</span>
+        <div className="deadline-body">
+          <strong>{item.title}</strong>
+          <span className="deadline-class">{item.className}</span>
+        </div>
+        <span className="deadline-when">{deadlineLabel(item.daysUntil)}</span>
+      </div>
+    )
+  }
 
   if (!selectedClassId) {
     return (
@@ -214,33 +274,30 @@ export default function SchoolPage({
           </div>
           {deadlines.length ? (
             <div className="deadline-list">
-              {deadlines.map((item) => {
-                const tone =
-                  item.daysUntil < 0 ? 'overdue' : item.daysUntil <= 2 ? 'soon' : 'normal'
-                return (
-                  <div
-                    className={`deadline-item deadline-${tone} deadline-clickable`}
-                    key={item.id}
-                    onClick={() => setSelectedClassId(item.classId)}
+              {overdueDeadlines.length > 0 && (
+                <div className="deadline-group">
+                  <span className="deadline-group-label">Overdue</span>
+                  {overdueDeadlines.map(renderDeadlineItem)}
+                </div>
+              )}
+              {thisWeekDeadlines.length > 0 && (
+                <div className="deadline-group">
+                  <span className="deadline-group-label">This week</span>
+                  {thisWeekDeadlines.map(renderDeadlineItem)}
+                </div>
+              )}
+              {laterDeadlines.length > 0 && (
+                <div className="deadline-group">
+                  <button
+                    type="button"
+                    className="deadline-group-toggle"
+                    onClick={() => setShowLaterDeadlines((prev) => !prev)}
                   >
-                    <button
-                      className="check-button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        if (item.kind === 'Assignment') toggleAssignment(item.raw)
-                        else toggleTest(item.raw)
-                      }}
-                      title="Mark done"
-                    ></button>
-                    <span className="deadline-kind">{item.kind}</span>
-                    <div className="deadline-body">
-                      <strong>{item.title}</strong>
-                      <span className="deadline-class">{item.className}</span>
-                    </div>
-                    <span className="deadline-when">{deadlineLabel(item.daysUntil)}</span>
-                  </div>
-                )
-              })}
+                    {showLaterDeadlines ? 'Hide later items ▲' : `Show ${laterDeadlines.length} later item${laterDeadlines.length === 1 ? '' : 's'} ▼`}
+                  </button>
+                  {showLaterDeadlines && laterDeadlines.map(renderDeadlineItem)}
+                </div>
+              )}
             </div>
           ) : (
             <div className="mini-empty">Nothing due -- add a due date to an assignment or test to see it here.</div>
@@ -392,6 +449,18 @@ export default function SchoolPage({
                       {assignment.dueDate && <span>Due {assignment.dueDate}</span>}
                     </div>
                   </div>
+                  <select
+                    className="category-select"
+                    value={itemCategory(assignment, 'homework')}
+                    title="Grade weight category"
+                    onChange={(event) => setAssignmentCategory(assignment, event.target.value)}
+                  >
+                    {Object.keys(CATEGORY_LABELS).map((key) => (
+                      <option key={key} value={key}>
+                        {CATEGORY_LABELS[key]} ({CATEGORY_WEIGHTS[key]}%)
+                      </option>
+                    ))}
+                  </select>
                   <input
                     type="number"
                     className="grade-input"
@@ -459,6 +528,18 @@ export default function SchoolPage({
                           {test.date && <span>Date {test.date}</span>}
                         </div>
                       </div>
+                      <select
+                        className="category-select"
+                        value={itemCategory(test, 'test')}
+                        title="Grade weight category"
+                        onChange={(event) => setTestCategory(test, event.target.value)}
+                      >
+                        {Object.keys(CATEGORY_LABELS).map((key) => (
+                          <option key={key} value={key}>
+                            {CATEGORY_LABELS[key]} ({CATEGORY_WEIGHTS[key]}%)
+                          </option>
+                        ))}
+                      </select>
                       <input
                         type="number"
                         className="grade-input"

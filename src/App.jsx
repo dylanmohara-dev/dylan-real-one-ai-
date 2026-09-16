@@ -245,10 +245,12 @@ function App() {
           addAssignment={data.addAssignment}
           toggleAssignment={data.toggleAssignment}
           setAssignmentGrade={data.setAssignmentGrade}
+          setAssignmentCategory={data.setAssignmentCategory}
           deleteAssignment={data.deleteAssignment}
           addTest={data.addTest}
           toggleTest={data.toggleTest}
           setTestGrade={data.setTestGrade}
+          setTestCategory={data.setTestCategory}
           deleteTest={data.deleteTest}
           generateStudyPlan={data.generateStudyPlan}
           clearStudyPlan={data.clearStudyPlan}

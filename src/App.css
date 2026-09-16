@@ -2036,6 +2036,53 @@ footer {
   border-color: rgb(var(--mode-accent-rgb));
 }
 
+/* Deadline groups (Overdue / This week / Later) -- the declutter fix */
+.deadline-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.deadline-group + .deadline-group {
+  margin-top: 10px;
+}
+
+.deadline-group-label {
+  font-size: 0.65rem;
+  letter-spacing: var(--mode-tracking, 0.08em);
+  text-transform: uppercase;
+  opacity: 0.5;
+  padding-left: 2px;
+}
+
+.deadline-group-toggle {
+  align-self: flex-start;
+  padding: 6px 10px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.deadline-group-toggle:hover {
+  border-color: rgb(var(--mode-accent-rgb));
+  color: var(--text-primary);
+}
+
+/* Grade-weight category select, sits next to the grade-% input */
+.category-select {
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0 6px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: var(--surface-input);
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
 .check-button {
   width: 24px;
   height: 24px;

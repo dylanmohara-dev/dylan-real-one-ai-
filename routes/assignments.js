@@ -4,13 +4,21 @@ import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.j
 
 const router = Router()
 
+// Category drives grade weighting in SchoolPage.jsx's classAverage --
+// a flat average of every graded item treated the same regardless of
+// whether it's a $5 worksheet or a final exam was a real, previously-
+// documented gap (see the comment this replaces in that file). Defaults
+// to 'homework' since that's what most assignments actually are; 'test'
+// (routes/tests.js) and 'quiz'/'project' exist for the other cases.
+const ASSIGNMENT_CATEGORIES = ['homework', 'quiz', 'test', 'project']
+
 router.get('/', (req, res) => {
   res.json({ assignments: loadData('assignments') })
 })
 
 router.post('/', async (req, res) => {
   try {
-    const { classId, title, dueDate } = req.body
+    const { classId, title, dueDate, category } = req.body
     if (!title?.trim() || !classId) {
       return res.status(400).json({ error: 'classId and title are required' })
     }
@@ -20,6 +28,7 @@ router.post('/', async (req, res) => {
       classId,
       title: title.trim(),
       dueDate: dueDate || '',
+      category: ASSIGNMENT_CATEGORIES.includes(category) ? category : 'homework',
       completed: false,
       createdAt: new Date().toISOString(),
     }

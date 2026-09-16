@@ -5,13 +5,19 @@ import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.j
 
 const router = Router()
 
+// See routes/assignments.js's ASSIGNMENT_CATEGORIES for why this exists.
+// A test defaults to 'test' (not 'homework') since that's what a Test
+// mode entry almost always is; 'quiz' covers a lower-stakes in-class quiz
+// logged here instead of as an assignment.
+const TEST_CATEGORIES = ['homework', 'quiz', 'test', 'project']
+
 router.get('/', (req, res) => {
   res.json({ tests: loadData('tests') })
 })
 
 router.post('/', async (req, res) => {
   try {
-    const { classId, title, date, topics } = req.body
+    const { classId, title, date, topics, category } = req.body
     if (!title?.trim() || !classId) {
       return res.status(400).json({ error: 'classId and title are required' })
     }
@@ -21,6 +27,7 @@ router.post('/', async (req, res) => {
       classId,
       title: title.trim(),
       date: date || '',
+      category: TEST_CATEGORIES.includes(category) ? category : 'test',
       // Comma-separated, optional -- what the test actually covers. Empty
       // by default; a generated study plan falls back to generic
       // technique-only guidance when this is blank (see lib/studyPlan.js),
@@ -95,6 +102,61 @@ router.post('/:id/study-plan', async (req, res) => {
 
     const classes = loadData('classes')
     const className = classes.find((c) => c.id === test.classId)?.name || 'this class'
+
+    // Real gap Dylan named directly: a schedule that only ever says WHICH
+    // TECHNIQUE to use (per lib/studyPlan.js's research-backed rotation)
+    // "doesn't actually help" if it never connects back to where he's
+    // actually weak. Look at every other graded item in this same class
+    // for the lowest score that plausibly overlaps this test's material
+    // (shared words in title/topics, filtering out short/common words),
+    // and if one exists, name it and the score directly in the first
+    // session -- "start with X, you scored Y% there" is something Dylan
+    // can actually act on, "do retrieval practice" alone is not.
+    function wordsOf(text) {
+      return new Set(
+        (text || '')
+          .toLowerCase()
+          .split(/[^a-z0-9]+/)
+          .filter((w) => w.length > 3)
+      )
+    }
+    function overlaps(a, b) {
+      const wa = wordsOf(a)
+      const wb = wordsOf(b)
+      for (const w of wa) {
+        if (wb.has(w)) return true
+      }
+      return false
+    }
+
+    const classAssignments = loadData('assignments').filter(
+      (a) => a.classId === test.classId && a.grade !== null && a.grade !== undefined
+    )
+    const classTests = loadData('tests').filter(
+      (t) => t.classId === test.classId && t.id !== test.id && t.grade !== null && t.grade !== undefined
+    )
+    const gradedItems = [...classAssignments, ...classTests]
+    const testMaterial = `${test.title} ${test.topics || ''}`
+
+    let weakItem = gradedItems
+      .filter((item) => overlaps(`${item.title} ${item.topics || ''}`, testMaterial))
+      .sort((a, b) => Number(a.grade) - Number(b.grade))[0]
+
+    // No topic overlap found (or no topics given at all) -- fall back to
+    // the single weakest graded item in the class overall, but only if
+    // it's genuinely a soft spot (<75%), not just "not perfect."
+    if (!weakItem) {
+      weakItem = gradedItems
+        .filter((item) => Number(item.grade) < 75)
+        .sort((a, b) => Number(a.grade) - Number(b.grade))[0]
+    }
+
+    if (weakItem && sessions.length) {
+      sessions[0] = {
+        ...sessions[0],
+        detail: `${sessions[0].detail} Start with ${weakItem.title} -- you scored ${weakItem.grade}% there last time, so that's the highest-value gap to close first.`,
+      }
+    }
 
     // Regenerating (e.g. after the test date changes) replaces the old
     // plan rather than piling up duplicate tasks alongside it.

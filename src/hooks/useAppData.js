@@ -2004,6 +2004,21 @@ export function useAppData() {
     }
   }
 
+  // Category drives grade weighting (SchoolPage.jsx's classAverage) --
+  // editable after creation since Dylan often won't know an assignment
+  // matters more/less than its default until it's actually assigned.
+  async function setAssignmentCategory(assignment, category) {
+    try {
+      await request(`/assignments/${assignment.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ category }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
   async function addTest() {
     if (!testInput.trim() || !selectedClassId) return
     setSaving(true)
@@ -2104,6 +2119,19 @@ export function useAppData() {
       await request(`/tests/${test.id}`, {
         method: 'PUT',
         body: JSON.stringify({ grade: grade === '' ? null : Number(grade) }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // See setAssignmentCategory above -- same reasoning, Tests side.
+  async function setTestCategory(test, category) {
+    try {
+      await request(`/tests/${test.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ category }),
       })
       await loadData()
     } catch (error) {
@@ -2676,10 +2704,12 @@ export function useAppData() {
     addAssignment,
     toggleAssignment,
     setAssignmentGrade,
+    setAssignmentCategory,
     deleteAssignment,
     addTest,
     toggleTest,
     setTestGrade,
+    setTestCategory,
     deleteTest,
     generateStudyPlan,
     clearStudyPlan,
