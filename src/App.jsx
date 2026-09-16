@@ -396,11 +396,13 @@ function App() {
         <ReadingPage
           readingBooks={data.readingBooks}
           readingSessions={data.readingSessions}
+          readingGoals={data.readingGoals}
           saving={data.saving}
           addReadingBook={data.addReadingBook}
           updateReadingBook={data.updateReadingBook}
           deleteReadingBook={data.deleteReadingBook}
           addReadingSession={data.addReadingSession}
+          setReadingGoal={data.setReadingGoal}
           assistantContext={assistantContext}
           openChat={openChat}
         />

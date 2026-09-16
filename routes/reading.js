@@ -11,9 +11,14 @@ router.get('/books', (req, res) => {
   res.json({ books: loadData('reading_books') })
 })
 
+// A book can be added straight into 'reading', but Dylan asked for the
+// library to actually track what he wants to read next too -- so
+// 'want-to-read' is a real third status, not just an absence of one.
+const BOOK_STATUSES = ['want-to-read', 'reading', 'finished']
+
 router.post('/books', (req, res) => {
   try {
-    const { title, author, totalPages } = req.body
+    const { title, author, totalPages, genre, status } = req.body
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'A title is required' })
     }
@@ -22,9 +27,12 @@ router.post('/books', (req, res) => {
       id: Date.now().toString(),
       title: title.trim(),
       author: (author || '').trim(),
+      genre: (genre || '').trim(),
       totalPages: Number(totalPages) || 0,
       currentPage: 0,
-      status: 'reading',
+      status: BOOK_STATUSES.includes(status) ? status : 'reading',
+      rating: 0,
+      notes: '',
       createdAt: new Date().toISOString(),
       finishedAt: null,
     }
@@ -132,6 +140,33 @@ router.delete('/sessions/:id', (req, res) => {
   const remaining = sessions.filter((s) => s.id !== req.params.id)
   saveData('reading_sessions', remaining)
   res.json({ success: true })
+})
+
+// Daily page goal: the page used to hardcode "/ 10 pages" with no way to
+// change it -- Dylan's own complaint was that a goal he can't set for
+// himself isn't motivating. Stored as an object (like health_goals) even
+// though there's only one field today, so a per-book or weekly goal could
+// be added later without another schema migration.
+const DEFAULT_READING_GOALS = { dailyPageGoal: 10 }
+
+router.get('/goals', (req, res) => {
+  res.json({ goals: loadData('reading_goals', DEFAULT_READING_GOALS) })
+})
+
+router.post('/goals', (req, res) => {
+  try {
+    const { dailyPageGoal } = req.body
+    const goal = Number(dailyPageGoal)
+    if (!goal || goal <= 0) {
+      return res.status(400).json({ error: 'dailyPageGoal must be a positive number' })
+    }
+    const goals = { ...loadData('reading_goals', DEFAULT_READING_GOALS), dailyPageGoal: goal }
+    saveData('reading_goals', goals)
+    res.json({ goals })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save reading goal' })
+  }
 })
 
 export default router

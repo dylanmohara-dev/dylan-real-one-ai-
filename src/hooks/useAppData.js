@@ -126,6 +126,7 @@ export function useAppData() {
   const [sportsSettings, setSportsSettings] = useState({ sport: '' })
   const [readingBooks, setReadingBooks] = useState([])
   const [readingSessions, setReadingSessions] = useState([])
+  const [readingGoals, setReadingGoals] = useState({ dailyPageGoal: 10 })
   const [disciplineHabits, setDisciplineHabits] = useState([])
   const [disciplineCompletions, setDisciplineCompletions] = useState([])
   const [familyMembers, setFamilyMembers] = useState([])
@@ -449,6 +450,7 @@ export function useAppData() {
       setSportsSettings(data.sports?.settings || { sport: '' })
       setReadingBooks(data.reading?.books || [])
       setReadingSessions(data.reading?.sessions || [])
+      setReadingGoals(data.reading?.goals || { dailyPageGoal: 10 })
       setDisciplineHabits(data.discipline?.habits || [])
       setDisciplineCompletions(data.discipline?.completions || [])
       setFamilyMembers(data.family?.members || [])
@@ -1093,6 +1095,18 @@ export function useAppData() {
       showError(error.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function setReadingGoal(dailyPageGoal) {
+    try {
+      await request('/reading/goals', {
+        method: 'POST',
+        body: JSON.stringify({ dailyPageGoal }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
     }
   }
 
@@ -2810,10 +2824,12 @@ export function useAppData() {
     // reading
     readingBooks,
     readingSessions,
+    readingGoals,
     addReadingBook,
     updateReadingBook,
     deleteReadingBook,
     addReadingSession,
+    setReadingGoal,
 
     // discipline
     disciplineHabits,

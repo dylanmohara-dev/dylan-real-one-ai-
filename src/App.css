@@ -2083,6 +2083,169 @@ footer {
   font-size: 11px;
 }
 
+/* Reading mode: configurable daily goal, richer book cards (genre, rating,
+   notes, pace), and a status filter row now that "want-to-read" is a real
+   third status alongside reading/finished. */
+.reading-goal-edit-link {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10.5px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.reading-goal-edit-link:hover {
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.reading-goal-edit-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.reading-goal-input {
+  width: 64px;
+  min-height: 28px;
+  padding: 0 6px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: var(--surface-input);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.reading-goal-edit-form button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.reading-genre-chip {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(var(--mode-accent-rgb), 0.12);
+  color: rgb(var(--mode-accent-rgb));
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.reading-pace-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+
+.reading-star-rating {
+  display: flex;
+  gap: 2px;
+}
+
+.reading-star {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--border-strong);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.reading-star.filled {
+  color: rgb(var(--mode-accent-rgb, 234, 179, 8));
+}
+
+.reading-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.reading-notes-toggle {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10.5px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.reading-notes-toggle:hover {
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.reading-notes-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.reading-notes-input {
+  width: 100%;
+  padding: 8px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: var(--surface-input);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.reading-notes-body button {
+  align-self: flex-start;
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.reading-status-select {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.library-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 14px;
+}
+
+.library-filter-chip {
+  padding: 6px 12px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(999px * var(--mode-radius-scale, 1));
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.library-filter-chip:hover {
+  border-color: rgb(var(--mode-accent-rgb));
+  color: var(--text-primary);
+}
+
+.library-filter-chip.active {
+  background: rgb(var(--mode-accent-rgb));
+  border-color: rgb(var(--mode-accent-rgb));
+  color: var(--surface);
+}
+
+.reading-book-card {
+  align-items: flex-start;
+}
+
 .check-button {
   width: 24px;
   height: 24px;

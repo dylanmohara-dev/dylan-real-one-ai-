@@ -66,6 +66,7 @@ router.get('/bootstrap', (req, res) => {
       reading: {
         books: loadData('reading_books'),
         sessions: loadData('reading_sessions'),
+        goals: loadData('reading_goals', { dailyPageGoal: 10 }),
       },
       discipline: {
         habits: loadData('discipline_habits'),
