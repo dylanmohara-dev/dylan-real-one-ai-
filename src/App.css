@@ -1111,6 +1111,10 @@ select option {
   );
 }
 
+.mode-card.theme-school:hover {
+  box-shadow: 0 4px 0 rgba(var(--card-rgb), 0.4);
+}
+
 .mode-card.theme-sports {
   --mode-heading-font: 'Bebas Neue', 'Anton', sans-serif;
   --mode-radius-scale: 0.5;
@@ -1123,6 +1127,10 @@ select option {
   );
 }
 
+.mode-card.theme-sports:hover {
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.2), 0 0 0 2px rgba(var(--card-rgb), 0.3);
+}
+
 .mode-card.theme-gym {
   --mode-heading-font: 'Anton', 'Bebas Neue', sans-serif;
   --mode-radius-scale: 0.35;
@@ -1130,6 +1138,10 @@ select option {
   background-image:
     repeating-linear-gradient(45deg, rgba(var(--card-rgb), 0.06) 0, rgba(var(--card-rgb), 0.06) 1px, transparent 1px, transparent 12px),
     repeating-linear-gradient(-45deg, rgba(var(--card-rgb), 0.06) 0, rgba(var(--card-rgb), 0.06) 1px, transparent 1px, transparent 12px);
+}
+
+.mode-card.theme-gym:hover {
+  box-shadow: 5px 5px 0 rgba(var(--card-rgb), 0.5);
 }
 
 .mode-card.theme-health {
@@ -1140,6 +1152,10 @@ select option {
   background-size: 16px 16px;
 }
 
+.mode-card.theme-health:hover {
+  box-shadow: 0 10px 30px rgba(var(--card-rgb), 0.25);
+}
+
 .mode-card.theme-finance {
   --mode-heading-font: 'Space Grotesk', 'IBM Plex Mono', monospace;
   --mode-radius-scale: 0.7;
@@ -1147,6 +1163,12 @@ select option {
   background-image:
     repeating-linear-gradient(rgba(var(--card-rgb), 0.07) 0, rgba(var(--card-rgb), 0.07) 1px, transparent 1px, transparent 14px),
     repeating-linear-gradient(90deg, rgba(var(--card-rgb), 0.07) 0, rgba(var(--card-rgb), 0.07) 1px, transparent 1px, transparent 14px);
+}
+
+.mode-card.theme-finance:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgb(var(--card-rgb));
 }
 
 .mode-card.theme-skills {
@@ -1160,12 +1182,23 @@ select option {
   background-position: 0 0, 17px 24px;
 }
 
+.mode-card.theme-skills:hover {
+  box-shadow: 0 0 0 1px rgba(var(--card-rgb), 0.4), 0 0 28px rgba(var(--card-rgb), 0.25);
+}
+
 .mode-card.theme-reading {
   --mode-heading-font: 'Crimson Pro', Georgia, serif;
   --mode-radius-scale: 1.3;
   /* Fine paper grain, matching the full Reading page's own texture. */
   background-image: radial-gradient(rgba(var(--card-rgb), 0.14) 1px, transparent 1px);
   background-size: 8px 8px;
+}
+
+.mode-card.theme-reading:hover {
+  box-shadow:
+    0 1px 0 rgba(var(--card-rgb), 0.5),
+    0 4px 0 -1px rgba(var(--card-rgb), 0.25),
+    0 14px 18px -4px rgba(0, 0, 0, 0.35);
 }
 
 .mode-card.theme-discipline {
@@ -1177,6 +1210,13 @@ select option {
     repeating-linear-gradient(90deg, rgba(var(--card-rgb), 0.08) 0, rgba(var(--card-rgb), 0.08) 1px, transparent 1px, transparent 9px);
 }
 
+.mode-card.theme-discipline:hover {
+  transform: none;
+  box-shadow: none;
+  background: rgba(var(--card-rgb), 0.14);
+  border-color: rgb(var(--card-rgb));
+}
+
 .mode-card.theme-family {
   --mode-heading-font: 'Fredoka', sans-serif;
   --mode-radius-scale: 1.8;
@@ -1186,6 +1226,11 @@ select option {
     radial-gradient(rgba(var(--card-rgb2), 0.1) 2px, transparent 2px);
   background-size: 30px 30px, 30px 30px;
   background-position: 0 0, 15px 15px;
+}
+
+.mode-card.theme-family:hover {
+  transform: translateY(-3px) rotate(-0.5deg);
+  box-shadow: 0 14px 28px rgba(var(--card-rgb), 0.22), 0 4px 10px rgba(var(--card-rgb2), 0.16);
 }
 
 
@@ -6221,6 +6266,221 @@ button:disabled:active {
     radial-gradient(rgba(var(--mode-accent2-rgb), 0.08) 2px, transparent 2px);
   background-size: 70px 70px, 70px 70px;
   background-position: 0 0, 35px 35px;
+}
+
+/* ============ PER-MODE SIGNATURE SHAPE / SHADOW / INTERACTION ============
+   Dylan: "the texture and font and color of everything... each life area
+   [should] have its own unique style... wow that's very cool and different
+   from the rest" -- as loud as the alternate design systems (Pixel Quest's
+   stomp, Command Deck's clipped corners, Newsprint's hard shadow) go, but
+   applied per life-area inside the one default look, not as a 16th
+   override skin. Targets the two components every single mode page
+   actually uses -- .item-card (every list row: tasks, habits, sessions,
+   books, transactions...) and .form-card button (every "Add X" action) --
+   plus .page-header h1. Higher specificity than the generic .item-card /
+   .form-card button / .page-header h1 rules above, so these always win
+   without needing !important anywhere. */
+
+/* --- School: paper-edge shadow, page-flip lift, warm underline --- */
+.app-shell.theme-school .item-card,
+.app-shell.theme-school .form-card button {
+  box-shadow: 0 2px 0 rgba(var(--mode-accent-rgb), 0.3);
+}
+.app-shell.theme-school .item-card:hover {
+  box-shadow: 0 4px 0 rgba(var(--mode-accent-rgb), 0.4);
+  transform: translateY(-3px);
+}
+.app-shell.theme-school .form-card button:hover:not(:disabled) {
+  box-shadow: 0 4px 0 rgba(var(--mode-accent-rgb), 0.45);
+  transform: translateY(-3px);
+}
+.app-shell.theme-school .page-header h1 {
+  border-bottom: 3px solid rgba(var(--mode-accent-rgb), 0.5);
+  padding-bottom: 6px;
+  display: inline-block;
+}
+
+/* --- Sports: jersey-notch corner, bouncy kick --- */
+.app-shell.theme-sports .item-card {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+.app-shell.theme-sports .item-card:hover {
+  transform: translateY(-4px);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.app-shell.theme-sports .form-card button:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.03);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.app-shell.theme-sports .form-card button:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+}
+.app-shell.theme-sports .page-header h1 {
+  border-left: 6px solid rgb(var(--mode-accent-rgb));
+  padding-left: 12px;
+}
+
+/* --- Gym: hard offset shadow that physically collapses on press --- */
+.app-shell.theme-gym .item-card,
+.app-shell.theme-gym .form-card button {
+  box-shadow: 4px 4px 0 rgba(var(--mode-accent-rgb), 0.4);
+  transition: transform 0.1s steps(2, jump-end), box-shadow 0.1s steps(2, jump-end);
+}
+.app-shell.theme-gym .item-card:hover,
+.app-shell.theme-gym .form-card button:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 rgba(var(--mode-accent-rgb), 0.5);
+}
+.app-shell.theme-gym .form-card button:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 rgba(var(--mode-accent-rgb), 0);
+}
+.app-shell.theme-gym .page-header h1 {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* --- Health: pill-soft shapes, ambient glow, gentle scale --- */
+.app-shell.theme-health .item-card {
+  border-radius: 34px;
+  box-shadow: 0 4px 20px rgba(var(--mode-accent-rgb), 0.15);
+}
+.app-shell.theme-health .item-card:hover {
+  transform: scale(1.015);
+  box-shadow: 0 6px 26px rgba(var(--mode-accent-rgb), 0.22);
+}
+.app-shell.theme-health .form-card button {
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgba(var(--mode-accent-rgb), 0.2);
+}
+.app-shell.theme-health .form-card button:hover:not(:disabled) {
+  transform: scale(1.04);
+  box-shadow: 0 6px 22px rgba(var(--mode-accent-rgb), 0.3);
+}
+.app-shell.theme-health .form-card input,
+.app-shell.theme-health .form-card select,
+.app-shell.theme-health .form-card textarea {
+  border-radius: 999px;
+  padding-left: 18px;
+}
+
+/* --- Finance: flat, precise, ledger-line -- the one mode that doesn't lift --- */
+.app-shell.theme-finance .item-card {
+  border-radius: 4px;
+  box-shadow: none;
+  border-left: 3px solid rgba(var(--mode-accent-rgb), 0.5);
+}
+.app-shell.theme-finance .item-card:hover {
+  transform: none;
+  background: rgba(var(--mode-accent-rgb), 0.08);
+  border-left-color: rgb(var(--mode-accent-rgb));
+}
+.app-shell.theme-finance .form-card button {
+  border-radius: 4px;
+  box-shadow: none;
+}
+.app-shell.theme-finance .form-card button:hover:not(:disabled) {
+  transform: none;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+.app-shell.theme-finance .page-header h1 {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+}
+
+/* --- Skills: RPG glow border + a shimmer sweep on hover --- */
+.app-shell.theme-skills .item-card {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(var(--mode-accent-rgb), 0.25), 0 0 18px rgba(var(--mode-accent-rgb), 0.12);
+}
+.app-shell.theme-skills .item-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+.app-shell.theme-skills .item-card:hover::after {
+  left: 120%;
+}
+.app-shell.theme-skills .item-card:hover {
+  box-shadow: 0 0 0 1px rgba(var(--mode-accent-rgb), 0.4), 0 0 26px rgba(var(--mode-accent-rgb), 0.22);
+}
+.app-shell.theme-skills .form-card button {
+  border-radius: 999px;
+  box-shadow: 0 0 14px rgba(var(--mode-accent-rgb), 0.35);
+}
+.app-shell.theme-skills .form-card button:hover:not(:disabled) {
+  box-shadow: 0 0 22px rgba(var(--mode-accent-rgb), 0.5);
+}
+
+/* --- Reading: stacked-page shadow, ribbon-notched button --- */
+.app-shell.theme-reading .item-card {
+  box-shadow:
+    0 1px 0 rgba(var(--mode-accent-rgb), 0.35),
+    0 4px 0 -1px rgba(var(--mode-accent-rgb), 0.15),
+    0 8px 12px -4px rgba(0, 0, 0, 0.3);
+}
+.app-shell.theme-reading .item-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 rgba(var(--mode-accent-rgb), 0.45),
+    0 6px 0 -1px rgba(var(--mode-accent-rgb), 0.2),
+    0 12px 16px -4px rgba(0, 0, 0, 0.35);
+}
+.app-shell.theme-reading .form-card button {
+  clip-path: polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%);
+  padding-bottom: 10px;
+}
+.app-shell.theme-reading .page-header h1 {
+  font-style: italic;
+}
+
+/* --- Discipline: zero softness, instant color-invert snap --- */
+.app-shell.theme-discipline .item-card {
+  border-radius: 0;
+  box-shadow: none;
+  transition: border-color 0.1s steps(1), background 0.1s steps(1);
+}
+.app-shell.theme-discipline .item-card:hover {
+  transform: none;
+  border-color: rgb(var(--mode-accent-rgb));
+  background: rgba(var(--mode-accent-rgb), 0.12);
+}
+.app-shell.theme-discipline .form-card button {
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: background 0.1s steps(1), color 0.1s steps(1);
+}
+.app-shell.theme-discipline .form-card button:hover:not(:disabled) {
+  transform: none;
+  background: var(--text-primary);
+  color: var(--bg);
+  box-shadow: none;
+}
+
+/* --- Family: warm double-glow, playful bubble wiggle --- */
+.app-shell.theme-family .item-card {
+  box-shadow: 0 6px 20px rgba(var(--mode-accent-rgb), 0.15), 0 2px 8px rgba(var(--mode-accent2-rgb), 0.12);
+}
+.app-shell.theme-family .item-card:hover {
+  transform: scale(1.02) rotate(-0.4deg);
+  box-shadow: 0 10px 26px rgba(var(--mode-accent-rgb), 0.22), 0 4px 12px rgba(var(--mode-accent2-rgb), 0.18);
+}
+.app-shell.theme-family .form-card button {
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(var(--mode-accent-rgb), 0.25);
+}
+.app-shell.theme-family .form-card button:hover:not(:disabled) {
+  transform: scale(1.05) rotate(1deg);
+  box-shadow: 0 6px 20px rgba(var(--mode-accent-rgb), 0.35);
 }
 
 /* Fine halftone dot texture — a much tighter grain than Comic Pop's bold
