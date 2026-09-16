@@ -471,6 +471,10 @@ export function useAppData() {
         },
         health: { entries: data.health?.entries || [] },
         finance: { history: data.finance?.history || [] },
+        gym: {
+          logs: data.gym?.logs || [],
+          exercises: data.gym?.exercises || [],
+        },
       }
     } catch (error) {
       setErrorMessage(error.message)
@@ -667,6 +671,127 @@ export function useAppData() {
         })
         awardXP('goal-complete')
       }
+    }
+  }
+
+  // Chat-triggered parity for the four celebration hooks above: a
+  // log_gym_set/complete_habit/log_health action mutates data exactly the
+  // same way its manual-UI counterpart (addGymLog/toggleDisciplineCompletion/
+  // addHealthEntry) does, but bypasses those functions entirely -- routes/
+  // chat.js calls lib/assistant.js's executeAction() directly on the
+  // server. Same before/after diff technique as detectSkillMilestones/
+  // detectGoalMilestones just above (compare the pre-action snapshot this
+  // hook already had in state against the fresh post-action load), rather
+  // than threading extra fields back through the chat response -- keeps
+  // one consistent way this file detects "did something notable just
+  // happen," whether the trigger was a click or a text message.
+
+  function detectGymPRs(previousLogs, nextLogs, exercises) {
+    if (!Array.isArray(nextLogs)) return
+    const previousIds = new Set((previousLogs || []).map((log) => log.id))
+    const newLogs = nextLogs.filter((log) => !previousIds.has(log.id))
+    if (!newLogs.length) return
+
+    // Baseline history starts at whatever existed before this chat action
+    // and grows as each new log is walked, so a batch of more than one new
+    // log (unlikely, but possible) doesn't compare every entry against the
+    // same stale starting point. The very first log ever for an exercise
+    // stays a baseline, not a PR -- same rule addGymLog uses.
+    const historyByExercise = new Map()
+    for (const log of previousLogs || []) {
+      if (!historyByExercise.has(log.exerciseId)) historyByExercise.set(log.exerciseId, [])
+      historyByExercise.get(log.exerciseId).push(log)
+    }
+
+    for (const log of newLogs) {
+      const priorLogs = historyByExercise.get(log.exerciseId) || []
+      let priorBestWeight = 0
+      let priorBest1RM = 0
+      priorLogs.forEach((priorLog) => {
+        ;(priorLog.sets || []).forEach((set) => {
+          const w = Number(set.weight) || 0
+          const r = Number(set.reps) || 0
+          priorBestWeight = Math.max(priorBestWeight, w)
+          priorBest1RM = Math.max(priorBest1RM, epley1RM(w, r))
+        })
+      })
+
+      let newBestWeight = 0
+      let newBest1RM = 0
+      ;(log.sets || []).forEach((set) => {
+        const w = Number(set.weight) || 0
+        const r = Number(set.reps) || 0
+        newBestWeight = Math.max(newBestWeight, w)
+        newBest1RM = Math.max(newBest1RM, epley1RM(w, r))
+      })
+
+      const exercise = exercises?.find((e) => e.id === log.exerciseId)
+      const exerciseName = exercise ? exercise.name : 'Exercise'
+
+      if (priorLogs.length > 0 && newBestWeight > priorBestWeight) {
+        pushAchievement({ kind: 'pr', title: 'NEW PR', subtitle: `${exerciseName}: ${newBestWeight} lbs` })
+        maybePlaySound('pr')
+        awardXP('gym-pr')
+      } else if (priorLogs.length > 0 && newBest1RM > priorBest1RM) {
+        pushAchievement({
+          kind: 'pr',
+          title: 'NEW EST. 1RM',
+          subtitle: `${exerciseName}: ~${Math.round(newBest1RM)} lbs`,
+        })
+        maybePlaySound('pr')
+        awardXP('gym-pr')
+      }
+
+      if (!historyByExercise.has(log.exerciseId)) historyByExercise.set(log.exerciseId, [])
+      historyByExercise.get(log.exerciseId).push(log)
+    }
+  }
+
+  function detectHabitCompletions(previousCompletions, nextCompletions, habits) {
+    if (!Array.isArray(nextCompletions)) return
+    const previousIds = new Set((previousCompletions || []).map((c) => c.id))
+    const newCompletions = nextCompletions.filter((c) => !previousIds.has(c.id))
+    if (!newCompletions.length) return
+
+    for (const completion of newCompletions) {
+      const habit = habits?.find((h) => h.id === completion.habitId)
+      pushToast({ kind: 'task', title: 'HABIT DONE', message: habit ? habit.name : 'Habit' })
+      awardXP('habit-done')
+
+      // Same "only today counts toward an active streak" rule as
+      // toggleDisciplineCompletion -- a chat message marking a past day
+      // done doesn't represent a streak crossing a milestone right now.
+      if (completion.date === todayKeyLocal()) {
+        const newStreak = habitCurrentStreak(nextCompletions, completion.habitId)
+        const milestone = hitMilestone(newStreak)
+        if (milestone) {
+          pushAchievement({
+            kind: 'milestone',
+            title: `${milestone}-DAY STREAK`,
+            subtitle: habit ? habit.name : 'Habit',
+          })
+          maybePlaySound('milestone')
+        }
+      }
+    }
+  }
+
+  // Bonus parity fix while this hook is already being extended: chat-
+  // triggered log_health never got the streak-milestone check addHealthEntry
+  // already does for the manual path -- same gap this file's own history
+  // already fixed once for Skills (see addSkillSession below). Closing it
+  // here rather than leaving a second, quieter version of the same bug.
+  function detectHealthStreak(previousEntries, nextEntries) {
+    if (!Array.isArray(nextEntries)) return
+    const previousIds = new Set((previousEntries || []).map((e) => e.id))
+    const hasNew = nextEntries.some((e) => !previousIds.has(e.id))
+    if (!hasNew) return
+
+    const newStreak = healthLoggingStreak(nextEntries)
+    const milestone = hitMilestone(newStreak)
+    if (milestone) {
+      pushAchievement({ kind: 'milestone', title: `${milestone}-DAY STREAK`, subtitle: 'Health logging' })
+      maybePlaySound('milestone')
     }
   }
 
@@ -1145,10 +1270,17 @@ export function useAppData() {
       if (chatResult.actionPerformed) {
         const previousSkills = skills
         const previousGoals = goals
+        const previousGymLogs = gymLogs
+        const previousCompletions = disciplineCompletions
+        const previousHealthEntries = healthEntries
         const fresh = await loadData()
         if (fresh) {
           detectSkillMilestones(previousSkills, fresh.skills)
           detectGoalMilestones(previousGoals, fresh.goals)
+          detectGymPRs(previousGymLogs, fresh.gym.logs, fresh.gym.exercises)
+          detectHabitCompletions(previousCompletions, fresh.discipline.completions, fresh.discipline.habits)
+          detectHealthStreak(previousHealthEntries, fresh.health.entries)
+          maybeCelebrateNetWorthSwing(fresh)
         }
       }
 
