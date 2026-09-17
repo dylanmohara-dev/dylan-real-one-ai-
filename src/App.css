@@ -4735,7 +4735,7 @@ footer {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--border);
   border-radius: calc(9px * var(--mode-radius-scale, 1));
@@ -7390,8 +7390,8 @@ button:disabled:active {
 }
 
 .calendar-week-empty {
-  font-size: 0.68rem;
-  opacity: 0.4;
+  font-size: 0.76rem;
+  opacity: 0.55;
   padding: 4px 2px;
 }
 
@@ -7625,7 +7625,7 @@ button:disabled:active {
     gap: 8px;
   }
   .calendar-legend-item {
-    font-size: 0.66rem;
+    font-size: 0.76rem;
   }
 }
 
@@ -7634,7 +7634,7 @@ button:disabled:active {
     min-height: 74px;
   }
   .calendar-chip {
-    font-size: 0.58rem;
+    font-size: 0.7rem;
   }
 }
 
@@ -9014,7 +9014,7 @@ button:disabled:active {
     padding-bottom: 0;
   }
 
-  .icon-nav .icon-nav-button:not(.overview) {
+  .icon-nav .icon-nav-button:not(.overview):not(.active) {
     display: none;
   }
 
