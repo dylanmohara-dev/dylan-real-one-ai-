@@ -9039,3 +9039,58 @@ button:disabled:active {
     display: none;
   }
 }
+
+
+/* ============================================================
+   MOBILE TAP TARGETS + READABILITY (phone-mode, <=720px)
+   Several icon-only action buttons across the mode pages
+   (School/Sports/Gym/Health/Finance/Skills/Reading/Discipline/
+   Family) were 22-26px, under Apple's 44pt minimum touch
+   target, and a handful of text sizes were under 11px. Appended
+   last so it wins the cascade, same convention as the MOBILE
+   BOTTOM NAV block above. Desktop/tablet (>720px) is untouched.
+   ============================================================ */
+@media (max-width: 720px) {
+  .check-button,
+  .delete-button,
+  .finance-row-delete,
+  .skill-card-remove,
+  .gym-set-remove {
+    width: 44px;
+    height: 44px;
+  }
+
+  .goal-controls .delete-button {
+    min-height: 44px;
+  }
+
+  .reading-goal-edit-link,
+  .reading-notes-toggle {
+    font-size: 0.85rem;
+    padding: 10px 0;
+  }
+
+  .gym-routine-edit-toggle {
+    font-size: 0.85rem;
+    padding: 10px 14px;
+  }
+
+  .gym-tabs button,
+  .sports-type-toggle button {
+    min-height: 44px;
+    font-size: 0.85rem;
+  }
+
+  .calendar-nav,
+  .calendar-today-button {
+    min-height: 44px;
+  }
+
+  .calendar-more,
+  .calendar-week-chip em,
+  .deadline-kind,
+  .message-thinking-time,
+  .deadline-group-toggle {
+    font-size: 0.8rem;
+  }
+}
