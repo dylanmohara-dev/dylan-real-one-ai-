@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Mail, HardDrive, Hash, RefreshCw, Unlink } from 'lucide-react'
+import { Mail, HardDrive, Hash, Calendar, RefreshCw, Unlink } from 'lucide-react'
 
 function timeAgo(iso) {
   if (!iso) return ''
@@ -58,11 +58,12 @@ function IntegrationCard({ icon: Icon, name, hook, setupNote, connectNote, rende
   )
 }
 
-export default function ConnectionsPage({ gmail, drive, slack }) {
+export default function ConnectionsPage({ gmail, drive, slack, googleCalendar }) {
   useEffect(() => {
     gmail.checkStatus()
     drive.checkStatus()
     slack.checkStatus()
+    googleCalendar.checkStatus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -140,6 +141,46 @@ export default function ConnectionsPage({ gmail, drive, slack }) {
               <div className="empty-state">
                 <div>⛁</div>
                 <h3>Nothing recent</h3>
+              </div>
+            )}
+          </div>
+        )}
+      />
+
+      <IntegrationCard
+        icon={Calendar}
+        name="Google Calendar"
+        hook={googleCalendar}
+        setupNote={
+          <>
+            Google Calendar sync isn't set up yet. Same Google Cloud OAuth client as Gmail/Drive,
+            with the Calendar API enabled and <code>GOOGLE_CALENDAR_REDIRECT_URI</code> added as an
+            authorized redirect URI. Restart the server after updating <code>.env</code>.
+          </>
+        }
+        connectNote="Read-only access to your next few upcoming events. Separate from the Dylan AI iCloud calendar the app writes to -- this reads FROM your own Google Calendar, if you keep one."
+        renderConnected={() => (
+          <div className="items-list">
+            {googleCalendar.events.length ? (
+              googleCalendar.events.map((event) => (
+                <div className="item-card" key={event.id}>
+                  <div className="item-content">
+                    <p>{event.title}</p>
+                    <span className="item-meta">
+                      {event.allDay ? event.start : new Date(event.start).toLocaleString()}
+                    </span>
+                  </div>
+                  {event.htmlLink && (
+                    <a className="calendar-event-link" href={event.htmlLink} target="_blank" rel="noreferrer">
+                      Open
+                    </a>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="empty-state">
+                <div>&#128197;</div>
+                <h3>Nothing upcoming</h3>
               </div>
             )}
           </div>

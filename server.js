@@ -21,6 +21,7 @@ import onboardingRouter from './routes/onboarding.js'
 import skillsRouter from './routes/skills.js'
 import gmailRouter from './routes/gmail.js'
 import driveRouter from './routes/drive.js'
+import googleCalendarRouter from './routes/googleCalendar.js'
 import slackRouter from './routes/slack.js'
 import backupRouter from './routes/backup.js'
 import gymRouter from './routes/gym.js'
@@ -68,6 +69,7 @@ app.use('/api/onboarding', onboardingRouter)
 app.use('/api/skills', skillsRouter)
 app.use('/api/gmail', gmailRouter)
 app.use('/api/drive', driveRouter)
+app.use('/api/google-calendar', googleCalendarRouter)
 app.use('/api/slack', slackRouter)
 app.use('/api/backup', backupRouter)
 app.use('/api/gym', gymRouter)

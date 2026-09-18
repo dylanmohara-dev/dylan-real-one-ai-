@@ -6,6 +6,7 @@ import { useJournal } from './hooks/useJournal.js'
 import { useCalendar } from './hooks/useCalendar.js'
 import { useGmail } from './hooks/useGmail.js'
 import { useDrive } from './hooks/useDrive.js'
+import { useGoogleCalendar } from './hooks/useGoogleCalendar.js'
 import { useSlack } from './hooks/useSlack.js'
 import { LIFE_MODES, OVERVIEW_ASSISTANT_MESSAGE, OVERVIEW_PROMPTS } from './data/lifeModes.js'
 import TopSettingsBar from './components/TopSettingsBar.jsx'
@@ -45,6 +46,7 @@ function App() {
   const calendar = useCalendar()
   const gmail = useGmail()
   const drive = useDrive()
+  const googleCalendar = useGoogleCalendar()
   const slack = useSlack()
   const [chatOverlayOpen, setChatOverlayOpen] = useState(false)
   const openChat = () => setChatOverlayOpen(true)
@@ -282,7 +284,7 @@ function App() {
     }
 
     if (activePage === 'Connections') {
-      return <ConnectionsPage gmail={gmail} drive={drive} slack={slack} />
+      return <ConnectionsPage gmail={gmail} drive={drive} slack={slack} googleCalendar={googleCalendar} />
     }
 
     if (activePage === 'health') {
