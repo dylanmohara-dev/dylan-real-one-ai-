@@ -686,7 +686,7 @@ ${context}
         stream: true,
         messages: [{ role: 'system', content: systemPrompt }, ...messages],
         temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.2) : 0.2,
-        max_tokens: 900,
+        max_tokens: 500,
       }),
     })
 
