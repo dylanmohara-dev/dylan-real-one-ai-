@@ -9094,3 +9094,255 @@ button:disabled:active {
     font-size: 0.8rem;
   }
 }
+
+
+/* ============================================================
+   MODE CALENDAR (Sports' and Gym's own Calendar tabs) -- shared
+   look for ModeCalendarMonth.jsx and RecurringEventsManager. Fully
+   separate class namespace from the main app-wide Calendar page's
+   .calendar-* rules -- different component, different DOM, zero
+   risk of affecting each other either direction.
+   ============================================================ */
+.mode-cal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.mode-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mode-cal-nav {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+}
+
+.mode-cal-nav:hover {
+  border-color: rgb(var(--mode-accent-rgb));
+  color: var(--text-primary);
+}
+
+.mode-cal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.mode-cal-today {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: calc(6px * var(--mode-radius-scale, 1));
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.mode-cal-today:hover {
+  border-color: rgb(var(--mode-accent-rgb));
+  color: var(--text-primary);
+}
+
+.mode-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.mode-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.mode-cal-cell {
+  min-height: 56px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: calc(6px * var(--mode-radius-scale, 1));
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--surface);
+}
+
+.mode-cal-cell-blank {
+  border-color: transparent;
+  background: transparent;
+}
+
+.mode-cal-cell.is-today {
+  border-color: rgb(var(--mode-accent-rgb));
+}
+
+.mode-cal-cell.status-match {
+  background: rgba(var(--mode-accent-rgb), 0.1);
+}
+
+.mode-cal-cell.status-missed {
+  background: rgba(255, 114, 114, 0.08);
+  border-color: rgba(255, 114, 114, 0.25);
+}
+
+.mode-cal-cell.status-extra {
+  background: rgba(var(--mode-accent-rgb), 0.06);
+  border-style: dashed;
+}
+
+.mode-cal-daynum {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.mode-cal-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mode-cal-chip {
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1.25;
+  padding: 2px 4px;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mode-cal-chip-planned {
+  background: var(--surface-strong);
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-strong);
+}
+
+.mode-cal-chip-actual {
+  background: rgb(var(--mode-accent-rgb));
+  color: var(--text-on-accent);
+}
+
+.mode-cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+.mode-cal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mode-cal-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.mode-cal-swatch.swatch-planned {
+  border: 1px dashed var(--border-strong);
+}
+
+.mode-cal-swatch.swatch-actual {
+  background: rgb(var(--mode-accent-rgb));
+}
+
+.mode-cal-swatch.swatch-missed {
+  background: rgba(255, 114, 114, 0.5);
+}
+
+/* Recurring-event manager (shared by Sports' and Gym's Calendar tabs) */
+.mode-recurring {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.mode-recurring-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mode-weekday-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mode-weekday-picker button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: var(--surface-input);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.mode-weekday-picker button.active {
+  background: rgb(var(--mode-accent-rgb));
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+
+.mode-time-range-fields {
+  display: flex;
+  gap: 12px;
+}
+
+.mode-time-range-fields label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.mode-time-range-fields input[type='time'] {
+  padding: 10px;
+  min-height: 44px;
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  border: 1px solid var(--border);
+  background: var(--surface-input);
+  color: var(--text-primary);
+}
+
+.mode-time-range-inline {
+  margin-bottom: 4px;
+}
+
+@media (max-width: 720px) {
+  .mode-cal-cell {
+    min-height: 48px;
+  }
+
+  .mode-cal-chip {
+    font-size: 0.6rem;
+  }
+}

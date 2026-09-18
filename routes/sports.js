@@ -4,6 +4,19 @@ import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.j
 
 const router = Router()
 
+// 'HH:MM' (24-hour, straight from an <input type="time">) -> whole
+// minutes between them. Returns null when either side is missing/invalid
+// so callers can tell "no time range given" apart from "a zero-length
+// range" instead of silently treating both as 0.
+function minutesBetween(startTime, endTime) {
+  if (!startTime || !endTime) return null
+  const [sh, sm] = startTime.split(':').map(Number)
+  const [eh, em] = endTime.split(':').map(Number)
+  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return null
+  const minutes = (eh * 60 + em) - (sh * 60 + sm)
+  return minutes > 0 ? minutes : null
+}
+
 // Sessions: one entry per practice or game. Deliberately one shared record
 // shape for both -- Dylan told us up front he wants both team-sport (games,
 // schedule) and individual-sport (personal performance) tracking, and he
@@ -16,7 +29,7 @@ router.get('/sessions', (req, res) => {
 
 router.post('/sessions', async (req, res) => {
   try {
-    const { date, type, durationMinutes, intensity, opponent, teamScore, opponentScore, result, notes } = req.body
+    const { date, type, durationMinutes, startTime, endTime, intensity, opponent, teamScore, opponentScore, result, notes } = req.body
 
     if (!date) {
       return res.status(400).json({ error: 'A date is required' })
@@ -43,7 +56,13 @@ router.post('/sessions', async (req, res) => {
       id: Date.now().toString(),
       date,
       type,
-      durationMinutes: Number(durationMinutes) || 0,
+      startTime: startTime || '',
+      endTime: endTime || '',
+      // A real start/end time is the source of truth for duration when
+      // given -- minutesBetween() below -- with the old plain-number
+      // field kept as a fallback so sessions logged before this existed
+      // still show a duration.
+      durationMinutes: minutesBetween(startTime, endTime) ?? (Number(durationMinutes) || 0),
       intensity: type === 'practice' ? (intensity || '') : '',
       opponent: type === 'game' ? (opponent || '').trim() : '',
       teamScore: type === 'game' ? cleanTeamScore : null,
@@ -76,6 +95,11 @@ router.put('/sessions/:id', async (req, res) => {
     }
     const updated = { ...sessions[index], ...req.body, id: sessions[index].id }
 
+    // Re-derive duration the same way POST does whenever a time range is
+    // present, so editing the start/end time actually changes what's shown.
+    const derivedMinutes = minutesBetween(updated.startTime, updated.endTime)
+    if (derivedMinutes !== null) updated.durationMinutes = derivedMinutes
+
     // Re-derive result the same way POST does, so an edit that changes the
     // scores can't leave a stale result behind.
     if (updated.teamScore !== null && updated.opponentScore !== null && updated.teamScore !== undefined && updated.opponentScore !== undefined) {
@@ -106,6 +130,56 @@ router.delete('/sessions/:id', async (req, res) => {
   if (session) await clearCalendarEvent(session)
   const remaining = sessions.filter((s) => s.id !== req.params.id)
   saveData('sports_sessions', remaining)
+  res.json({ success: true })
+})
+
+// Recurring events: deliberately separate from the Schedule block below.
+// Schedule says "Tuesdays are normally practice" with no time attached --
+// good for the plan-vs-reality check, useless for "when exactly is
+// practice." This says "Team Practice, Tue/Thu, 3:30-5:30pm" -- a real
+// repeating appointment with a time range, the way you'd actually see it
+// on a calendar, without changing what Schedule compares against.
+router.get('/recurring-events', (req, res) => {
+  res.json({ recurringEvents: loadData('sports_recurring_events') })
+})
+
+router.post('/recurring-events', (req, res) => {
+  try {
+    const { label, type, weekdays, startTime, endTime, startDate, endDate } = req.body || {}
+    if (!label?.trim()) {
+      return res.status(400).json({ error: 'A name is required' })
+    }
+    if (!Array.isArray(weekdays) || !weekdays.length) {
+      return res.status(400).json({ error: 'Pick at least one day of the week' })
+    }
+    if (!startTime || !endTime) {
+      return res.status(400).json({ error: 'A start and end time are required' })
+    }
+    const recurringEvents = loadData('sports_recurring_events')
+    const event = {
+      id: Date.now().toString(),
+      label: label.trim(),
+      type: type === 'game' ? 'game' : 'practice',
+      weekdays,
+      startTime,
+      endTime,
+      startDate: startDate || null,
+      endDate: endDate || null,
+      createdAt: new Date().toISOString(),
+    }
+    recurringEvents.push(event)
+    saveData('sports_recurring_events', recurringEvents)
+    res.json({ recurringEvent: event })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save recurring event' })
+  }
+})
+
+router.delete('/recurring-events/:id', (req, res) => {
+  const recurringEvents = loadData('sports_recurring_events')
+  const remaining = recurringEvents.filter((e) => e.id !== req.params.id)
+  saveData('sports_recurring_events', remaining)
   res.json({ success: true })
 })
 

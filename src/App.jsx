@@ -359,6 +359,8 @@ function App() {
           gymWeekPlan={data.gymWeekPlan}
           gymWeekPlanOverrides={data.gymWeekPlanOverrides}
           gymDayNotes={data.gymDayNotes}
+          gymSessions={data.gymSessions}
+          gymRecurringEvents={data.gymRecurringEvents}
           saving={data.saving}
           addGymExercise={data.addGymExercise}
           deleteGymExercise={data.deleteGymExercise}
@@ -371,6 +373,10 @@ function App() {
           setGymWeekPlanDay={data.setGymWeekPlanDay}
           setGymWeekPlanOverride={data.setGymWeekPlanOverride}
           setGymDayNote={data.setGymDayNote}
+          addGymSession={data.addGymSession}
+          deleteGymSession={data.deleteGymSession}
+          addGymRecurringEvent={data.addGymRecurringEvent}
+          deleteGymRecurringEvent={data.deleteGymRecurringEvent}
           assistantContext={assistantContext}
           openChat={openChat}
         />
@@ -384,12 +390,15 @@ function App() {
           sportsSchedule={data.sportsSchedule}
           sportsScheduleOverrides={data.sportsScheduleOverrides}
           sportsSettings={data.sportsSettings}
+          sportsRecurringEvents={data.sportsRecurringEvents}
           saving={data.saving}
           addSportsSession={data.addSportsSession}
           deleteSportsSession={data.deleteSportsSession}
           setSportsScheduleDay={data.setSportsScheduleDay}
           setSportsScheduleOverride={data.setSportsScheduleOverride}
           setSportsSport={data.setSportsSport}
+          addSportsRecurringEvent={data.addSportsRecurringEvent}
+          deleteSportsRecurringEvent={data.deleteSportsRecurringEvent}
           assistantContext={assistantContext}
           openChat={openChat}
         />

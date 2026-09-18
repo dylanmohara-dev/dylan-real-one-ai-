@@ -122,10 +122,13 @@ export function useAppData() {
   const [gymWeekPlan, setGymWeekPlan] = useState({})
   const [gymWeekPlanOverrides, setGymWeekPlanOverrides] = useState({})
   const [gymDayNotes, setGymDayNotes] = useState([])
+  const [gymSessions, setGymSessions] = useState([])
+  const [gymRecurringEvents, setGymRecurringEvents] = useState([])
   const [sportsSessions, setSportsSessions] = useState([])
   const [sportsSchedule, setSportsSchedule] = useState({})
   const [sportsScheduleOverrides, setSportsScheduleOverrides] = useState({})
   const [sportsSettings, setSportsSettings] = useState({ sport: '' })
+  const [sportsRecurringEvents, setSportsRecurringEvents] = useState([])
   const [readingBooks, setReadingBooks] = useState([])
   const [readingSessions, setReadingSessions] = useState([])
   const [readingGoals, setReadingGoals] = useState({ dailyPageGoal: 10 })
@@ -449,10 +452,13 @@ export function useAppData() {
       setGymWeekPlan(data.gym?.weekPlan || {})
       setGymWeekPlanOverrides(data.gym?.weekPlanOverrides || {})
       setGymDayNotes(data.gym?.dayNotes || [])
+      setGymSessions(data.gym?.sessions || [])
+      setGymRecurringEvents(data.gym?.recurringEvents || [])
       setSportsSessions(data.sports?.sessions || [])
       setSportsSchedule(data.sports?.schedule || {})
       setSportsScheduleOverrides(data.sports?.scheduleOverrides || {})
       setSportsSettings(data.sports?.settings || { sport: '' })
+      setSportsRecurringEvents(data.sports?.recurringEvents || [])
       setReadingBooks(data.reading?.books || [])
       setReadingSessions(data.reading?.sessions || [])
       setReadingGoals(data.reading?.goals || { dailyPageGoal: 10 })
@@ -1015,6 +1021,66 @@ export function useAppData() {
     }
   }
 
+  // Gym sessions: one entry per gym VISIT (start/end time + a note), not
+  // per exercise -- see routes/gym.js for why this is separate from
+  // addGymLog. Feeds the Gym mode's own Calendar tab and syncs one event
+  // per visit to the real calendar, same as Sports sessions already do.
+  async function addGymSession(session) {
+    if (!session?.date) return
+    setSaving(true)
+    try {
+      await request('/gym/sessions', {
+        method: 'POST',
+        body: JSON.stringify(session),
+      })
+      await loadData()
+      showSuccess('Gym session logged.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteGymSession(id) {
+    try {
+      await request(`/gym/sessions/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Session deleted.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // Gym recurring events: a repeating time-boxed appointment (e.g. "Team
+  // Lift, Mon/Wed, 6:00-7:00am") shown on the Gym Calendar tab -- fully
+  // independent of the Week Plan's routine-per-weekday mapping.
+  async function addGymRecurringEvent(event) {
+    setSaving(true)
+    try {
+      await request('/gym/recurring-events', {
+        method: 'POST',
+        body: JSON.stringify(event),
+      })
+      await loadData()
+      showSuccess('Recurring session added.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteGymRecurringEvent(id) {
+    try {
+      await request(`/gym/recurring-events/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Recurring session removed.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
   // Sports: one shared session shape for both a practice and a game (see
   // routes/sports.js for why) -- the server derives win/loss/tie from the
   // scores when both are given, so the client just passes through whatever
@@ -1082,6 +1148,36 @@ export function useAppData() {
         body: JSON.stringify({ sport }),
       })
       await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // Sports recurring events: a repeating time-boxed appointment (e.g.
+  // "Team Practice, Tue/Thu, 3:30-5:30pm") shown on the Sports Calendar
+  // tab -- fully independent of the weekday Schedule's plan-vs-reality
+  // check above.
+  async function addSportsRecurringEvent(event) {
+    setSaving(true)
+    try {
+      await request('/sports/recurring-events', {
+        method: 'POST',
+        body: JSON.stringify(event),
+      })
+      await loadData()
+      showSuccess('Recurring session added.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteSportsRecurringEvent(id) {
+    try {
+      await request(`/sports/recurring-events/${id}`, { method: 'DELETE' })
+      await loadData()
+      showSuccess('Recurring session removed.')
     } catch (error) {
       showError(error.message)
     }
@@ -2883,6 +2979,8 @@ export function useAppData() {
     gymWeekPlan,
     gymWeekPlanOverrides,
     gymDayNotes,
+    gymSessions,
+    gymRecurringEvents,
     addGymExercise,
     deleteGymExercise,
     updateGymExercise,
@@ -2894,16 +2992,23 @@ export function useAppData() {
     setGymWeekPlanDay,
     setGymWeekPlanOverride,
     setGymDayNote,
+    addGymSession,
+    deleteGymSession,
+    addGymRecurringEvent,
+    deleteGymRecurringEvent,
     // sports
     sportsSessions,
     sportsSchedule,
     sportsScheduleOverrides,
+    sportsRecurringEvents,
     addSportsSession,
     deleteSportsSession,
     setSportsScheduleDay,
     setSportsScheduleOverride,
     sportsSettings,
     setSportsSport,
+    addSportsRecurringEvent,
+    deleteSportsRecurringEvent,
 
     // reading
     readingBooks,

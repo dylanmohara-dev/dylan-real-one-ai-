@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Trophy } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import FootballIcon from './FootballIcon.jsx'
+import ModeCalendarMonth, { RecurringEventsManager, formatTimeRange } from './ModeCalendarMonth.jsx'
 
 function todayKey() {
   const d = new Date()
@@ -88,10 +89,13 @@ function summarizeSession(session) {
       .join(' — ')
     return bits || 'Game'
   }
-  const bits = [
-    session.durationMinutes ? `${session.durationMinutes} min` : '',
-    session.intensity ? INTENSITY_LABELS[session.intensity] : '',
-  ].filter(Boolean)
+  const timeLabel =
+    session.startTime && session.endTime
+      ? formatTimeRange(session.startTime, session.endTime)
+      : session.durationMinutes
+      ? `${session.durationMinutes} min`
+      : ''
+  const bits = [timeLabel, session.intensity ? INTENSITY_LABELS[session.intensity] : ''].filter(Boolean)
   return bits.length ? bits.join(', ') : 'Practice'
 }
 
@@ -102,7 +106,8 @@ function summarizeSession(session) {
 function SessionForm({ defaultType = 'practice', defaultDate = todayKey(), saving, addSportsSession, onLogged }) {
   const [type, setType] = useState(defaultType)
   const [date, setDate] = useState(defaultDate)
-  const [durationMinutes, setDurationMinutes] = useState('')
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
   const [intensity, setIntensity] = useState('moderate')
   const [opponent, setOpponent] = useState('')
   const [teamScore, setTeamScore] = useState('')
@@ -111,7 +116,8 @@ function SessionForm({ defaultType = 'practice', defaultDate = todayKey(), savin
   const [notes, setNotes] = useState('')
 
   function reset() {
-    setDurationMinutes('')
+    setStartTime('')
+    setEndTime('')
     setOpponent('')
     setTeamScore('')
     setOpponentScore('')
@@ -123,7 +129,8 @@ function SessionForm({ defaultType = 'practice', defaultDate = todayKey(), savin
     await addSportsSession({
       date,
       type,
-      durationMinutes,
+      startTime,
+      endTime,
       intensity,
       opponent,
       teamScore,
@@ -150,13 +157,16 @@ function SessionForm({ defaultType = 'practice', defaultDate = todayKey(), savin
       </div>
 
       <div className="sports-session-form-fields">
-        <input
-          type="number"
-          min="0"
-          placeholder="Duration (minutes)"
-          value={durationMinutes}
-          onChange={(event) => setDurationMinutes(event.target.value)}
-        />
+        <div className="mode-time-range-fields mode-time-range-inline">
+          <label>
+            Start
+            <input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
+          </label>
+          <label>
+            End
+            <input type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
+          </label>
+        </div>
 
         {type === 'practice' ? (
           <select value={intensity} onChange={(event) => setIntensity(event.target.value)}>
@@ -415,17 +425,79 @@ function ScheduleTab({ sportsSchedule, sportsScheduleOverrides, sportsSessions, 
   )
 }
 
+// Sports' own Calendar -- separate from Gym's, and from the main app-wide
+// Calendar page. "Planned" comes from the recurring-events list (Tue/Thu
+// practice at 3:30-5:30, etc.); "actual" comes from the real logged
+// sessions. Showing both together is the same plan-vs-reality idea as
+// ScheduleRealityCheck above, just laid out as a real calendar instead of
+// a list of mismatches.
+function SportsCalendarTab({ sportsRecurringEvents, sportsSessions, saving, addSportsRecurringEvent, deleteSportsRecurringEvent }) {
+  function getDayData(dateKey) {
+    const weekday = dateWeekdayKey(dateKey)
+    const planned = sportsRecurringEvents
+      .filter((event) => event.weekdays.includes(weekday))
+      .map((event) => ({
+        id: event.id,
+        label: `${event.label} (${formatTimeRange(event.startTime, event.endTime)})`,
+        timeLabel: formatTimeRange(event.startTime, event.endTime),
+      }))
+    const actual = sportsSessions
+      .filter((session) => session.date === dateKey)
+      .map((session) => ({
+        id: session.id,
+        label: summarizeSession(session),
+        timeLabel:
+          session.startTime && session.endTime
+            ? formatTimeRange(session.startTime, session.endTime)
+            : SCHEDULE_LABELS[session.type] || session.type,
+      }))
+    return { planned, actual }
+  }
+
+  return (
+    <div className="gym-today">
+      <ModeCalendarMonth
+        getDayData={getDayData}
+        legend={
+          <>
+            <span className="mode-cal-legend-item">
+              <span className="mode-cal-swatch swatch-planned" /> Scheduled
+            </span>
+            <span className="mode-cal-legend-item">
+              <span className="mode-cal-swatch swatch-actual" /> Logged
+            </span>
+            <span className="mode-cal-legend-item">
+              <span className="mode-cal-swatch swatch-missed" /> Missed
+            </span>
+          </>
+        }
+      />
+      <RecurringEventsManager
+        title="RECURRING PRACTICES &amp; GAMES"
+        events={sportsRecurringEvents}
+        saving={saving}
+        addEvent={addSportsRecurringEvent}
+        deleteEvent={deleteSportsRecurringEvent}
+        showType
+      />
+    </div>
+  )
+}
+
 export default function SportsPage({
   sportsSessions,
   sportsSchedule,
   sportsScheduleOverrides,
   sportsSettings,
+  sportsRecurringEvents,
   saving,
   addSportsSession,
   deleteSportsSession,
   setSportsScheduleDay,
   setSportsScheduleOverride,
   setSportsSport,
+  addSportsRecurringEvent,
+  deleteSportsRecurringEvent,
   assistantContext,
   openChat,
 }) {
@@ -492,6 +564,13 @@ export default function SportsPage({
         >
           Schedule
         </button>
+        <button
+          type="button"
+          className={activeTab === 'calendar' ? 'active' : ''}
+          onClick={() => setActiveTab('calendar')}
+        >
+          Calendar
+        </button>
       </div>
 
       {activeTab === 'today' && (
@@ -520,6 +599,16 @@ export default function SportsPage({
           sportsScheduleOverrides={sportsScheduleOverrides}
           sportsSessions={sportsSessions}
           setSportsScheduleDay={setSportsScheduleDay}
+        />
+      )}
+
+      {activeTab === 'calendar' && (
+        <SportsCalendarTab
+          sportsRecurringEvents={sportsRecurringEvents}
+          sportsSessions={sportsSessions}
+          saving={saving}
+          addSportsRecurringEvent={addSportsRecurringEvent}
+          deleteSportsRecurringEvent={deleteSportsRecurringEvent}
         />
       )}
     </div>

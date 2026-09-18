@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.js'
 
 const router = Router()
 
@@ -65,6 +66,100 @@ router.put('/exercises/:id', (req, res) => {
   exercises[index] = { ...exercises[index], ...req.body, id: exercises[index].id }
   saveData('gym_exercises', exercises)
   res.json({ exercise: exercises[index] })
+})
+
+// Sessions: one entry per gym VISIT, not per exercise -- a start/end time
+// and an optional note, so "how long was I actually here" and "log this
+// as one calendar-worthy event" have something to attach to. Deliberately
+// separate from the per-exercise Logs below: lib/calendarAutoSync.js's own
+// comment explains why exercise logs were never synced to the real
+// calendar (one gym day can produce 5+ log rows) and says a one-event-
+// per-gym-day record would need its own design -- this is that record.
+router.get('/sessions', (req, res) => {
+  res.json({ sessions: loadData('gym_sessions') })
+})
+
+router.post('/sessions', async (req, res) => {
+  try {
+    const { date, startTime, endTime, notes } = req.body || {}
+    if (!date) {
+      return res.status(400).json({ error: 'A date is required' })
+    }
+    const sessions = loadData('gym_sessions')
+    const session = {
+      id: Date.now().toString(),
+      date,
+      startTime: startTime || '',
+      endTime: endTime || '',
+      notes: (notes || '').trim(),
+      createdAt: new Date().toISOString(),
+    }
+    await syncCalendarEvent(session, { title: 'Gym session', date: session.date, mode: 'gym' })
+    sessions.push(session)
+    saveData('gym_sessions', sessions)
+    res.json({ session })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save gym session' })
+  }
+})
+
+router.delete('/sessions/:id', async (req, res) => {
+  const sessions = loadData('gym_sessions')
+  const session = sessions.find((s) => s.id === req.params.id)
+  if (session) await clearCalendarEvent(session)
+  const remaining = sessions.filter((s) => s.id !== req.params.id)
+  saveData('gym_sessions', remaining)
+  res.json({ success: true })
+})
+
+// Recurring events: same independent-from-the-weekly-template idea as
+// Sports' own recurring events -- the Week Plan below says "Tuesdays are
+// normally Push Day" with no time attached; this says "Team Lift, Mon/Wed,
+// 6:00-7:00am" -- a real repeating appointment with a time range. Kept
+// fully separate so adding times here can never affect what the existing
+// plan-vs-reality check compares against.
+router.get('/recurring-events', (req, res) => {
+  res.json({ recurringEvents: loadData('gym_recurring_events') })
+})
+
+router.post('/recurring-events', (req, res) => {
+  try {
+    const { label, weekdays, startTime, endTime, startDate, endDate } = req.body || {}
+    if (!label?.trim()) {
+      return res.status(400).json({ error: 'A name is required' })
+    }
+    if (!Array.isArray(weekdays) || !weekdays.length) {
+      return res.status(400).json({ error: 'Pick at least one day of the week' })
+    }
+    if (!startTime || !endTime) {
+      return res.status(400).json({ error: 'A start and end time are required' })
+    }
+    const recurringEvents = loadData('gym_recurring_events')
+    const event = {
+      id: Date.now().toString(),
+      label: label.trim(),
+      weekdays,
+      startTime,
+      endTime,
+      startDate: startDate || null,
+      endDate: endDate || null,
+      createdAt: new Date().toISOString(),
+    }
+    recurringEvents.push(event)
+    saveData('gym_recurring_events', recurringEvents)
+    res.json({ recurringEvent: event })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save recurring event' })
+  }
+})
+
+router.delete('/recurring-events/:id', (req, res) => {
+  const recurringEvents = loadData('gym_recurring_events')
+  const remaining = recurringEvents.filter((e) => e.id !== req.params.id)
+  saveData('gym_recurring_events', remaining)
+  res.json({ success: true })
 })
 
 // Logs: one entry per exercise per session -- "on this date, this

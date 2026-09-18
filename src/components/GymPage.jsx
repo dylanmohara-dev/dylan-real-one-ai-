@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Dumbbell, Trophy, Plus } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
+import ModeCalendarMonth, { RecurringEventsManager, formatTimeRange } from './ModeCalendarMonth.jsx'
 
 // Epley estimated 1-rep-max: weight * (1 + reps/30). A standard, simple
 // approximation used to compare strength across different rep ranges --
@@ -867,6 +868,144 @@ function PlanRealityCheck({ gymWeekPlan, gymWeekPlanOverrides, gymLogs, gymRouti
   )
 }
 
+function sortSessionsRecentFirst(sessions) {
+  return sessions
+    .slice()
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : new Date(b.createdAt) - new Date(a.createdAt)))
+}
+
+// A gym VISIT, not an exercise -- start/end time plus an optional note.
+// Separate from ExerciseLogger above on purpose (see routes/gym.js): this
+// is the one-event-per-gym-day record the Calendar tab and the real
+// calendar sync both need, distinct from the several-per-day exercise logs.
+function GymSessionForm({ saving, addGymSession }) {
+  const [date, setDate] = useState(todayKey())
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
+  const [notes, setNotes] = useState('')
+
+  async function handleSubmit() {
+    await addGymSession({ date, startTime, endTime, notes })
+    setStartTime('')
+    setEndTime('')
+    setNotes('')
+  }
+
+  return (
+    <div className="form-card sports-session-form">
+      <div className="sports-session-form-header">
+        <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+      </div>
+      <div className="mode-time-range-fields mode-time-range-inline">
+        <label>
+          Start
+          <input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
+        </label>
+        <label>
+          End
+          <input type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
+        </label>
+      </div>
+      <textarea
+        placeholder="Notes -- how'd it go?"
+        value={notes}
+        onChange={(event) => setNotes(event.target.value)}
+        rows={2}
+      />
+      <button onClick={handleSubmit} disabled={saving}>
+        Log gym session
+      </button>
+    </div>
+  )
+}
+
+// Gym's own Calendar -- separate from Sports', and from the main app-wide
+// Calendar page. "Planned" comes from the recurring-events list (Mon/Wed
+// lift at 6:00-7:00am, etc.); "actual" comes from logged gym sessions.
+function GymCalendarTab({ gymRecurringEvents, gymSessions, saving, addGymSession, deleteGymSession, addGymRecurringEvent, deleteGymRecurringEvent }) {
+  function getDayData(dateKey) {
+    const weekday = dateWeekdayKey(dateKey)
+    const planned = gymRecurringEvents
+      .filter((event) => event.weekdays.includes(weekday))
+      .map((event) => ({
+        id: event.id,
+        label: `${event.label} (${formatTimeRange(event.startTime, event.endTime)})`,
+        timeLabel: formatTimeRange(event.startTime, event.endTime),
+      }))
+    const actual = gymSessions
+      .filter((session) => session.date === dateKey)
+      .map((session) => ({
+        id: session.id,
+        label: session.notes || 'Gym session',
+        timeLabel:
+          session.startTime && session.endTime ? formatTimeRange(session.startTime, session.endTime) : 'Logged',
+      }))
+    return { planned, actual }
+  }
+
+  const sortedSessions = sortSessionsRecentFirst(gymSessions)
+
+  return (
+    <div className="gym-today">
+      <ModeCalendarMonth
+        getDayData={getDayData}
+        legend={
+          <>
+            <span className="mode-cal-legend-item">
+              <span className="mode-cal-swatch swatch-planned" /> Scheduled
+            </span>
+            <span className="mode-cal-legend-item">
+              <span className="mode-cal-swatch swatch-actual" /> Logged
+            </span>
+            <span className="mode-cal-legend-item">
+              <span className="mode-cal-swatch swatch-missed" /> Missed
+            </span>
+          </>
+        }
+      />
+
+      <GymSessionForm saving={saving} addGymSession={addGymSession} />
+
+      <div className="items-list">
+        {sortedSessions.length ? (
+          sortedSessions.map((session) => (
+            <div className="item-card" key={session.id}>
+              <div className="item-content">
+                <strong>
+                  {session.date}
+                  {session.startTime && session.endTime ? `: ${formatTimeRange(session.startTime, session.endTime)}` : ''}
+                </strong>
+                {session.notes && (
+                  <div className="item-meta">
+                    <span>{session.notes}</span>
+                  </div>
+                )}
+              </div>
+              <button className="delete-button" onClick={() => deleteGymSession(session.id)}>
+                &times;
+              </button>
+            </div>
+          ))
+        ) : (
+          <div className="empty-state">
+            <div>&#127947;</div>
+            <h3>No sessions logged yet</h3>
+            <p>Log your first gym visit above.</p>
+          </div>
+        )}
+      </div>
+
+      <RecurringEventsManager
+        title="RECURRING GYM SESSIONS"
+        events={gymRecurringEvents}
+        saving={saving}
+        addEvent={addGymRecurringEvent}
+        deleteEvent={deleteGymRecurringEvent}
+      />
+    </div>
+  )
+}
+
 export default function GymPage({
   gymExercises,
   gymLogs,
@@ -874,6 +1013,8 @@ export default function GymPage({
   gymWeekPlan,
   gymWeekPlanOverrides,
   gymDayNotes,
+  gymSessions,
+  gymRecurringEvents,
   saving,
   addGymExercise,
   deleteGymExercise,
@@ -886,6 +1027,10 @@ export default function GymPage({
   setGymWeekPlanDay,
   setGymWeekPlanOverride,
   setGymDayNote,
+  addGymSession,
+  deleteGymSession,
+  addGymRecurringEvent,
+  deleteGymRecurringEvent,
   assistantContext,
   openChat,
 }) {
@@ -943,6 +1088,13 @@ export default function GymPage({
         >
           Routines
         </button>
+        <button
+          type="button"
+          className={activeTab === 'calendar' ? 'active' : ''}
+          onClick={() => setActiveTab('calendar')}
+        >
+          Calendar
+        </button>
       </div>
 
       {activeTab === 'today' && (
@@ -985,6 +1137,18 @@ export default function GymPage({
           updateGymRoutine={updateGymRoutine}
           deleteGymRoutine={deleteGymRoutine}
           setGymWeekPlanDay={setGymWeekPlanDay}
+        />
+      )}
+
+      {activeTab === 'calendar' && (
+        <GymCalendarTab
+          gymRecurringEvents={gymRecurringEvents}
+          gymSessions={gymSessions}
+          saving={saving}
+          addGymSession={addGymSession}
+          deleteGymSession={deleteGymSession}
+          addGymRecurringEvent={addGymRecurringEvent}
+          deleteGymRecurringEvent={deleteGymRecurringEvent}
         />
       )}
     </div>
