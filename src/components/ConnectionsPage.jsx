@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Mail, HardDrive, Hash, Calendar, RefreshCw, Unlink } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Mail, HardDrive, Hash, Calendar, RefreshCw, Unlink, BookOpen } from 'lucide-react'
 
 function timeAgo(iso) {
   if (!iso) return ''
@@ -58,12 +58,111 @@ function IntegrationCard({ icon: Icon, name, hook, setupNote, connectNote, rende
   )
 }
 
-export default function ConnectionsPage({ gmail, drive, slack, googleCalendar }) {
+
+// Canvas is token-based, not OAuth -- no "Connect Canvas" redirect, just a
+// domain + personal access token form, so it gets its own small component
+// instead of going through IntegrationCard (built for the configured/
+// connect/disconnect OAuth shape the other four cards share).
+function CanvasCard({ canvas }) {
+  const [domain, setDomain] = useState('')
+  const [token, setToken] = useState('')
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    const ok = await canvas.connect(domain, token)
+    if (ok) setToken('') // don't leave it sitting in the field after a successful connect
+  }
+
+  return (
+    <div className="form-card connection-card">
+      <div className="connection-card-header">
+        <BookOpen size={18} strokeWidth={2.25} />
+        <h3>Canvas</h3>
+        {canvas.connected && (
+          <div className="calendar-header-actions">
+            <button onClick={canvas.loadAssignments} disabled={canvas.loading}>
+              <RefreshCw size={14} strokeWidth={2.25} />
+              Refresh
+            </button>
+            <button onClick={canvas.disconnect}>
+              <Unlink size={14} strokeWidth={2.25} />
+              Disconnect
+            </button>
+          </div>
+        )}
+      </div>
+
+      {canvas.error && <p className="journal-error">{canvas.error}</p>}
+
+      {!canvas.connected ? (
+        <form className="calendar-connect" onSubmit={handleSubmit}>
+          <input
+            type="text"
+            placeholder="yourschool.instructure.com"
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            autoComplete="off"
+          />
+          <input
+            type="password"
+            placeholder="Canvas access token"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            autoComplete="off"
+          />
+          <button type="submit" disabled={canvas.loading || !domain.trim() || !token.trim()}>
+            <BookOpen size={14} strokeWidth={2.25} />
+            Connect Canvas
+          </button>
+          <p className="mode-page-note">
+            No developer setup needed for this one — generate your own token in Canvas under
+            Account &rarr; Settings &rarr; &ldquo;+ New Access Token&rdquo;, then paste your school's
+            Canvas domain and that token above.
+          </p>
+        </form>
+      ) : (
+        <>
+          <div className="items-list">
+            {canvas.assignments.length ? (
+              canvas.assignments.map((a) => (
+                <div className="item-card" key={a.id}>
+                  <div className="item-content">
+                    <p>{a.title}</p>
+                    <span className="item-meta">
+                      {a.courseName} · due {new Date(a.dueAt).toLocaleString()}
+                    </span>
+                  </div>
+                  {a.url && (
+                    <a className="calendar-event-link" href={a.url} target="_blank" rel="noreferrer">
+                      Open
+                    </a>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="empty-state">
+                <div>&#128218;</div>
+                <h3>Nothing due</h3>
+              </div>
+            )}
+          </div>
+          <button onClick={canvas.syncToCalendar} disabled={canvas.syncing}>
+            <Calendar size={14} strokeWidth={2.25} />
+            {canvas.syncing ? 'Syncing…' : 'Sync due dates to calendar'}
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+export default function ConnectionsPage({ gmail, drive, slack, googleCalendar, canvas }) {
   useEffect(() => {
     gmail.checkStatus()
     drive.checkStatus()
     slack.checkStatus()
     googleCalendar.checkStatus()
+    canvas.checkStatus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -186,6 +285,8 @@ export default function ConnectionsPage({ gmail, drive, slack, googleCalendar })
           </div>
         )}
       />
+
+      <CanvasCard canvas={canvas} />
 
       <IntegrationCard
         icon={Hash}
