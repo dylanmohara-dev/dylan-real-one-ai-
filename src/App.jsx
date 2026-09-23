@@ -50,6 +50,21 @@ function App() {
   const googleCalendar = useGoogleCalendar()
   const canvas = useCanvas()
   const slack = useSlack()
+
+  // Canvas assignments (and the silent calendar auto-sync inside
+  // loadAssignments) previously only loaded when Dylan happened to visit
+  // Connections first in a given browser session -- checkStatus() was
+  // wired up ONLY there. School's "Coming up" list reads canvas.assignments
+  // too, so loading School (or any other page) directly, without ever
+  // opening Connections, left it permanently empty even though Canvas was
+  // genuinely connected with real data. Firing this once here, at the top
+  // of the whole app, means it's populated no matter which page loads
+  // first.
+  useEffect(() => {
+    canvas.checkStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const [chatOverlayOpen, setChatOverlayOpen] = useState(false)
   const openChat = () => setChatOverlayOpen(true)
   const [searchOverlayOpen, setSearchOverlayOpen] = useState(false)

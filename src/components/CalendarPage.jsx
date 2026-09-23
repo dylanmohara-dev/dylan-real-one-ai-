@@ -109,7 +109,7 @@ export default function CalendarPage({ calendar }) {
   const {
     checked, connected, error, loading, checkStatus, connect, disconnect,
     monthItems, monthLoading, calendarError, loadMonth, fetchMonthItems,
-    targetCalendarUrl, createEvent, updateEvent, deleteEvent,
+    targetCalendarUrl, createEvent, updateEvent, deleteEvent, loadCalendars,
   } = calendar
   const [appleId, setAppleId] = useState('')
   const [appPassword, setAppPassword] = useState('')
@@ -128,6 +128,15 @@ export default function CalendarPage({ calendar }) {
 
   useEffect(() => {
     checkStatus()
+    // targetCalendarUrl (used just below to decide whether to show the
+    // "No calendar picked yet" banner) was previously only ever fetched
+    // from Settings' own mount effect -- so this page had no way to know
+    // Dylan had already picked one unless Settings happened to load first
+    // in the same session. He had (a real target was saved), the banner
+    // was just reading stale/never-fetched state. Swallow a failure here
+    // (e.g. not connected yet) since Settings is still the place that
+    // surfaces that error properly.
+    loadCalendars().catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
