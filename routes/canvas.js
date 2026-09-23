@@ -78,6 +78,59 @@ router.post('/sync-calendar', async (req, res) => {
   }
 })
 
+// Pulls Dylan's real Canvas course roster and reconciles it into the local
+// `classes` list, so School's per-class pages have somewhere to file Canvas
+// assignments under -- previously every Canvas assignment fell into a
+// single flat "Coming up" bucket with no class of its own. Matching is
+// deliberately conservative: only an EXACT (case/punctuation-insensitive)
+// name match links to an existing class, since a wrong fuzzy match would
+// silently file a real assignment under the wrong class. Anything that
+// doesn't exactly match becomes a brand-new class named after the Canvas
+// course -- a duplicate class Dylan can rename or delete himself is a far
+// smaller problem than an assignment quietly attached to the wrong one.
+// Safe to call repeatedly (idempotent): a course already linked via
+// canvasCourseId is skipped every time after the first.
+function normalizeClassName(name) {
+  return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+router.post('/sync-classes', async (req, res) => {
+  try {
+    const courses = await getActiveCourses()
+    const classes = loadData('classes')
+    let linked = 0
+    let created = 0
+
+    for (const course of courses) {
+      const alreadyLinked = classes.some((c) => c.canvasCourseId === course.id)
+      if (alreadyLinked) continue
+
+      const courseNorm = normalizeClassName(course.name)
+      const match = classes.find((c) => !c.canvasCourseId && normalizeClassName(c.name) === courseNorm)
+
+      if (match) {
+        match.canvasCourseId = course.id
+        linked += 1
+      } else {
+        classes.push({
+          id: `canvas-class-${course.id}`,
+          name: course.name,
+          level: 'regular',
+          excludeFromGpa: false,
+          canvasCourseId: course.id,
+          createdAt: new Date().toISOString(),
+        })
+        created += 1
+      }
+    }
+
+    saveData('classes', classes)
+    res.json({ success: true, linked, created, classes })
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+
 router.post('/disconnect', (req, res) => {
   clearCredentials()
   res.json({ success: true })

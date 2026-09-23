@@ -3050,5 +3050,12 @@ export function useAppData() {
     setUpCount,
     overviewEyebrow,
     dailyFocus,
+
+    // Exposed so App.jsx's own top-level Canvas init effect can force a
+    // full refresh after Canvas creates/links classes server-side
+    // (routes/canvas.js's /sync-classes) -- this hook owns `classes`
+    // state, and that state has no other way to learn about a change
+    // made outside one of this hook's own CRUD functions.
+    loadData,
   }
 }

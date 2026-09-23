@@ -45,11 +45,29 @@ export function useCanvas() {
     }
   }
 
+  // Reconciles Dylan's real Canvas course roster into the local `classes`
+  // list (see routes/canvas.js's /sync-classes for the matching logic) so
+  // Canvas assignments have a real class to be filed under in School,
+  // not just the flat top-level "Coming up" list. Returns whether it
+  // actually changed anything, so the caller can decide whether the rest
+  // of the app's data (which owns `classes`) needs to reload.
+  async function syncClasses() {
+    try {
+      const result = await request('/sync-classes', { method: 'POST' })
+      return Boolean(result.linked || result.created)
+    } catch {
+      // best-effort -- Canvas assignments still show in the flat "Coming
+      // up" list even if this fails, they just won't be under a class yet.
+      return false
+    }
+  }
+
   const loadAssignments = useCallback(async () => {
     try {
       const data = await request('/assignments')
       setAssignments(data.assignments || [])
       autoSyncToCalendar()
+      await syncClasses()
     } catch (err) {
       setError(err.message)
     }
@@ -113,6 +131,7 @@ export function useCanvas() {
     syncing,
     checkStatus,
     loadAssignments,
+    syncClasses,
     connect,
     syncToCalendar,
     disconnect,

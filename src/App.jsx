@@ -51,17 +51,24 @@ function App() {
   const canvas = useCanvas()
   const slack = useSlack()
 
-  // Canvas assignments (and the silent calendar auto-sync inside
-  // loadAssignments) previously only loaded when Dylan happened to visit
-  // Connections first in a given browser session -- checkStatus() was
-  // wired up ONLY there. School's "Coming up" list reads canvas.assignments
-  // too, so loading School (or any other page) directly, without ever
-  // opening Connections, left it permanently empty even though Canvas was
-  // genuinely connected with real data. Firing this once here, at the top
-  // of the whole app, means it's populated no matter which page loads
-  // first.
+  // Canvas assignments (and the silent calendar auto-sync + class sync
+  // inside loadAssignments) previously only loaded when Dylan happened to
+  // visit Connections first in a given browser session -- checkStatus()
+  // was wired up ONLY there. School's "Coming up" list reads
+  // canvas.assignments too, so loading School (or any other page)
+  // directly, without ever opening Connections, left it permanently empty
+  // even though Canvas was genuinely connected with real data. Firing this
+  // once here, at the top of the whole app, means it's populated no matter
+  // which page loads first. Awaiting the whole chain and then reloading
+  // `data` afterward picks up any classes Canvas's sync just created or
+  // linked (useAppData owns `classes` state and has no other way to learn
+  // about a change routes/canvas.js made outside its own CRUD functions).
   useEffect(() => {
-    canvas.checkStatus()
+    async function initCanvas() {
+      await canvas.checkStatus()
+      await data.loadData()
+    }
+    initCanvas()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

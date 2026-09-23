@@ -129,6 +129,14 @@ function deadlineLabel(daysUntil) {
 function upcomingItems(classes, assignments, tests, canvasAssignments) {
   const today = todayKey()
   const classNameById = Object.fromEntries(classes.map((c) => [c.id, c.name]))
+  // Canvas's own courseId -> this app's local class id, built from classes
+  // routes/canvas.js's /sync-classes has already linked or created. A
+  // Canvas course with no matching local class (sync hasn't run yet, or
+  // failed silently) just falls back to classId: null below, same as
+  // before this existed.
+  const classIdByCourseId = Object.fromEntries(
+    classes.filter((c) => c.canvasCourseId).map((c) => [c.canvasCourseId, c.id])
+  )
 
   const fromAssignments = assignments
     .filter((a) => !a.completed && a.dueDate)
@@ -163,15 +171,18 @@ function upcomingItems(classes, assignments, tests, canvasAssignments) {
   // assignment is -- it's no longer something to look at.
   const fromCanvas = (canvasAssignments || [])
     .filter((c) => c.dueAt && !c.submitted)
-    .map((c) => ({
-      id: c.id,
-      kind: 'Canvas',
-      title: c.title,
-      className: c.courseName || 'Canvas',
-      classId: null,
-      dueDate: c.dueAt.slice(0, 10),
-      raw: c,
-    }))
+    .map((c) => {
+      const classId = classIdByCourseId[c.courseId] || null
+      return {
+        id: c.id,
+        kind: 'Canvas',
+        title: c.title,
+        className: (classId && classNameById[classId]) || c.courseName || 'Canvas',
+        classId,
+        dueDate: c.dueAt.slice(0, 10),
+        raw: c,
+      }
+    })
 
   return [...fromAssignments, ...fromTests, ...fromCanvas]
     .map((item) => ({ ...item, daysUntil: daysBetween(today, item.dueDate) }))
@@ -221,6 +232,18 @@ export default function SchoolPage({
 }) {
   const classAssignments = (classId) => assignments.filter((a) => a.classId === classId)
   const classTests = (classId) => tests.filter((t) => t.classId === classId)
+  // Canvas assignments filed under this class's page, not just the
+  // top-level "Coming up" list -- matched the same way upcomingItems()
+  // above matches them, via the class's own canvasCourseId (set by
+  // routes/canvas.js's /sync-classes). A submitted item drops off the
+  // same way a completed local assignment would.
+  const canvasClassAssignments = (classId) => {
+    const activeClassForId = classes.find((c) => c.id === classId)
+    if (!activeClassForId?.canvasCourseId) return []
+    return (canvas?.assignments || []).filter(
+      (c) => !c.submitted && c.dueAt && c.courseId === activeClassForId.canvasCourseId
+    )
+  }
   const { weighted: weightedGPA, unweighted: unweightedGPA, gradedCount } = computeGPAs(classes, assignments, tests)
   const deadlines = upcomingItems(classes, assignments, tests, canvas?.assignments)
 
@@ -462,51 +485,71 @@ export default function SchoolPage({
             </button>
           </div>
           <div className="items-list">
-            {currentAssignments.length ? (
-              currentAssignments.map((assignment) => (
-                <div
-                  className={`item-card ${assignment.completed ? 'completed' : ''}`}
-                  key={assignment.id}
-                >
-                  <button className="check-button" onClick={() => toggleAssignment(assignment)}>
-                    {assignment.completed ? '✓' : ''}
-                  </button>
-                  <div className="item-content">
-                    <strong>{assignment.title}</strong>
-                    <div className="item-meta">
-                      {assignment.dueDate && <span>Due {assignment.dueDate}</span>}
+            {currentAssignments.length || canvasClassAssignments(selectedClassId).length ? (
+              <>
+                {currentAssignments.map((assignment) => (
+                  <div
+                    className={`item-card ${assignment.completed ? 'completed' : ''}`}
+                    key={assignment.id}
+                  >
+                    <button className="check-button" onClick={() => toggleAssignment(assignment)}>
+                      {assignment.completed ? '✓' : ''}
+                    </button>
+                    <div className="item-content">
+                      <strong>{assignment.title}</strong>
+                      <div className="item-meta">
+                        {assignment.dueDate && <span>Due {assignment.dueDate}</span>}
+                      </div>
+                    </div>
+                    <select
+                      className="category-select"
+                      value={itemCategory(assignment, 'homework')}
+                      title="Grade weight category"
+                      onChange={(event) => setAssignmentCategory(assignment, event.target.value)}
+                    >
+                      {Object.keys(CATEGORY_LABELS).map((key) => (
+                        <option key={key} value={key}>
+                          {CATEGORY_LABELS[key]} ({CATEGORY_WEIGHTS[key]}%)
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      className="grade-input"
+                      min="0"
+                      max="100"
+                      placeholder="Grade %"
+                      defaultValue={assignment.grade ?? ''}
+                      onBlur={(event) => {
+                        if (event.target.value !== String(assignment.grade ?? '')) {
+                          setAssignmentGrade(assignment, event.target.value)
+                        }
+                      }}
+                    />
+                    <button className="delete-button" onClick={() => deleteAssignment(assignment.id)}>
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {canvasClassAssignments(selectedClassId).map((c) => (
+                  <div
+                    className="item-card deadline-clickable"
+                    key={c.id}
+                    onClick={() => window.open(c.url, '_blank', 'noopener')}
+                  >
+                    <span
+                      className="check-button check-button-canvas"
+                      title="From Canvas -- mark done in Canvas itself"
+                    ></span>
+                    <div className="item-content">
+                      <strong>{c.title}</strong>
+                      <div className="item-meta">
+                        <span>Due {c.dueAt.slice(0, 10)} &middot; Canvas</span>
+                      </div>
                     </div>
                   </div>
-                  <select
-                    className="category-select"
-                    value={itemCategory(assignment, 'homework')}
-                    title="Grade weight category"
-                    onChange={(event) => setAssignmentCategory(assignment, event.target.value)}
-                  >
-                    {Object.keys(CATEGORY_LABELS).map((key) => (
-                      <option key={key} value={key}>
-                        {CATEGORY_LABELS[key]} ({CATEGORY_WEIGHTS[key]}%)
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    className="grade-input"
-                    min="0"
-                    max="100"
-                    placeholder="Grade %"
-                    defaultValue={assignment.grade ?? ''}
-                    onBlur={(event) => {
-                      if (event.target.value !== String(assignment.grade ?? '')) {
-                        setAssignmentGrade(assignment, event.target.value)
-                      }
-                    }}
-                  />
-                  <button className="delete-button" onClick={() => deleteAssignment(assignment.id)}>
-                    ×
-                  </button>
-                </div>
-              ))
+                ))}
+              </>
             ) : (
               <div className="mini-empty">No assignments yet.</div>
             )}
