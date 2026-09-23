@@ -2448,6 +2448,19 @@ footer {
   transform: scale(0.85);
 }
 
+/* A Canvas-sourced deadline has nothing local to mark done -- Canvas itself
+   is the source of truth for that -- so its dot is dimmed and inert rather
+   than looking like a real, clickable toggle. */
+.check-button-canvas {
+  opacity: 0.35;
+}
+
+.check-button-canvas:hover,
+.check-button-canvas:active {
+  background: transparent;
+  transform: none;
+}
+
 .delete-button {
   flex-shrink: 0;
   width: 26px;

@@ -26,10 +26,30 @@ export function useCanvas() {
   const [loading, setLoading] = useState(false)
   const [syncing, setSyncing] = useState(false)
 
+  // Best-effort, silent push of due dates onto the real calendar every
+  // time assignments are (re)loaded -- separate from the user-facing
+  // syncToCalendar below (which drives the Connections page's "Syncing..."
+  // button) so this background pass never flickers that button or surfaces
+  // its own errors. Dylan's actual complaint was that Canvas showed as
+  // connected but never appeared on the calendar or in School -- because
+  // syncing was previously only a manual button buried on a different page.
+  // sync-calendar is idempotent (updates the same linked event by Canvas
+  // assignment id rather than duplicating it), so calling it on every load
+  // is safe, not just on first connect.
+  async function autoSyncToCalendar() {
+    try {
+      await request('/sync-calendar', { method: 'POST' })
+    } catch {
+      // best-effort -- the manual "Sync due dates to calendar" button on
+      // Connections still surfaces a real error if this keeps failing.
+    }
+  }
+
   const loadAssignments = useCallback(async () => {
     try {
       const data = await request('/assignments')
       setAssignments(data.assignments || [])
+      autoSyncToCalendar()
     } catch (err) {
       setError(err.message)
     }

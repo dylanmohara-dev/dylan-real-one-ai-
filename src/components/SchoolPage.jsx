@@ -126,7 +126,7 @@ function deadlineLabel(daysUntil) {
   return `Due in ${daysUntil} days`
 }
 
-function upcomingItems(classes, assignments, tests) {
+function upcomingItems(classes, assignments, tests, canvasAssignments) {
   const today = todayKey()
   const classNameById = Object.fromEntries(classes.map((c) => [c.id, c.name]))
 
@@ -154,7 +154,26 @@ function upcomingItems(classes, assignments, tests) {
       raw: t,
     }))
 
-  return [...fromAssignments, ...fromTests]
+  // Canvas assignments are read-only here (Canvas is the source of truth,
+  // not this app), so they carry no classId/raw-toggle -- they're merged
+  // into the same "Coming up" list rather than living in a second,
+  // easy-to-miss place, which was Dylan's actual complaint: Canvas showed
+  // as connected but its due dates never appeared here or on the
+  // calendar. A submitted item is dropped the same way a completed local
+  // assignment is -- it's no longer something to look at.
+  const fromCanvas = (canvasAssignments || [])
+    .filter((c) => c.dueAt && !c.submitted)
+    .map((c) => ({
+      id: c.id,
+      kind: 'Canvas',
+      title: c.title,
+      className: c.courseName || 'Canvas',
+      classId: null,
+      dueDate: c.dueAt.slice(0, 10),
+      raw: c,
+    }))
+
+  return [...fromAssignments, ...fromTests, ...fromCanvas]
     .map((item) => ({ ...item, daysUntil: daysBetween(today, item.dueDate) }))
     .sort((a, b) => a.daysUntil - b.daysUntil)
 }
@@ -163,6 +182,7 @@ export default function SchoolPage({
   classes,
   assignments,
   tests,
+  canvas,
   selectedClassId,
   setSelectedClassId,
   classNameInput,
@@ -202,7 +222,7 @@ export default function SchoolPage({
   const classAssignments = (classId) => assignments.filter((a) => a.classId === classId)
   const classTests = (classId) => tests.filter((t) => t.classId === classId)
   const { weighted: weightedGPA, unweighted: unweightedGPA, gradedCount } = computeGPAs(classes, assignments, tests)
-  const deadlines = upcomingItems(classes, assignments, tests)
+  const deadlines = upcomingItems(classes, assignments, tests, canvas?.assignments)
 
   // Decluttering fix: Dylan's own complaint was that "Coming up" felt
   // cluttered -- it used to be one flat list, unlimited length, with no
@@ -217,21 +237,29 @@ export default function SchoolPage({
 
   function renderDeadlineItem(item) {
     const tone = item.daysUntil < 0 ? 'overdue' : item.daysUntil <= 2 ? 'soon' : 'normal'
+    const isCanvas = item.kind === 'Canvas'
     return (
       <div
         className={`deadline-item deadline-${tone} deadline-clickable`}
         key={item.id}
-        onClick={() => setSelectedClassId(item.classId)}
+        onClick={() => {
+          if (isCanvas) window.open(item.raw.url, '_blank', 'noopener')
+          else setSelectedClassId(item.classId)
+        }}
       >
-        <button
-          className="check-button"
-          onClick={(event) => {
-            event.stopPropagation()
-            if (item.kind === 'Assignment') toggleAssignment(item.raw)
-            else toggleTest(item.raw)
-          }}
-          title="Mark done"
-        ></button>
+        {isCanvas ? (
+          <span className="check-button check-button-canvas" title="From Canvas -- mark done in Canvas itself"></span>
+        ) : (
+          <button
+            className="check-button"
+            onClick={(event) => {
+              event.stopPropagation()
+              if (item.kind === 'Assignment') toggleAssignment(item.raw)
+              else toggleTest(item.raw)
+            }}
+            title="Mark done"
+          ></button>
+        )}
         <span className="deadline-kind">{item.kind}</span>
         <div className="deadline-body">
           <strong>{item.title}</strong>

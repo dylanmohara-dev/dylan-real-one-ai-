@@ -229,6 +229,7 @@ function App() {
           classes={data.classes}
           assignments={data.assignments}
           tests={data.tests}
+          canvas={canvas}
           tasks={data.tasks}
           selectedClassId={data.selectedClassId}
           setSelectedClassId={data.setSelectedClassId}
