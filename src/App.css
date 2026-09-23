@@ -330,20 +330,20 @@ select option {
 }
 
 .app-shell.theme-mind {
-  --mode-accent-rgb: 239, 68, 68;
-  --mode-accent2-rgb: 220, 38, 38;
-  --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;
-  --mode-radius-scale: 0.25;
-  --mode-border-width: 2px;
-  --bg-glow-1: rgba(239, 68, 68, 0.22);
-  --bg-glow-2: rgba(239, 68, 68, 0.13);
-  --bg: #100707;
-  --mode-tracking: 0.30em;
-  --mode-body-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --mode-accent-rgb: 99, 102, 241;
+  --mode-accent2-rgb: 79, 70, 229;
+  --mode-heading-font: 'Manrope', sans-serif;
+  --mode-radius-scale: 0.9;
+  --mode-border-width: 1px;
+  --bg-glow-1: rgba(99, 102, 241, 0.22);
+  --bg-glow-2: rgba(99, 102, 241, 0.13);
+  --bg: #0a0a16;
+  --mode-tracking: 0.10em;
+  --mode-body-font: 'Manrope', sans-serif;
   --surface: rgba(var(--mode-accent-rgb), 0.055);
   --surface-hover: rgba(var(--mode-accent-rgb), 0.09);
   --surface-input: rgba(var(--mode-accent-rgb), 0.065);
-  --surface-strong: rgba(56, 25, 27, 0.86);
+  --surface-strong: rgba(30, 27, 56, 0.86);
   --border: rgba(var(--mode-accent-rgb), 0.18);
   --border-strong: rgba(var(--mode-accent-rgb), 0.34);
 }
@@ -432,7 +432,7 @@ select option {
 .app-root.theme-reading {  --mode-accent-rgb: 146, 100, 63;  --mode-accent2-rgb: 196, 149, 92;  --mode-heading-font: 'Crimson Pro', Georgia, serif;  --mode-radius-scale: 1.3;  --mode-border-width: 1px;  --bg-glow-1: rgba(146, 100, 63, 0.42);  --bg-glow-2: rgba(196, 149, 92, 0.3);  --bg: #1a1208;  --mode-tracking: 0.05em;  --mode-body-font: 'Crimson Pro', Georgia, serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(48, 38, 24, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
 }
 
-.app-root.theme-mind {  --mode-accent-rgb: 239, 68, 68;  --mode-accent2-rgb: 220, 38, 38;  --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;  --mode-radius-scale: 0.25;  --mode-border-width: 2px;  --bg-glow-1: rgba(239, 68, 68, 0.42);  --bg-glow-2: rgba(220, 38, 38, 0.3);  --bg: #100707;  --mode-tracking: 0.30em;  --mode-body-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(56, 25, 27, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
+.app-root.theme-mind {  --mode-accent-rgb: 99, 102, 241;  --mode-accent2-rgb: 79, 70, 229;  --mode-heading-font: 'Manrope', sans-serif;  --mode-radius-scale: 0.9;  --mode-border-width: 1px;  --bg-glow-1: rgba(99, 102, 241, 0.42);  --bg-glow-2: rgba(79, 70, 229, 0.3);  --bg: #0a0a16;  --mode-tracking: 0.10em;  --mode-body-font: 'Manrope', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(30, 27, 56, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
 }
 
 .app-root.theme-family {  --mode-accent-rgb: 244, 114, 143;  --mode-accent2-rgb: 251, 165, 175;  --mode-heading-font: 'Fredoka', sans-serif;  --mode-radius-scale: 1.8;  --mode-border-width: 1px;  --bg-glow-1: rgba(244, 114, 143, 0.42);  --bg-glow-2: rgba(251, 165, 175, 0.3);  --bg: #1c0f13;  --mode-tracking: 0.04em;  --mode-body-font: 'Fredoka', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(58, 31, 38, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
@@ -505,8 +505,8 @@ select option {
 .app-shell.theme-mind .sidebar {
   background-image:
     radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.45), transparent 65%),
-    repeating-linear-gradient(rgba(var(--mode-accent-rgb), 0.18) 0, rgba(var(--mode-accent-rgb), 0.18) 1.5px, transparent 1.5px, transparent 8px),
-    repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.18) 0, rgba(var(--mode-accent-rgb), 0.18) 1.5px, transparent 1.5px, transparent 8px);
+    radial-gradient(circle, transparent 0, transparent 5px, rgba(var(--mode-accent-rgb), 0.2) 5px, rgba(var(--mode-accent-rgb), 0.2) 6px, transparent 6px, transparent 9px, rgba(var(--mode-accent-rgb), 0.14) 9px, rgba(var(--mode-accent-rgb), 0.14) 10px, transparent 10px);
+  background-size: auto, 20px 20px;
 }
 
 .app-shell.theme-family .sidebar {
@@ -1278,19 +1278,16 @@ select option {
 }
 
 .mode-card.theme-mind {
-  --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;
-  --mode-radius-scale: 0.25;
-  /* Tight checklist grid, matching the full Mind page's texture. */
+  --mode-heading-font: 'Manrope', sans-serif;
+  --mode-radius-scale: 0.9;
+  /* Concentric focus rings, matching the full Mind page's texture. */
   background-image:
-    repeating-linear-gradient(rgba(var(--card-rgb), 0.26) 0, rgba(var(--card-rgb), 0.26) 1.5px, transparent 1.5px, transparent 8px),
-    repeating-linear-gradient(90deg, rgba(var(--card-rgb), 0.26) 0, rgba(var(--card-rgb), 0.26) 1.5px, transparent 1.5px, transparent 8px);
+    radial-gradient(circle, transparent 0, transparent 4px, rgba(var(--card-rgb), 0.3) 4px, rgba(var(--card-rgb), 0.3) 5px, transparent 5px, transparent 8px, rgba(var(--card-rgb), 0.2) 8px, rgba(var(--card-rgb), 0.2) 9px, transparent 9px);
+  background-size: 24px 24px;
 }
 
 .mode-card.theme-mind:hover {
-  transform: none;
-  box-shadow: none;
-  background: rgba(var(--card-rgb), 0.14);
-  border-color: rgb(var(--card-rgb));
+  box-shadow: 0 0 0 1px rgba(var(--card-rgb), 0.4), 0 0 26px rgba(var(--card-rgb), 0.22);
 }
 
 .mode-card.theme-family {
@@ -6336,15 +6333,15 @@ button:disabled:active {
   background-size: 9px 9px;
 }
 
-/* --- Mind: tight checklist grid --- */
+/* --- Mind: concentric focus rings --- */
 .app-shell.theme-mind .main-content::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   background-image:
-    repeating-linear-gradient(rgba(var(--mode-accent-rgb), 0.2) 0, rgba(var(--mode-accent-rgb), 0.2) 1.5px, transparent 1.5px, transparent 12px),
-    repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.2) 0, rgba(var(--mode-accent-rgb), 0.2) 1.5px, transparent 1.5px, transparent 12px);
+    radial-gradient(circle, transparent 0, transparent 6px, rgba(var(--mode-accent-rgb), 0.2) 6px, rgba(var(--mode-accent-rgb), 0.2) 7.5px, transparent 7.5px, transparent 13px, rgba(var(--mode-accent-rgb), 0.13) 13px, rgba(var(--mode-accent-rgb), 0.13) 14px, transparent 14px);
+  background-size: 34px 34px;
 }
 
 /* --- Family: soft warm bubble scatter --- */
@@ -7258,7 +7255,7 @@ button:disabled:active {
   --cal-finance: 59, 130, 246;
   --cal-skills: 168, 85, 247;
   --cal-reading: 146, 100, 63;
-  --cal-mind: 239, 68, 68;
+  --cal-mind: 99, 102, 241;
   --cal-family: 244, 114, 143;
   --cal-calendar: 129, 90, 224;
   --cal-goals: 236, 72, 153;
