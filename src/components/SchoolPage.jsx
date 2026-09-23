@@ -383,7 +383,12 @@ export default function SchoolPage({
                       {level !== 'regular' && <span className="school-level-badge">{LEVEL_LABELS[level]}</span>}
                     </strong>
                     <div className="item-meta">
-                      <span>{classAssignments(schoolClass.id).length} assignments</span>
+                      <span>
+                        {classAssignments(schoolClass.id).length + canvasClassAssignments(schoolClass.id).length} assignments
+                        {canvasClassAssignments(schoolClass.id).length > 0
+                          ? ` (${canvasClassAssignments(schoolClass.id).length} Canvas)`
+                          : ''}
+                      </span>
                       <span> · {classTests(schoolClass.id).length} tests</span>
                       {avg !== null && (
                         <span>
