@@ -5,7 +5,7 @@ import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.j
 const router = Router()
 
 // Bare local YYYY-MM-DD -- NOT toISOString().slice(0, 10), which reads off
-// UTC. Same bug class already found and fixed in skills.js, discipline.js,
+// UTC. Same bug class already found and fixed in skills.js, mind.js,
 // reading.js, family.js, and finance.js this session -- an evening
 // workout logged with no explicit date gets tagged as tomorrow's date in
 // any US timezone, corrupting the very week-plan/log adherence comparison

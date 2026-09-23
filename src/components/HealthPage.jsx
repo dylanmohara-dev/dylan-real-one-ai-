@@ -54,7 +54,7 @@ function weekDates(weekOffset) {
 
 // Consecutive days, counting back from today, with at least one entry
 // logged (any category). A day is a "yes" or "no" here -- the same
-// stops-at-the-first-gap logic Discipline's habit streaks already use, not
+// stops-at-the-first-gap logic Mind's habit streaks already use, not
 // a new invention.
 function currentStreak(healthEntries) {
   const loggedDays = new Set(healthEntries.map(entryDateKey))

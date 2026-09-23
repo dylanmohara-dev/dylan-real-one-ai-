@@ -9,7 +9,7 @@ function todayKey() {
 }
 
 router.get('/habits', (req, res) => {
-  res.json({ habits: loadData('discipline_habits') })
+  res.json({ habits: loadData('mind_habits') })
 })
 
 // Every habit used to be forced into the same box: a plain daily
@@ -17,7 +17,7 @@ router.get('/habits', (req, res) => {
 // that's realistically 2-3x/week, not every single day -- Dylan's own
 // "can't track the kind of habits you want" complaint. frequency lets a
 // habit opt into a weekly target (timesPerWeek, clamped 2-6) instead of
-// the daily-only default; DisciplinePage.jsx branches its streak math on
+// the daily-only default; MindPage.jsx branches its streak math on
 // this field.
 router.post('/habits', (req, res) => {
   try {
@@ -25,7 +25,7 @@ router.post('/habits', (req, res) => {
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'A habit name is required' })
     }
-    const habits = loadData('discipline_habits')
+    const habits = loadData('mind_habits')
     const isWeekly = frequency === 'weekly'
     const habit = {
       id: Date.now().toString(),
@@ -36,7 +36,7 @@ router.post('/habits', (req, res) => {
       createdAt: new Date().toISOString(),
     }
     habits.push(habit)
-    saveData('discipline_habits', habits)
+    saveData('mind_habits', habits)
     res.json({ habit })
   } catch (error) {
     console.error(error)
@@ -50,7 +50,7 @@ router.post('/habits', (req, res) => {
 // new completions.
 router.put('/habits/:id', (req, res) => {
   try {
-    const habits = loadData('discipline_habits')
+    const habits = loadData('mind_habits')
     const index = habits.findIndex((h) => h.id === req.params.id)
     if (index === -1) {
       return res.status(404).json({ error: 'Habit not found' })
@@ -63,7 +63,7 @@ router.put('/habits/:id', (req, res) => {
     if (habits[index].frequency !== 'weekly') {
       delete habits[index].timesPerWeek
     }
-    saveData('discipline_habits', habits)
+    saveData('mind_habits', habits)
     res.json({ habit: habits[index] })
   } catch (error) {
     console.error(error)
@@ -72,12 +72,12 @@ router.put('/habits/:id', (req, res) => {
 })
 
 router.delete('/habits/:id', (req, res) => {
-  const habits = loadData('discipline_habits')
+  const habits = loadData('mind_habits')
   const remaining = habits.filter((h) => h.id !== req.params.id)
-  saveData('discipline_habits', remaining)
-  const completions = loadData('discipline_completions')
+  saveData('mind_habits', remaining)
+  const completions = loadData('mind_completions')
   const remainingCompletions = completions.filter((c) => c.habitId !== req.params.id)
-  saveData('discipline_completions', remainingCompletions)
+  saveData('mind_completions', remainingCompletions)
   res.json({ success: true })
 })
 
@@ -86,7 +86,7 @@ router.delete('/habits/:id', (req, res) => {
 // which is also why toggling just adds or removes the one row instead of
 // flipping a boolean.
 router.get('/completions', (req, res) => {
-  res.json({ completions: loadData('discipline_completions') })
+  res.json({ completions: loadData('mind_completions') })
 })
 
 router.post('/completions/toggle', (req, res) => {
@@ -95,7 +95,7 @@ router.post('/completions/toggle', (req, res) => {
     if (!habitId || !date) {
       return res.status(400).json({ error: 'A habit and date are required' })
     }
-    const completions = loadData('discipline_completions')
+    const completions = loadData('mind_completions')
     const existingIndex = completions.findIndex((c) => c.habitId === habitId && c.date === date)
 
     let done
@@ -106,7 +106,7 @@ router.post('/completions/toggle', (req, res) => {
       completions.splice(existingIndex, 1)
       done = false
     }
-    saveData('discipline_completions', completions)
+    saveData('mind_completions', completions)
     res.json({ done, date: date || todayKey() })
   } catch (error) {
     console.error(error)

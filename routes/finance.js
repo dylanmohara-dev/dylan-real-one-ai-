@@ -15,7 +15,7 @@ function round2(value) {
   return Math.round((Number(value) || 0) * 100) / 100
 }
 // Bare local YYYY-MM-DD -- NOT toISOString().slice(0, 10), which reads off
-// UTC. This exact bug was already found and fixed in skills.js, discipline.js,
+// UTC. This exact bug was already found and fixed in skills.js, mind.js,
 // reading.js, and family.js this session (evening activity in any US
 // timezone gets tagged as tomorrow's date under the UTC version) -- it was
 // simply missed here, in the one place whose whole job is producing the

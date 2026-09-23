@@ -19,7 +19,7 @@ const MODE_MATCH_KEYWORDS = {
   finance: ['finance', 'money', 'budget', 'bills'],
   skills: ['skills', 'hobby', 'lessons', 'practice'],
   reading: ['reading', 'books', 'book club'],
-  discipline: ['discipline', 'habits', 'routine'],
+  mind: ['mind', 'discipline', 'habits', 'routine', 'self-mastery', 'pause and choose'],
   family: ['family', 'faith', 'church', 'kids', 'home'],
 }
 
@@ -682,7 +682,7 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
                 <div className="settings-card">
                   <div>
                     <strong>Evening streak/habit reminder</strong>
-                    <p>A nudge if Discipline habits or today's Health log are still empty.</p>
+                    <p>A nudge if Mind habits or today's Health log are still empty.</p>
                   </div>
                   <button
                     className={`toggle ${notificationPrefs.streakReminders ? 'on' : ''}`}

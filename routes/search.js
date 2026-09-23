@@ -8,7 +8,7 @@ const router = Router()
 // which JSON file to load, what "type" label and mode (for jump-to-mode
 // navigation) a hit gets tagged with, and how to pull a title/snippet/date
 // out of that collection's own real field names (checked directly against
-// each route file, not guessed -- discipline habits use `name` not `title`,
+// each route file, not guessed -- mind habits use `name` not `title`,
 // for example, and several collections don't have a title field at all).
 //
 // Deliberately excluded: `journal` -- it's passcode-protected by design
@@ -155,9 +155,9 @@ const SEARCH_SOURCES = [
     date: (r) => r.createdAt,
   },
   {
-    collection: 'discipline_habits',
+    collection: 'mind_habits',
     type: 'Habit',
-    mode: 'discipline',
+    mode: 'mind',
     title: (r) => r.name,
     snippet: () => '',
     date: (r) => r.createdAt,

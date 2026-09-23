@@ -22,9 +22,9 @@ function QuickActions({
   addHealthEntry,
   readingBooks,
   addReadingSession,
-  disciplineHabits,
-  disciplineCompletions,
-  toggleDisciplineCompletion,
+  mindHabits,
+  mindCompletions,
+  toggleMindCompletion,
   addFamilyLog,
   addSportsSession,
   skills,
@@ -43,8 +43,8 @@ function QuickActions({
   }
 
   const activeBook = readingBooks?.find((b) => b.status === 'reading')
-  const activeHabits = (disciplineHabits || []).filter((h) => h.active !== false)
-  const doneTodayIds = new Set((disciplineCompletions || []).filter((c) => c.date === todayKey()).map((c) => c.habitId))
+  const activeHabits = (mindHabits || []).filter((h) => h.active !== false)
+  const doneTodayIds = new Set((mindCompletions || []).filter((c) => c.date === todayKey()).map((c) => c.habitId))
   const topSkill = skills && skills.length ? skills[0] : null
 
   const buttons = []
@@ -122,7 +122,7 @@ function QuickActions({
               type="button"
               className={done ? 'quick-action-button done' : 'quick-action-button'}
               disabled={saving}
-              onClick={() => toggleDisciplineCompletion(habit.id, todayKey())}
+              onClick={() => toggleMindCompletion(habit.id, todayKey())}
             >
               <CheckCircle2 size={14} strokeWidth={2.25} />
               {habit.name}
@@ -182,9 +182,9 @@ export default function OverviewPage({
   addHealthEntry,
   readingBooks,
   addReadingSession,
-  disciplineHabits,
-  disciplineCompletions,
-  toggleDisciplineCompletion,
+  mindHabits,
+  mindCompletions,
+  toggleMindCompletion,
   addFamilyLog,
   addSportsSession,
   skills,
@@ -239,9 +239,9 @@ export default function OverviewPage({
         addHealthEntry={addHealthEntry}
         readingBooks={readingBooks}
         addReadingSession={addReadingSession}
-        disciplineHabits={disciplineHabits}
-        disciplineCompletions={disciplineCompletions}
-        toggleDisciplineCompletion={toggleDisciplineCompletion}
+        mindHabits={mindHabits}
+        mindCompletions={mindCompletions}
+        toggleMindCompletion={toggleMindCompletion}
         addFamilyLog={addFamilyLog}
         addSportsSession={addSportsSession}
         skills={skills}

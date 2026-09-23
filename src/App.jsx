@@ -28,7 +28,7 @@ import SkillsPage from './components/SkillsPage.jsx'
 import GymPage from './components/GymPage.jsx'
 import SportsPage from './components/SportsPage.jsx'
 import ReadingPage from './components/ReadingPage.jsx'
-import DisciplinePage from './components/DisciplinePage.jsx'
+import MindPage from './components/MindPage.jsx'
 import FamilyPage from './components/FamilyPage.jsx'
 import ModeBackground from './components/ModeBackground.jsx'
 import ModeTransition from './components/ModeTransition.jsx'
@@ -152,9 +152,9 @@ function App() {
           addHealthEntry={data.addHealthEntry}
           readingBooks={data.readingBooks}
           addReadingSession={data.addReadingSession}
-          disciplineHabits={data.disciplineHabits}
-          disciplineCompletions={data.disciplineCompletions}
-          toggleDisciplineCompletion={data.toggleDisciplineCompletion}
+          mindHabits={data.mindHabits}
+          mindCompletions={data.mindCompletions}
+          toggleMindCompletion={data.toggleMindCompletion}
           addFamilyLog={data.addFamilyLog}
           addSportsSession={data.addSportsSession}
           skills={data.skills}
@@ -450,16 +450,16 @@ function App() {
       )
     }
 
-    if (activePage === 'discipline') {
+    if (activePage === 'mind') {
       return (
-        <DisciplinePage
-          disciplineHabits={data.disciplineHabits}
-          disciplineCompletions={data.disciplineCompletions}
+        <MindPage
+          mindHabits={data.mindHabits}
+          mindCompletions={data.mindCompletions}
           saving={data.saving}
-          addDisciplineHabit={data.addDisciplineHabit}
-          updateDisciplineHabit={data.updateDisciplineHabit}
-          deleteDisciplineHabit={data.deleteDisciplineHabit}
-          toggleDisciplineCompletion={data.toggleDisciplineCompletion}
+          addMindHabit={data.addMindHabit}
+          updateMindHabit={data.updateMindHabit}
+          deleteMindHabit={data.deleteMindHabit}
+          toggleMindCompletion={data.toggleMindCompletion}
           assistantContext={assistantContext}
           openChat={openChat}
         />
@@ -502,9 +502,9 @@ function App() {
         addHealthEntry={data.addHealthEntry}
         readingBooks={data.readingBooks}
         addReadingSession={data.addReadingSession}
-        disciplineHabits={data.disciplineHabits}
-        disciplineCompletions={data.disciplineCompletions}
-        toggleDisciplineCompletion={data.toggleDisciplineCompletion}
+        mindHabits={data.mindHabits}
+        mindCompletions={data.mindCompletions}
+        toggleMindCompletion={data.toggleMindCompletion}
         addFamilyLog={data.addFamilyLog}
         addSportsSession={data.addSportsSession}
         skills={data.skills}
@@ -657,8 +657,8 @@ function App() {
           onClose={() => setStatsOverlayOpen(false)}
           playerStats={data.playerStats}
           skills={data.skills}
-          disciplineHabits={data.disciplineHabits}
-          disciplineCompletions={data.disciplineCompletions}
+          mindHabits={data.mindHabits}
+          mindCompletions={data.mindCompletions}
           healthEntries={data.healthEntries}
           gymExercises={data.gymExercises}
           gymLogs={data.gymLogs}

@@ -26,7 +26,7 @@ const BASE_SESSION_XP = 10
 // fixed once in routes/calendar.js's dayKey() (a goal due "2026-09-11"
 // landed on the 10th under America/New_York) and is the same local-time
 // convention every other date field in this app uses (health.js, the
-// Discipline/Health/Gym/Sports/Reading/Family frontend helpers).
+// Mind/Health/Gym/Sports/Reading/Family frontend helpers).
 function todayKey() {
   const now = new Date()
   const y = now.getFullYear()

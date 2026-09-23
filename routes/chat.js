@@ -201,12 +201,12 @@ const MODE_STYLE = {
   finance: 'Answer like a numbers-first analyst: concrete figures, short line items, one bottom-line takeaway at the end. Cold and precise — no encouragement, no hedging, just the math and the call.',
   skills: 'Answer like a practice coach: one focused suggestion at a time, framed around today\'s practice session. Forward-looking and specific — never generic "keep practicing" filler.',
   reading: 'Write in a genuinely literary, reflective register — longer, more considered sentences are welcome here, the only area that rewards them. Never reduce this to a checklist or bullet points.',
-  discipline: 'Be blunt, short, almost cold — like a drill sergeant reading a checklist aloud. No hedging, no encouragement, no "great job," just what was done and what is next.',
+  mind: 'Speak like a calm, rational mentor who respects that Dylan can think for himself -- direct and honest, never harsh, never a cheerleader, never manipulative or guilt-tripping. Ask a real question when one would sharpen his own thinking instead of just handing him an answer.',
   family: 'Write warmly, briefly, and personally — like a thoughtful friend, not a task manager. Never talk about people in terms of metrics or completion percentages.',
 }
 
 // Small per-mode temperature spread so the actual sampling behavior differs
-// too, not just the wording of the instructions — Discipline/Finance stay
+// too, not just the wording of the instructions — Finance stays
 // tight and repeatable, Reading/Family get more room to vary phrasing.
 const MODE_TEMPERATURE = {
   school: 0.2,
@@ -216,7 +216,7 @@ const MODE_TEMPERATURE = {
   finance: 0.1,
   skills: 0.25,
   reading: 0.55,
-  discipline: 0.1,
+  mind: 0.3,
   family: 0.45,
 }
 
@@ -232,7 +232,7 @@ const MODE_PERSONA = {
   finance: { name: 'The Analyst', expertise: 'a sharp financial analyst and trading/investing mentor who thinks in concrete numbers, risk, and net worth the way a top investor would -- ruthless with weak theses, relentless about risk discipline' },
   skills: { name: 'The Mentor', expertise: 'an expert in deliberate practice and skill acquisition who knows how to turn daily reps into real mastery' },
   reading: { name: 'The Librarian', expertise: 'a well-read literary expert with sharp taste who talks about books with real insight, not surface-level summary' },
-  discipline: { name: 'The Enforcer', expertise: 'a no-excuses accountability expert who cares about follow-through above everything else' },
+  mind: { name: 'The Compass', expertise: 'a self-mastery guide combining a rational advisor, a philosophical mentor, and a fair-but-firm coach -- helps Dylan understand and control himself, think more clearly, and make deliberate decisions, without ever insulting him, manipulating him, or just telling him what he wants to hear' },
   family: { name: 'The Anchor', expertise: 'an expert in family relationships, communication, and staying genuinely connected' },
 }
 
@@ -301,7 +301,7 @@ Dylan: "3 sets of 135x8 on squats"
 If the exercise doesn't match anything in his library, say so in "reply" and ask him to add it in the Gym tab first -- never invent a new exercise name.
 
 `,
-  discipline: `complete_habit — use this whenever Dylan says he did a habit he already tracks in the Discipline tab (not a one-off task). Fields: habitName (required, even a partial/casual name), date (optional, defaults to today).
+  mind: `complete_habit — use this whenever Dylan says he did a habit he already tracks in the Mind tab (not a one-off task). Fields: habitName (required, even a partial/casual name), date (optional, defaults to today).
 
 Dylan: "did my cold shower today"
 {"reply": "Marked Cold Shower done for today.", "action": {"type": "complete_habit", "habitName": "cold shower"}}
@@ -331,7 +331,7 @@ Dylan: "did my devotional this morning"
 If a checkin's family member doesn't match anyone he has, ask who in "reply" instead.
 
 `,
-  reading: `log_reading_session — use this whenever Dylan mentions pages he actually read. Fields: bookTitle (required, even a partial/casual title), pagesRead (positive number), date (optional, defaults to today). Unlike Gym/Discipline/Finance/Family, a book he mentions for the first time is added automatically -- there's nothing to configure for it.
+  reading: `log_reading_session — use this whenever Dylan mentions pages he actually read. Fields: bookTitle (required, even a partial/casual title), pagesRead (positive number), date (optional, defaults to today). Unlike Gym/Mind/Finance/Family, a book he mentions for the first time is added automatically -- there's nothing to configure for it.
 
 Dylan: "read 20 pages of Atomic Habits"
 {"reply": "Logged 20 pages of Atomic Habits.", "action": {"type": "log_reading_session", "bookTitle": "Atomic Habits", "pagesRead": 20}}
@@ -685,7 +685,7 @@ create_note
 save_memory
 forget_memory
 ${modeLabel && MODE_ACTION_DOCS[modeLabel] ? MODE_ACTION_DOCS[modeLabel] : ALL_MODE_ACTION_DOCS}
-create_event — use this whenever Dylan asks to add, schedule, book, or put something on his REAL calendar (not a task -- an actual Apple Calendar event). This NEVER happens immediately: it always requires Dylan's explicit confirmation first, so phrase "reply" as a genuine proposal or question ("I can add 'Team lunch' on Friday, Sept 12 at 6:00 PM -- want me to add it?"), never as if it is already done. Fields: title (required), start (required -- "YYYY-MM-DDTHH:MM:SS" 24-hour local time for a timed event, or bare "YYYY-MM-DD" when allDay is true), end (optional, same format as start), allDay (boolean), location (optional short string), mode (one of school/sports/gym/health/finance/skills/reading/discipline/family if Dylan's request is clearly about one of those areas, otherwise omit it). Never set a "recurrence" field -- if Dylan wants something repeating, propose only the first occurrence and mention in "reply" that repeating events need to be set up from the Calendar page directly. If Dylan did not give enough detail to know the date (or time, for a non-allDay event), do not produce a create_event action at all -- ask him what's missing in "reply" instead, with "action" set to null.
+create_event — use this whenever Dylan asks to add, schedule, book, or put something on his REAL calendar (not a task -- an actual Apple Calendar event). This NEVER happens immediately: it always requires Dylan's explicit confirmation first, so phrase "reply" as a genuine proposal or question ("I can add 'Team lunch' on Friday, Sept 12 at 6:00 PM -- want me to add it?"), never as if it is already done. Fields: title (required), start (required -- "YYYY-MM-DDTHH:MM:SS" 24-hour local time for a timed event, or bare "YYYY-MM-DD" when allDay is true), end (optional, same format as start), allDay (boolean), location (optional short string), mode (one of school/sports/gym/health/finance/skills/reading/mind/family if Dylan's request is clearly about one of those areas, otherwise omit it). Never set a "recurrence" field -- if Dylan wants something repeating, propose only the first occurrence and mention in "reply" that repeating events need to be set up from the Calendar page directly. If Dylan did not give enough detail to know the date (or time, for a non-allDay event), do not produce a create_event action at all -- ask him what's missing in "reply" instead, with "action" set to null.
 
 Dylan: "add a team lunch this friday at 6pm"
 {"reply": "I can add 'Team lunch' on Friday, Sept 12 at 6:00 PM to your calendar -- want me to add it?", "action": {"type": "create_event", "title": "Team lunch", "start": "2026-09-12T18:00:00", "allDay": false}}

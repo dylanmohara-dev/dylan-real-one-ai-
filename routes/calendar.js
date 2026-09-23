@@ -30,7 +30,7 @@ const MODE_LABELS = {
   finance: 'Finance',
   skills: 'Skills',
   reading: 'Reading',
-  discipline: 'Discipline',
+  mind: 'Mind',
   family: 'Family/Faith',
 }
 
@@ -317,7 +317,7 @@ router.get('/month', async (req, res) => {
     items.push({
       id: `task-${task.id}`,
       kind: 'task',
-      mode: 'discipline',
+      mode: 'mind',
       title: task.title,
       date: key,
       time: null,

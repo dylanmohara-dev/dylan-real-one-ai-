@@ -24,7 +24,7 @@ function scatterTiles(icons, modeKey, random) {
 }
 
 // Aligned rows and columns with light jitter — for the structured,
-// orderly life areas (school, finance, discipline, calendar).
+// orderly life areas (school, finance, mind, calendar).
 function gridTiles(icons, modeKey, random) {
   const cols = 5
   const rows = 3

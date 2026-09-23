@@ -45,8 +45,8 @@ function minutesForMemberInRange(log, memberId, fromKey, toKey) {
 
 // Faith practice used to be a bare list of free-text notes with zero
 // computed anything -- every other habit-like tracker in this app (Skills,
-// Discipline, Health) earned a real streak system; faith got nothing. Same
-// local-date-key current/best-streak algorithm as DisciplinePage.jsx,
+// Mind, Health) earned a real streak system; faith got nothing. Same
+// local-date-key current/best-streak algorithm as MindPage.jsx,
 // duplicated locally per this codebase's established convention.
 function faithCurrentStreak(log) {
   const doneDates = new Set(log.filter((e) => e.type === 'faith').map((e) => e.date))

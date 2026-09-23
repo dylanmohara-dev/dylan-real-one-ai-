@@ -21,7 +21,7 @@ const CALENDAR_LEGEND = [
   { key: 'finance', label: 'Finance' },
   { key: 'skills', label: 'Skills' },
   { key: 'reading', label: 'Reading' },
-  { key: 'discipline', label: 'Discipline' },
+  { key: 'mind', label: 'Mind' },
   { key: 'family', label: 'Family/Faith' },
   { key: 'goals', label: 'Goals' },
   { key: 'calendar', label: 'Apple Calendar (untagged)' },

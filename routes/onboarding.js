@@ -9,7 +9,7 @@ const MEMORY_ONLY_MODES = {
   gym: 'Gym',
   skills: 'Skills',
   reading: 'Reading',
-  discipline: 'Discipline',
+  mind: 'Mind',
   family: 'Family',
 }
 

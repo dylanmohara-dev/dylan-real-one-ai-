@@ -131,21 +131,21 @@ function habitStats(habit, completions) {
 function HabitStatsLine({ stats }) {
   if (stats.cadence === 'weekly') {
     return (
-      <div className="item-meta discipline-stats-line">
+      <div className="item-meta mind-stats-line">
         <span>
           {stats.countThisWeek} / {stats.target} this week
         </span>
         {stats.current > 0 && <span>{stats.current} week streak</span>}
-        <span className="discipline-best">
+        <span className="mind-best">
           Best: {stats.best} week{stats.best === 1 ? '' : 's'}
         </span>
       </div>
     )
   }
   return (
-    <div className="item-meta discipline-stats-line">
+    <div className="item-meta mind-stats-line">
       {stats.current > 0 && <span>{stats.current} day streak</span>}
-      <span className="discipline-best">
+      <span className="mind-best">
         Best: {stats.best} day{stats.best === 1 ? '' : 's'}
       </span>
     </div>
@@ -171,23 +171,23 @@ function AddHabitForm({ saving, addHabit }) {
 
   return (
     <form className="form-card" onSubmit={handleSubmit}>
-      <label htmlFor="discipline-habit-input">New habit</label>
+      <label htmlFor="mind-habit-input">New habit</label>
       <input
-        id="discipline-habit-input"
+        id="mind-habit-input"
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="e.g. No phone before 9am"
       />
-      <label htmlFor="discipline-frequency-select">How often</label>
-      <select id="discipline-frequency-select" value={frequency} onChange={(e) => setFrequency(e.target.value)}>
+      <label htmlFor="mind-frequency-select">How often</label>
+      <select id="mind-frequency-select" value={frequency} onChange={(e) => setFrequency(e.target.value)}>
         <option value="daily">Every day</option>
         <option value="weekly">A set number of times per week</option>
       </select>
       {frequency === 'weekly' && (
         <>
-          <label htmlFor="discipline-times-input">Times per week</label>
+          <label htmlFor="mind-times-input">Times per week</label>
           <input
-            id="discipline-times-input"
+            id="mind-times-input"
             type="number"
             min="2"
             max="6"
@@ -203,19 +203,19 @@ function AddHabitForm({ saving, addHabit }) {
   )
 }
 
-function FrequencyEditor({ habit, saving, updateDisciplineHabit }) {
+function FrequencyEditor({ habit, saving, updateMindHabit }) {
   const isWeekly = habit.frequency === 'weekly'
   return (
-    <div className="discipline-frequency-editor">
+    <div className="mind-frequency-editor">
       <select
         className="category-select"
         value={isWeekly ? 'weekly' : 'daily'}
         disabled={saving}
         onChange={(e) => {
           if (e.target.value === 'weekly') {
-            updateDisciplineHabit(habit.id, { frequency: 'weekly', timesPerWeek: habit.timesPerWeek || 3 })
+            updateMindHabit(habit.id, { frequency: 'weekly', timesPerWeek: habit.timesPerWeek || 3 })
           } else {
-            updateDisciplineHabit(habit.id, { frequency: 'daily' })
+            updateMindHabit(habit.id, { frequency: 'daily' })
           }
         }}
       >
@@ -227,7 +227,7 @@ function FrequencyEditor({ habit, saving, updateDisciplineHabit }) {
           className="category-select"
           value={habit.timesPerWeek || 3}
           disabled={saving}
-          onChange={(e) => updateDisciplineHabit(habit.id, { timesPerWeek: Number(e.target.value) })}
+          onChange={(e) => updateMindHabit(habit.id, { timesPerWeek: Number(e.target.value) })}
         >
           {[2, 3, 4, 5, 6].map((n) => (
             <option key={n} value={n}>
@@ -240,32 +240,32 @@ function FrequencyEditor({ habit, saving, updateDisciplineHabit }) {
   )
 }
 
-export default function DisciplinePage({
-  disciplineHabits,
-  disciplineCompletions,
+export default function MindPage({
+  mindHabits,
+  mindCompletions,
   saving,
-  addDisciplineHabit,
-  updateDisciplineHabit,
-  deleteDisciplineHabit,
-  toggleDisciplineCompletion,
+  addMindHabit,
+  updateMindHabit,
+  deleteMindHabit,
+  toggleMindCompletion,
   assistantContext,
   openChat,
 }) {
   const [activeTab, setActiveTab] = useState('today')
-  const activeHabits = disciplineHabits.filter((h) => h.active !== false)
-  const doneToday = new Set(disciplineCompletions.filter((c) => c.date === todayKey()).map((c) => c.habitId))
+  const activeHabits = mindHabits.filter((h) => h.active !== false)
+  const doneToday = new Set(mindCompletions.filter((c) => c.date === todayKey()).map((c) => c.habitId))
 
   return (
-    <div className="page discipline-page">
+    <div className="page mind-page">
       <div className="page-header">
         <div>
-          <span className="eyebrow">DISCIPLINE MODE</span>
-          <h1 className="serif">Discipline</h1>
-          <p>A daily checklist -- every habit, on its own cadence.</p>
+          <span className="eyebrow">MIND MODE</span>
+          <h1 className="serif">Mind</h1>
+          <p>Understand yourself. Control yourself. Think clearly.</p>
         </div>
       </div>
 
-      <ModeChatLauncher assistantContext={assistantContext} modeKey="discipline" openChat={openChat} />
+      <ModeChatLauncher assistantContext={assistantContext} modeKey="mind" openChat={openChat} />
 
       <div className="gym-stats-row">
         <div className="gym-stat-card">
@@ -279,6 +279,9 @@ export default function DisciplinePage({
       <div className="gym-tabs">
         <button type="button" className={activeTab === 'today' ? 'active' : ''} onClick={() => setActiveTab('today')}>
           Today
+        </button>
+        <button type="button" className={activeTab === 'progress' ? 'active' : ''} onClick={() => setActiveTab('progress')}>
+          Progress
         </button>
         <button type="button" className={activeTab === 'habits' ? 'active' : ''} onClick={() => setActiveTab('habits')}>
           Habits
@@ -296,16 +299,16 @@ export default function DisciplinePage({
           )}
           {activeHabits.map((habit) => {
             const done = doneToday.has(habit.id)
-            const stats = habitStats(habit, disciplineCompletions)
+            const stats = habitStats(habit, mindCompletions)
             return (
               <div className="item-card" key={habit.id}>
                 <div className="item-content">
-                  <label className="discipline-checkbox-row">
+                  <label className="mind-checkbox-row">
                     <input
                       type="checkbox"
                       checked={done}
                       disabled={saving}
-                      onChange={() => toggleDisciplineCompletion(habit.id, todayKey())}
+                      onChange={() => toggleMindCompletion(habit.id, todayKey())}
                     />
                     <strong style={done ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}>
                       {habit.name}
@@ -319,34 +322,57 @@ export default function DisciplinePage({
         </div>
       )}
 
+      {activeTab === 'progress' && (
+        <div className="items-list">
+          {activeHabits.length === 0 && (
+            <div className="empty-state">
+              <div>&#128200;</div>
+              <h3>No progress yet</h3>
+              <p>Add a habit in the Habits tab to start tracking real streaks.</p>
+            </div>
+          )}
+          {activeHabits.map((habit) => {
+            const stats = habitStats(habit, mindCompletions)
+            return (
+              <div className="item-card" key={habit.id}>
+                <div className="item-content">
+                  <strong>{habit.name}</strong>
+                  <HabitStatsLine stats={stats} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {activeTab === 'habits' && (
         <>
-          <AddHabitForm saving={saving} addHabit={addDisciplineHabit} />
+          <AddHabitForm saving={saving} addHabit={addMindHabit} />
           <div className="items-list">
-            {disciplineHabits.length === 0 && (
+            {mindHabits.length === 0 && (
               <div className="empty-state">
                 <div>&#128203;</div>
                 <h3>No habits yet</h3>
                 <p>Add your first one above.</p>
               </div>
             )}
-            {disciplineHabits.map((habit) => {
-              const stats = habitStats(habit, disciplineCompletions)
+            {mindHabits.map((habit) => {
+              const stats = habitStats(habit, mindCompletions)
               return (
                 <div className="item-card" key={habit.id}>
                   <div className="item-content">
                     <strong style={habit.active === false ? { opacity: 0.5 } : undefined}>{habit.name}</strong>
                     <HabitStatsLine stats={stats} />
-                    <FrequencyEditor habit={habit} saving={saving} updateDisciplineHabit={updateDisciplineHabit} />
+                    <FrequencyEditor habit={habit} saving={saving} updateMindHabit={updateMindHabit} />
                     <button
                       type="button"
                       disabled={saving}
-                      onClick={() => updateDisciplineHabit(habit.id, { active: habit.active === false })}
+                      onClick={() => updateMindHabit(habit.id, { active: habit.active === false })}
                     >
                       {habit.active === false ? 'Reactivate' : 'Archive'}
                     </button>
                   </div>
-                  <button className="delete-button" onClick={() => deleteDisciplineHabit(habit.id)} aria-label={`Delete ${habit.name}`}>
+                  <button className="delete-button" onClick={() => deleteMindHabit(habit.id)} aria-label={`Delete ${habit.name}`}>
                     &times;
                   </button>
                 </div>

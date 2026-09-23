@@ -1,14 +1,14 @@
 // Each life area gets its own transition "flavor" rather than one shape
 // recolored nine ways -- School rises like a page turning, Gym punches in,
 // Health breathes with a soft pulse, Finance/Calendar snap into focus like
-// a lens, Discipline cuts in sharp and fast. The Wipe/Fade setting in
+// a lens, Mind cuts in sharp and fast. The Wipe/Fade setting in
 // Settings -> Display still controls the background sweep and overall
 // duration; this only changes what the icon+label do inside it.
 const FLAVORS = {
   school: 'riseIn',
   reading: 'riseIn',
   sports: 'swoosh',
-  discipline: 'snap',
+  mind: 'snap',
   gym: 'punch',
   skills: 'punch',
   health: 'pulse',

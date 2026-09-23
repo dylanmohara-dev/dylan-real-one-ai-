@@ -11,7 +11,7 @@ import { Trophy, Flame, Dumbbell, Wallet, CheckCircle2, Sparkles } from 'lucide-
 // longestStreakFromDateKeys and routes/skills.js's computeMaxStreak --
 // duplicated locally rather than imported, matching this codebase's
 // existing convention of small local pure helpers per file (see
-// DisciplinePage.jsx / HealthPage.jsx, which already duplicate the
+// MindPage.jsx / HealthPage.jsx, which already duplicate the
 // current-streak version of this same algorithm independently).
 function longestStreakFromDateKeys(dateKeys) {
   const sorted = Array.from(dateKeys).sort()
@@ -82,8 +82,8 @@ export default function StatsOverlay({
   onClose,
   playerStats,
   skills,
-  disciplineHabits,
-  disciplineCompletions,
+  mindHabits,
+  mindCompletions,
   healthEntries,
   gymExercises,
   gymLogs,
@@ -96,9 +96,9 @@ export default function StatsOverlay({
 }) {
   if (!open) return null
 
-  const longestHabitStreak = (disciplineHabits || []).reduce((best, habit) => {
+  const longestHabitStreak = (mindHabits || []).reduce((best, habit) => {
     const dates = new Set(
-      (disciplineCompletions || []).filter((c) => c.habitId === habit.id).map((c) => c.date)
+      (mindCompletions || []).filter((c) => c.habitId === habit.id).map((c) => c.date)
     )
     const longest = longestStreakFromDateKeys(dates)
     return longest > best.longest ? { longest, name: habit.name } : best

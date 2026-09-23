@@ -35,7 +35,7 @@ router.delete('/members/:id', (req, res) => {
   saveData('family_members', remaining)
   // Deleting a person doesn't erase the memory of time already spent with
   // them -- past log entries keep the (now-orphaned) memberId rather than
-  // getting deleted, same reasoning as Discipline archiving over deleting.
+  // getting deleted, same reasoning as Mind archiving over deleting.
   res.json({ success: true })
 })
 

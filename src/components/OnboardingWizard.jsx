@@ -154,7 +154,7 @@ export default function OnboardingWizard({ onComplete }) {
               {summary?.classes > 0 && <li>{summary.classes} class{summary.classes === 1 ? '' : 'es'} added to School</li>}
               {summary?.healthEntries > 0 && <li>{summary.healthEntries} health entr{summary.healthEntries === 1 ? 'y' : 'ies'} logged</li>}
               {summary?.financeAccounts > 0 && <li>{summary.financeAccounts} finance account{summary.financeAccounts === 1 ? '' : 's'} added</li>}
-              {summary?.memories > 0 && <li>{summary.memories} thing{summary.memories === 1 ? '' : 's'} saved to memory — Sports, Gym, Skills, Reading, Discipline, and Family don't have real trackers yet, so I kept what you told me and the AI already knows it</li>}
+              {summary?.memories > 0 && <li>{summary.memories} thing{summary.memories === 1 ? '' : 's'} saved to memory — Sports, Gym, Skills, Reading, Mind, and Family don't have real trackers yet, so I kept what you told me and the AI already knows it</li>}
               {!summary && <li>Saved what I could — the local AI didn't respond, but nothing you typed was lost.</li>}
             </ul>
             <button className="onboarding-next" onClick={finish}>

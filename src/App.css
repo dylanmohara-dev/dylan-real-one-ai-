@@ -329,7 +329,7 @@ select option {
   --border-strong: rgba(var(--mode-accent-rgb), 0.34);
 }
 
-.app-shell.theme-discipline {
+.app-shell.theme-mind {
   --mode-accent-rgb: 239, 68, 68;
   --mode-accent2-rgb: 220, 38, 38;
   --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;
@@ -432,7 +432,7 @@ select option {
 .app-root.theme-reading {  --mode-accent-rgb: 146, 100, 63;  --mode-accent2-rgb: 196, 149, 92;  --mode-heading-font: 'Crimson Pro', Georgia, serif;  --mode-radius-scale: 1.3;  --mode-border-width: 1px;  --bg-glow-1: rgba(146, 100, 63, 0.42);  --bg-glow-2: rgba(196, 149, 92, 0.3);  --bg: #1a1208;  --mode-tracking: 0.05em;  --mode-body-font: 'Crimson Pro', Georgia, serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(48, 38, 24, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
 }
 
-.app-root.theme-discipline {  --mode-accent-rgb: 239, 68, 68;  --mode-accent2-rgb: 220, 38, 38;  --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;  --mode-radius-scale: 0.25;  --mode-border-width: 2px;  --bg-glow-1: rgba(239, 68, 68, 0.42);  --bg-glow-2: rgba(220, 38, 38, 0.3);  --bg: #100707;  --mode-tracking: 0.30em;  --mode-body-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(56, 25, 27, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
+.app-root.theme-mind {  --mode-accent-rgb: 239, 68, 68;  --mode-accent2-rgb: 220, 38, 38;  --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;  --mode-radius-scale: 0.25;  --mode-border-width: 2px;  --bg-glow-1: rgba(239, 68, 68, 0.42);  --bg-glow-2: rgba(220, 38, 38, 0.3);  --bg: #100707;  --mode-tracking: 0.30em;  --mode-body-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(56, 25, 27, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
 }
 
 .app-root.theme-family {  --mode-accent-rgb: 244, 114, 143;  --mode-accent2-rgb: 251, 165, 175;  --mode-heading-font: 'Fredoka', sans-serif;  --mode-radius-scale: 1.8;  --mode-border-width: 1px;  --bg-glow-1: rgba(244, 114, 143, 0.42);  --bg-glow-2: rgba(251, 165, 175, 0.3);  --bg: #1c0f13;  --mode-tracking: 0.04em;  --mode-body-font: 'Fredoka', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(58, 31, 38, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
@@ -502,7 +502,7 @@ select option {
   background-position: 0 0, 0 0, 4px 5px;
 }
 
-.app-shell.theme-discipline .sidebar {
+.app-shell.theme-mind .sidebar {
   background-image:
     radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.45), transparent 65%),
     repeating-linear-gradient(rgba(var(--mode-accent-rgb), 0.18) 0, rgba(var(--mode-accent-rgb), 0.18) 1.5px, transparent 1.5px, transparent 8px),
@@ -568,7 +568,7 @@ select option {
   box-shadow: 0 2px 20px -4px rgba(var(--mode-accent-rgb), 0.5);
 }
 
-.app-root.theme-discipline .top-settings-bar {
+.app-root.theme-mind .top-settings-bar {
   background-image: linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.55), rgba(var(--mode-accent2-rgb), 0.24) 55%, transparent 92%);
   border-bottom: 3px solid rgba(var(--mode-accent-rgb), 0.65);
   box-shadow: 0 2px 20px -4px rgba(var(--mode-accent-rgb), 0.5);
@@ -1143,7 +1143,7 @@ select option {
     radial-gradient(circle at 100% 100%, rgba(var(--mode-accent2-rgb), 0.13), transparent 50%);
 }
 
-.app-shell.theme-discipline .main-content {
+.app-shell.theme-mind .main-content {
   background-image:
     radial-gradient(circle at 10% 0%, rgba(var(--mode-accent-rgb), 0.16), transparent 45%),
     radial-gradient(circle at 100% 100%, rgba(var(--mode-accent2-rgb), 0.13), transparent 50%);
@@ -1277,16 +1277,16 @@ select option {
     0 14px 18px -4px rgba(0, 0, 0, 0.35);
 }
 
-.mode-card.theme-discipline {
+.mode-card.theme-mind {
   --mode-heading-font: 'JetBrains Mono', 'IBM Plex Mono', monospace;
   --mode-radius-scale: 0.25;
-  /* Tight checklist grid, matching the full Discipline page's texture. */
+  /* Tight checklist grid, matching the full Mind page's texture. */
   background-image:
     repeating-linear-gradient(rgba(var(--card-rgb), 0.26) 0, rgba(var(--card-rgb), 0.26) 1.5px, transparent 1.5px, transparent 8px),
     repeating-linear-gradient(90deg, rgba(var(--card-rgb), 0.26) 0, rgba(var(--card-rgb), 0.26) 1.5px, transparent 1.5px, transparent 8px);
 }
 
-.mode-card.theme-discipline:hover {
+.mode-card.theme-mind:hover {
   transform: none;
   box-shadow: none;
   background: rgba(var(--card-rgb), 0.14);
@@ -6336,8 +6336,8 @@ button:disabled:active {
   background-size: 9px 9px;
 }
 
-/* --- Discipline: tight checklist grid --- */
-.app-shell.theme-discipline .main-content::before {
+/* --- Mind: tight checklist grid --- */
+.app-shell.theme-mind .main-content::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -6534,24 +6534,24 @@ button:disabled:active {
   font-style: italic;
 }
 
-/* --- Discipline: zero softness, instant color-invert snap --- */
-.app-shell.theme-discipline .item-card {
+/* --- Mind: zero softness, instant color-invert snap --- */
+.app-shell.theme-mind .item-card {
   border-radius: 0;
   box-shadow: none;
   transition: border-color 0.1s steps(1), background 0.1s steps(1);
 }
-.app-shell.theme-discipline .item-card:hover {
+.app-shell.theme-mind .item-card:hover {
   transform: none;
   border-color: rgb(var(--mode-accent-rgb));
   background: rgba(var(--mode-accent-rgb), 0.12);
 }
-.app-shell.theme-discipline .form-card button {
+.app-shell.theme-mind .form-card button {
   border-radius: 0;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   transition: background 0.1s steps(1), color 0.1s steps(1);
 }
-.app-shell.theme-discipline .form-card button:hover:not(:disabled) {
+.app-shell.theme-mind .form-card button:hover:not(:disabled) {
   transform: none;
   background: var(--text-primary);
   color: var(--bg);
@@ -6633,7 +6633,7 @@ button:disabled:active {
   filter: drop-shadow(0 0 22px rgba(var(--mode-accent-rgb), 0.65)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
-.app-shell.theme-discipline .page-header h1 {
+.app-shell.theme-mind .page-header h1 {
   background: linear-gradient(100deg, rgb(var(--mode-accent-rgb)) 25%, rgb(var(--mode-accent2-rgb)) 75%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -7258,7 +7258,7 @@ button:disabled:active {
   --cal-finance: 59, 130, 246;
   --cal-skills: 168, 85, 247;
   --cal-reading: 146, 100, 63;
-  --cal-discipline: 239, 68, 68;
+  --cal-mind: 239, 68, 68;
   --cal-family: 244, 114, 143;
   --cal-calendar: 129, 90, 224;
   --cal-goals: 236, 72, 153;
@@ -7523,7 +7523,7 @@ button:disabled:active {
 .cal-mode-finance { --chip-rgb: var(--cal-finance); }
 .cal-mode-skills { --chip-rgb: var(--cal-skills); }
 .cal-mode-reading { --chip-rgb: var(--cal-reading); }
-.cal-mode-discipline { --chip-rgb: var(--cal-discipline); }
+.cal-mode-mind { --chip-rgb: var(--cal-mind); }
 .cal-mode-family { --chip-rgb: var(--cal-family); }
 .cal-mode-calendar { --chip-rgb: var(--cal-calendar); }
 .cal-mode-goals { --chip-rgb: var(--cal-goals); }
@@ -8491,16 +8491,16 @@ button:disabled:active {
   color: rgb(var(--mode-accent-rgb, 249, 115, 22));
 }
 
-/* ---------- Discipline mode: daily checklist row ---------- */
+/* ---------- Mind mode: daily checklist row ---------- */
 
-.discipline-checkbox-row {
+.mind-checkbox-row {
   display: flex;
   align-items: center;
   gap: 10px;
   cursor: pointer;
 }
 
-.discipline-checkbox-row input[type='checkbox'] {
+.mind-checkbox-row input[type='checkbox'] {
   width: 18px;
   height: 18px;
   accent-color: rgb(var(--mode-accent-rgb));
@@ -8510,15 +8510,15 @@ button:disabled:active {
 /* Weekly-cadence habits + the always-visible "Best" streak target, so the
    longest-ever run stays in view every day instead of buried in the
    separate Stats overlay. */
-.discipline-stats-line {
+.mind-stats-line {
   gap: 10px;
 }
 
-.discipline-best {
+.mind-best {
   opacity: 0.75;
 }
 
-.discipline-frequency-editor {
+.mind-frequency-editor {
   display: flex;
   gap: 6px;
   margin-top: 2px;
@@ -9057,7 +9057,7 @@ button:disabled:active {
 /* ============================================================
    MOBILE TAP TARGETS + READABILITY (phone-mode, <=720px)
    Several icon-only action buttons across the mode pages
-   (School/Sports/Gym/Health/Finance/Skills/Reading/Discipline/
+   (School/Sports/Gym/Health/Finance/Skills/Reading/Mind/
    Family) were 22-26px, under Apple's 44pt minimum touch
    target, and a handful of text sizes were under 11px. Appended
    last so it wins the cascade, same convention as the MOBILE

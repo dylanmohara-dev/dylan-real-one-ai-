@@ -27,9 +27,9 @@ function daysAgoKeyLocal(n) {
 
 // Consecutive days, counting back from today, that have at least one
 // matching row -- stops at the first gap. Exactly the same algorithm
-// DisciplinePage.jsx's own currentStreak() uses for a single habit; this
+// MindPage.jsx's own currentStreak() uses for a single habit; this
 // version is generic over a Set of date keys so the Overview summary
-// below can reuse it for Discipline (per-habit) and Health (any category)
+// below can reuse it for Mind (per-habit) and Health (any category)
 // without re-deriving it from scratch or importing a component file.
 function streakFromDateKeys(dateKeys) {
   let streak = 0
@@ -63,7 +63,7 @@ function todayKeyForTimestamp(timestamp) {
 
 // Matches Skills mode's own STREAK_BADGES thresholds (routes/skills.js) --
 // one canonical milestone ladder app-wide rather than a second, different
-// set of numbers for Discipline/Health streaks to hit.
+// set of numbers for Mind/Health streaks to hit.
 const STREAK_MILESTONES = [3, 7, 30, 100]
 
 function hitMilestone(streak) {
@@ -132,8 +132,8 @@ export function useAppData() {
   const [readingBooks, setReadingBooks] = useState([])
   const [readingSessions, setReadingSessions] = useState([])
   const [readingGoals, setReadingGoals] = useState({ dailyPageGoal: 10 })
-  const [disciplineHabits, setDisciplineHabits] = useState([])
-  const [disciplineCompletions, setDisciplineCompletions] = useState([])
+  const [mindHabits, setMindHabits] = useState([])
+  const [mindCompletions, setMindCompletions] = useState([])
   const [familyMembers, setFamilyMembers] = useState([])
   const [familyLog, setFamilyLog] = useState([])
   const [familyGoals, setFamilyGoals] = useState({ weeklyMinutesGoal: 360 })
@@ -302,7 +302,7 @@ export function useAppData() {
   }
 
   // Global search across tasks/notes/goals/memories/classes/assignments/
-  // tests/health/finance/gym/skills/reading/discipline/family -- see
+  // tests/health/finance/gym/skills/reading/mind/family -- see
   // routes/search.js for the full source list and why journal is
   // deliberately excluded (it's passcode-protected; a plaintext global
   // search would defeat that). A short, local, disk-only lookup -- 5s is
@@ -462,8 +462,8 @@ export function useAppData() {
       setReadingBooks(data.reading?.books || [])
       setReadingSessions(data.reading?.sessions || [])
       setReadingGoals(data.reading?.goals || { dailyPageGoal: 10 })
-      setDisciplineHabits(data.discipline?.habits || [])
-      setDisciplineCompletions(data.discipline?.completions || [])
+      setMindHabits(data.mind?.habits || [])
+      setMindCompletions(data.mind?.completions || [])
       setFamilyMembers(data.family?.members || [])
       setFamilyLog(data.family?.log || [])
       setFamilyGoals(data.family?.goals || { weeklyMinutesGoal: 360 })
@@ -479,9 +479,9 @@ export function useAppData() {
       return {
         skills: data.skills || [],
         goals: data.goals || [],
-        discipline: {
-          habits: data.discipline?.habits || [],
-          completions: data.discipline?.completions || [],
+        mind: {
+          habits: data.mind?.habits || [],
+          completions: data.mind?.completions || [],
         },
         health: { entries: data.health?.entries || [] },
         finance: { history: data.finance?.history || [] },
@@ -690,7 +690,7 @@ export function useAppData() {
 
   // Chat-triggered parity for the four celebration hooks above: a
   // log_gym_set/complete_habit/log_health action mutates data exactly the
-  // same way its manual-UI counterpart (addGymLog/toggleDisciplineCompletion/
+  // same way its manual-UI counterpart (addGymLog/toggleMindCompletion/
   // addHealthEntry) does, but bypasses those functions entirely -- routes/
   // chat.js calls lib/assistant.js's executeAction() directly on the
   // server. Same before/after diff technique as detectSkillMilestones/
@@ -773,7 +773,7 @@ export function useAppData() {
       awardXP('habit-done')
 
       // Same "only today counts toward an active streak" rule as
-      // toggleDisciplineCompletion -- a chat message marking a past day
+      // toggleMindCompletion -- a chat message marking a past day
       // done doesn't represent a streak crossing a milestone right now.
       if (completion.date === todayKeyLocal()) {
         const newStreak = habitCurrentStreak(nextCompletions, completion.habitId)
@@ -1244,11 +1244,11 @@ export function useAppData() {
     }
   }
 
-  // Discipline
-  async function addDisciplineHabit(name, options = {}) {
+  // Mind
+  async function addMindHabit(name, options = {}) {
     setSaving(true)
     try {
-      await request('/discipline/habits', { method: 'POST', body: JSON.stringify({ name, ...options }) })
+      await request('/mind/habits', { method: 'POST', body: JSON.stringify({ name, ...options }) })
       await loadData()
       showSuccess('Habit added.')
     } catch (error) {
@@ -1258,10 +1258,10 @@ export function useAppData() {
     }
   }
 
-  async function updateDisciplineHabit(id, updates) {
+  async function updateMindHabit(id, updates) {
     setSaving(true)
     try {
-      await request(`/discipline/habits/${id}`, { method: 'PUT', body: JSON.stringify(updates) })
+      await request(`/mind/habits/${id}`, { method: 'PUT', body: JSON.stringify(updates) })
       await loadData()
     } catch (error) {
       showError(error.message)
@@ -1270,9 +1270,9 @@ export function useAppData() {
     }
   }
 
-  async function deleteDisciplineHabit(id) {
+  async function deleteMindHabit(id) {
     try {
-      await request(`/discipline/habits/${id}`, { method: 'DELETE' })
+      await request(`/mind/habits/${id}`, { method: 'DELETE' })
       await loadData()
       showSuccess('Habit deleted.')
     } catch (error) {
@@ -1280,16 +1280,16 @@ export function useAppData() {
     }
   }
 
-  async function toggleDisciplineCompletion(habitId, date) {
+  async function toggleMindCompletion(habitId, date) {
     try {
-      const result = await request('/discipline/completions/toggle', {
+      const result = await request('/mind/completions/toggle', {
         method: 'POST',
         body: JSON.stringify({ habitId, date }),
       })
       const fresh = await loadData()
 
       if (result.done) {
-        const habit = disciplineHabits.find((h) => h.id === habitId)
+        const habit = mindHabits.find((h) => h.id === habitId)
         pushToast({ kind: 'task', title: 'HABIT DONE', message: habit ? habit.name : 'Habit' })
         awardXP('habit-done')
 
@@ -1299,7 +1299,7 @@ export function useAppData() {
         // milestone right now, so it's silently skipped rather than fired
         // on a technicality.
         if (fresh && date === todayKeyLocal()) {
-          const newStreak = habitCurrentStreak(fresh.discipline.completions, habitId)
+          const newStreak = habitCurrentStreak(fresh.mind.completions, habitId)
           const milestone = hitMilestone(newStreak)
           if (milestone) {
             pushAchievement({
@@ -1431,14 +1431,14 @@ export function useAppData() {
         const previousSkills = skills
         const previousGoals = goals
         const previousGymLogs = gymLogs
-        const previousCompletions = disciplineCompletions
+        const previousCompletions = mindCompletions
         const previousHealthEntries = healthEntries
         const fresh = await loadData()
         if (fresh) {
           detectSkillMilestones(previousSkills, fresh.skills)
           detectGoalMilestones(previousGoals, fresh.goals)
           detectGymPRs(previousGymLogs, fresh.gym.logs, fresh.gym.exercises)
-          detectHabitCompletions(previousCompletions, fresh.discipline.completions, fresh.discipline.habits)
+          detectHabitCompletions(previousCompletions, fresh.mind.completions, fresh.mind.habits)
           detectHealthStreak(previousHealthEntries, fresh.health.entries)
           maybeCelebrateNetWorthSwing(fresh)
         }
@@ -2622,22 +2622,22 @@ export function useAppData() {
         }
       }
 
-      if (mode.key === 'discipline') {
+      if (mode.key === 'mind') {
         const now = new Date()
         const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-        const activeHabits = disciplineHabits.filter((h) => h.active !== false)
-        const doneToday = disciplineCompletions.filter((c) => c.date === todayKey).length
-        const disciplineStreak = Math.max(
+        const activeHabits = mindHabits.filter((h) => h.active !== false)
+        const doneToday = mindCompletions.filter((c) => c.date === todayKey).length
+        const mindStreak = Math.max(
           0,
-          ...activeHabits.map((habit) => habitCurrentStreak(disciplineCompletions, habit.id))
+          ...activeHabits.map((habit) => habitCurrentStreak(mindCompletions, habit.id))
         )
         return {
           ...mode,
           headline: activeHabits.length ? `${activeHabits.length} habit${activeHabits.length === 1 ? '' : 's'} tracked` : mode.headline,
           metricValue: `${doneToday} / ${activeHabits.length}`,
           progress: activeHabits.length ? Math.max(0, Math.min(100, Math.round((doneToday / activeHabits.length) * 100))) : 0,
-          isSetUp: disciplineHabits.length > 0,
-          streak: disciplineStreak,
+          isSetUp: mindHabits.length > 0,
+          streak: mindStreak,
         }
       }
 
@@ -2700,8 +2700,8 @@ export function useAppData() {
     sportsSettings,
     readingBooks,
     readingSessions,
-    disciplineHabits,
-    disciplineCompletions,
+    mindHabits,
+    mindCompletions,
     familyMembers,
     familyLog,
     familyGoals,
@@ -2769,13 +2769,13 @@ export function useAppData() {
       })
     }
 
-    const activeHabits = disciplineHabits.filter((h) => h.active !== false)
+    const activeHabits = mindHabits.filter((h) => h.active !== false)
     if (activeHabits.length) {
       const todayForHabits = todayKeyLocal()
-      const doneToday = disciplineCompletions.filter((c) => c.date === todayForHabits).length
+      const doneToday = mindCompletions.filter((c) => c.date === todayForHabits).length
       if (doneToday < activeHabits.length) {
         items.push({
-          mode: 'discipline',
+          mode: 'mind',
           urgent: false,
           text: `${activeHabits.length - doneToday} of ${activeHabits.length} daily habits not done yet`,
         })
@@ -2805,7 +2805,7 @@ export function useAppData() {
     // Urgent items first, then cap it -- this is meant to be a glance, not
     // another full list to read through.
     return items.sort((a, b) => Number(b.urgent) - Number(a.urgent)).slice(0, 4)
-  }, [tests, tradingStats, tasks, disciplineHabits, disciplineCompletions, healthEntries, readingBooks, readingSessions])
+  }, [tests, tradingStats, tasks, mindHabits, mindCompletions, healthEntries, readingBooks, readingSessions])
 
   const currentThreadKey = activeMode ? activeMode.key : 'general'
   const chatMessages = chatThreads[currentThreadKey] || []
@@ -3020,13 +3020,13 @@ export function useAppData() {
     addReadingSession,
     setReadingGoal,
 
-    // discipline
-    disciplineHabits,
-    disciplineCompletions,
-    addDisciplineHabit,
-    updateDisciplineHabit,
-    deleteDisciplineHabit,
-    toggleDisciplineCompletion,
+    // mind
+    mindHabits,
+    mindCompletions,
+    addMindHabit,
+    updateMindHabit,
+    deleteMindHabit,
+    toggleMindCompletion,
 
     // family
     familyMembers,

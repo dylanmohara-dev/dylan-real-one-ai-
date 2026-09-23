@@ -6,7 +6,7 @@ import {
   TrendingUp,
   Star,
   Columns3,
-  CheckCircle2,
+  Brain,
   Users,
 } from 'lucide-react'
 
@@ -178,7 +178,7 @@ export const ONBOARDING_PROMPTS = {
   finance: 'List any accounts you want tracked — checking, savings, credit cards — with rough balances.',
   skills: "What's the one skill you want to get better at?",
   reading: "What are you reading, and what's your daily page goal?",
-  discipline: 'What daily habits do you want to hold yourself to?',
+  mind: 'What daily habits do you want to hold yourself to, and what patterns in your own thinking do you want to get better at noticing?',
   family: 'Who\'s in your family, and what do you want to stay on top of?',
 }
 
@@ -285,7 +285,7 @@ export const LIFE_MODES = [
     assistantTitle: 'Literary expert',
     icon: Columns3,
     title: 'Reading',
-    // Was '244, 63, 94' (a red-pink that duplicated Discipline) — the
+    // Was '244, 63, 94' (a red-pink that duplicated Mind, née Discipline) — the
     // theme-reading CSS class was fixed to sepia/brown in an earlier
     // session, but this object (used directly by ModePage/OverviewPage
     // card gradients) was never updated to match. Fixed here.
@@ -300,19 +300,19 @@ export const LIFE_MODES = [
     prompts: ["Log today's pages", 'Recommend what to read next'],
   },
   {
-    key: 'discipline',
-    assistantName: 'The Enforcer',
-    assistantTitle: 'Accountability expert',
-    icon: CheckCircle2,
-    title: 'Discipline',
+    key: 'mind',
+    assistantName: 'The Compass',
+    assistantTitle: 'Self-mastery guide',
+    icon: Brain,
+    title: 'Mind',
     rgb: '239, 68, 68',
     rgb2: '220, 38, 38',
     headline: 'No habits set',
-    subtitle: 'Daily checklist, every day',
+    subtitle: 'Understand yourself. Control yourself. Think clearly.',
     metricLabel: 'TODAY',
     metricValue: '0 / 0',
     assistantMessage:
-      "Tell me the habits you want to build — I'll help you track Discipline.",
+      "Tell me the habits you want to build, or what's on your mind — I'll help you track it.",
     prompts: ['Set up my daily habits', "Did I complete today's checklist?"],
   },
   {

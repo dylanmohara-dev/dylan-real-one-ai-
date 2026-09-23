@@ -28,7 +28,7 @@ import backupRouter from './routes/backup.js'
 import gymRouter from './routes/gym.js'
 import sportsRouter from './routes/sports.js'
 import readingRouter from './routes/reading.js'
-import disciplineRouter from './routes/discipline.js'
+import mindRouter from './routes/mind.js'
 import familyRouter from './routes/family.js'
 import bootstrapRouter from './routes/bootstrap.js'
 import notificationsRouter from './routes/notifications.js'
@@ -77,7 +77,7 @@ app.use('/api/backup', backupRouter)
 app.use('/api/gym', gymRouter)
 app.use('/api/sports', sportsRouter)
 app.use('/api/reading', readingRouter)
-app.use('/api/discipline', disciplineRouter)
+app.use('/api/mind', mindRouter)
 app.use('/api/family', familyRouter)
 app.use('/api', bootstrapRouter)
 app.use('/api/notifications', notificationsRouter)
