@@ -471,10 +471,12 @@ select option {
 .app-shell.theme-health .sidebar {
   background-image:
     radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.45), transparent 65%),
-    radial-gradient(rgba(var(--mode-accent-rgb), 0.28) 2px, transparent 2px),
-    radial-gradient(rgba(var(--mode-accent2-rgb), 0.18) 1.5px, transparent 1.5px);
-  background-size: auto, 14px 14px, 22px 22px;
-  background-position: 0 0, 0 0, 7px 11px;
+    repeating-linear-gradient(20deg,
+      transparent, transparent 9px,
+      rgba(var(--mode-accent-rgb), 0.26) 9px, rgba(var(--mode-accent-rgb), 0.26) 10.5px,
+      transparent 10.5px, transparent 13px,
+      rgba(var(--mode-accent2-rgb), 0.18) 13px, rgba(var(--mode-accent2-rgb), 0.18) 14px,
+      transparent 14px, transparent 36px);
 }
 
 .app-shell.theme-finance .sidebar {
@@ -487,19 +489,20 @@ select option {
 .app-shell.theme-skills .sidebar {
   background-image:
     radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.45), transparent 65%),
-    radial-gradient(rgba(var(--mode-accent-rgb), 0.32) 1.5px, transparent 1.5px),
-    radial-gradient(rgba(var(--mode-accent2-rgb), 0.26) 2px, transparent 2px);
-  background-size: auto, 26px 26px, 38px 38px;
-  background-position: 0 0, 0 0, 13px 19px;
+    repeating-linear-gradient(70deg,
+      rgba(var(--mode-accent-rgb), 0.26) 0, rgba(var(--mode-accent-rgb), 0.26) 2px,
+      transparent 2px, transparent 9px,
+      rgba(var(--mode-accent2-rgb), 0.18) 9px, rgba(var(--mode-accent2-rgb), 0.18) 10px,
+      transparent 10px, transparent 26px);
 }
 
 .app-shell.theme-reading .sidebar {
   background-image:
     radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.45), transparent 65%),
-    radial-gradient(rgba(var(--mode-accent-rgb), 0.24) 1.2px, transparent 1.2px),
-    radial-gradient(rgba(var(--mode-accent2-rgb), 0.14) 1px, transparent 1px);
-  background-size: auto, 7px 7px, 11px 11px;
-  background-position: 0 0, 0 0, 4px 5px;
+    repeating-linear-gradient(
+      rgba(var(--mode-accent-rgb), 0.2) 0, rgba(var(--mode-accent-rgb), 0.2) 5px,
+      transparent 5px, transparent 17px
+    );
 }
 
 .app-shell.theme-mind .sidebar {
@@ -512,10 +515,12 @@ select option {
 .app-shell.theme-family .sidebar {
   background-image:
     radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.45), transparent 65%),
-    radial-gradient(rgba(var(--mode-accent-rgb), 0.22) 2.5px, transparent 2.5px),
-    radial-gradient(rgba(var(--mode-accent2-rgb), 0.18) 2.5px, transparent 2.5px);
-  background-size: auto, 26px 26px, 26px 26px;
-  background-position: 0 0, 0 0, 13px 13px;
+    repeating-radial-gradient(circle at 50% 100%,
+      transparent 0, transparent 8px,
+      rgba(var(--mode-accent-rgb), 0.26) 8px, rgba(var(--mode-accent-rgb), 0.26) 9.5px,
+      transparent 9.5px, transparent 16px,
+      rgba(var(--mode-accent2-rgb), 0.18) 16px, rgba(var(--mode-accent2-rgb), 0.18) 17px);
+  background-size: auto, 30px 30px;
 }
 
 .app-shell.theme-journal .sidebar {
@@ -1217,12 +1222,13 @@ select option {
 .mode-card.theme-health {
   --mode-heading-font: 'Quicksand', 'Nunito', sans-serif;
   --mode-radius-scale: 1.6;
-  /* Soft dot scatter, matching the full Health page's own texture. */
-  background-image:
-    radial-gradient(rgba(var(--card-rgb), 0.34) 2px, transparent 2px),
-    radial-gradient(rgba(var(--card-rgb2), 0.2) 1.5px, transparent 1.5px);
-  background-size: 14px 14px, 22px 22px;
-  background-position: 0 0, 7px 11px;
+  /* Gentle pulse waves, matching the full Health page's own texture. */
+  background-image: repeating-linear-gradient(20deg,
+    transparent, transparent 6px,
+    rgba(var(--card-rgb), 0.32) 6px, rgba(var(--card-rgb), 0.32) 7px,
+    transparent 7px, transparent 9px,
+    rgba(var(--card-rgb2), 0.22) 9px, rgba(var(--card-rgb2), 0.22) 10px,
+    transparent 10px, transparent 24px);
 }
 
 .mode-card.theme-health:hover {
@@ -1247,12 +1253,12 @@ select option {
 .mode-card.theme-skills {
   --mode-heading-font: 'Poppins', sans-serif;
   --mode-radius-scale: 1.15;
-  /* Sparse constellation dots, matching the full Skills page's texture. */
-  background-image:
-    radial-gradient(rgba(var(--card-rgb), 0.42) 1.5px, transparent 1.5px),
-    radial-gradient(rgba(var(--card-rgb2), 0.34) 2px, transparent 2px);
-  background-size: 28px 28px, 40px 40px;
-  background-position: 0 0, 14px 20px;
+  /* Ascending level ticks, matching the full Skills page's texture. */
+  background-image: repeating-linear-gradient(70deg,
+    rgba(var(--card-rgb), 0.34) 0, rgba(var(--card-rgb), 0.34) 2px,
+    transparent 2px, transparent 7px,
+    rgba(var(--card-rgb2), 0.24) 7px, rgba(var(--card-rgb2), 0.24) 8px,
+    transparent 8px, transparent 18px);
 }
 
 .mode-card.theme-skills:hover {
@@ -1262,12 +1268,11 @@ select option {
 .mode-card.theme-reading {
   --mode-heading-font: 'Crimson Pro', Georgia, serif;
   --mode-radius-scale: 1.3;
-  /* Fine paper grain, matching the full Reading page's own texture. */
-  background-image:
-    radial-gradient(rgba(var(--card-rgb), 0.3) 1.2px, transparent 1.2px),
-    radial-gradient(rgba(var(--card-rgb2), 0.16) 1px, transparent 1px);
-  background-size: 7px 7px, 11px 11px;
-  background-position: 0 0, 4px 5px;
+  /* Stacked page bands, matching the full Reading page's own texture. */
+  background-image: repeating-linear-gradient(
+    rgba(var(--card-rgb), 0.22) 0, rgba(var(--card-rgb), 0.22) 4px,
+    transparent 4px, transparent 13px
+  );
 }
 
 .mode-card.theme-reading:hover {
@@ -1293,12 +1298,13 @@ select option {
 .mode-card.theme-family {
   --mode-heading-font: 'Fredoka', sans-serif;
   --mode-radius-scale: 1.8;
-  /* Soft warm bubble scatter, matching the full Family page's texture. */
-  background-image:
-    radial-gradient(rgba(var(--card-rgb), 0.32) 2.5px, transparent 2.5px),
-    radial-gradient(rgba(var(--card-rgb2), 0.24) 2.5px, transparent 2.5px);
-  background-size: 26px 26px, 26px 26px;
-  background-position: 0 0, 13px 13px;
+  /* Linked arc chain, matching the full Family page's texture. */
+  background-image: repeating-radial-gradient(circle at 50% 100%,
+    transparent 0, transparent 5px,
+    rgba(var(--card-rgb), 0.32) 5px, rgba(var(--card-rgb), 0.32) 6px,
+    transparent 6px, transparent 10px,
+    rgba(var(--card-rgb2), 0.22) 10px, rgba(var(--card-rgb2), 0.22) 11px);
+  background-size: 20px 20px;
 }
 
 .mode-card.theme-family:hover {
@@ -6285,17 +6291,18 @@ button:disabled:active {
     repeating-linear-gradient(-45deg, rgba(var(--mode-accent2-rgb), 0.12) 0, rgba(var(--mode-accent2-rgb), 0.12) 2px, transparent 2px, transparent 18px);
 }
 
-/* --- Health: soft dot scatter --- */
+/* --- Health: gentle pulse waves --- */
 .app-shell.theme-health .main-content::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image:
-    radial-gradient(rgba(var(--mode-accent-rgb), 0.28) 2.5px, transparent 2.5px),
-    radial-gradient(rgba(var(--mode-accent2-rgb), 0.16) 1.5px, transparent 1.5px);
-  background-size: 24px 24px, 24px 24px;
-  background-position: 0 0, 12px 12px;
+  background-image: repeating-linear-gradient(20deg,
+    transparent, transparent 9px,
+    rgba(var(--mode-accent-rgb), 0.22) 9px, rgba(var(--mode-accent-rgb), 0.22) 10.5px,
+    transparent 10.5px, transparent 13px,
+    rgba(var(--mode-accent2-rgb), 0.15) 13px, rgba(var(--mode-accent2-rgb), 0.15) 14px,
+    transparent 14px, transparent 36px);
 }
 
 /* --- Finance: ledger grid --- */
@@ -6309,28 +6316,29 @@ button:disabled:active {
     repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.16) 0, rgba(var(--mode-accent-rgb), 0.16) 1.5px, transparent 1.5px, transparent 20px);
 }
 
-/* --- Skills: sparse constellation --- */
+/* --- Skills: ascending level ticks --- */
 .app-shell.theme-skills .main-content::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image:
-    radial-gradient(rgba(var(--mode-accent-rgb), 0.36) 1.5px, transparent 1.5px),
-    radial-gradient(rgba(var(--mode-accent2-rgb), 0.28) 2px, transparent 2px),
-    radial-gradient(rgba(var(--mode-accent-rgb), 0.2) 1.5px, transparent 1.5px);
-  background-size: 70px 70px, 100px 100px, 46px 46px;
-  background-position: 0 0, 40px 60px, 20px 100px;
+  background-image: repeating-linear-gradient(70deg,
+    rgba(var(--mode-accent-rgb), 0.22) 0, rgba(var(--mode-accent-rgb), 0.22) 2px,
+    transparent 2px, transparent 9px,
+    rgba(var(--mode-accent2-rgb), 0.14) 9px, rgba(var(--mode-accent2-rgb), 0.14) 10px,
+    transparent 10px, transparent 26px);
 }
 
-/* --- Reading: fine paper grain --- */
+/* --- Reading: stacked page bands --- */
 .app-shell.theme-reading .main-content::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: radial-gradient(rgba(var(--mode-accent-rgb), 0.24) 1.5px, transparent 1.5px);
-  background-size: 9px 9px;
+  background-image: repeating-linear-gradient(
+    rgba(var(--mode-accent-rgb), 0.16) 0, rgba(var(--mode-accent-rgb), 0.16) 5px,
+    transparent 5px, transparent 17px
+  );
 }
 
 /* --- Mind: concentric focus rings --- */
@@ -6344,17 +6352,18 @@ button:disabled:active {
   background-size: 34px 34px;
 }
 
-/* --- Family: soft warm bubble scatter --- */
+/* --- Family: linked arc chain --- */
 .app-shell.theme-family .main-content::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image:
-    radial-gradient(rgba(var(--mode-accent-rgb), 0.28) 3px, transparent 3px),
-    radial-gradient(rgba(var(--mode-accent2-rgb), 0.2) 3px, transparent 3px);
-  background-size: 56px 56px, 56px 56px;
-  background-position: 0 0, 28px 28px;
+  background-image: repeating-radial-gradient(circle at 50% 100%,
+    transparent 0, transparent 8px,
+    rgba(var(--mode-accent-rgb), 0.22) 8px, rgba(var(--mode-accent-rgb), 0.22) 9.5px,
+    transparent 9.5px, transparent 16px,
+    rgba(var(--mode-accent2-rgb), 0.14) 16px, rgba(var(--mode-accent2-rgb), 0.14) 17px);
+  background-size: 30px 30px;
 }
 
 /* ============ PER-MODE SIGNATURE SHAPE / SHADOW / INTERACTION ============
