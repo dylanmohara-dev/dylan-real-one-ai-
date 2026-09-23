@@ -72,6 +72,8 @@ router.post('/preferences', (req, res) => {
     dueDateReminders,
     morningSummary,
     nightlyTaskReminder,
+    morningMindCheckIn,
+    nightMindReview,
     reminderHour,
     morningHour,
     dueDateLeadDays,
@@ -82,6 +84,8 @@ router.post('/preferences', (req, res) => {
   if (dueDateReminders !== undefined) prefs.dueDateReminders = Boolean(dueDateReminders)
   if (morningSummary !== undefined) prefs.morningSummary = Boolean(morningSummary)
   if (nightlyTaskReminder !== undefined) prefs.nightlyTaskReminder = Boolean(nightlyTaskReminder)
+  if (morningMindCheckIn !== undefined) prefs.morningMindCheckIn = Boolean(morningMindCheckIn)
+  if (nightMindReview !== undefined) prefs.nightMindReview = Boolean(nightMindReview)
   if (reminderHour !== undefined) {
     const hour = Number(reminderHour)
     if (Number.isInteger(hour) && hour >= 0 && hour <= 23) prefs.reminderHour = hour

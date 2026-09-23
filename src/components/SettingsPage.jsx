@@ -731,6 +731,32 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
                   </button>
                 </div>
 
+                <div className="settings-card">
+                  <div>
+                    <strong>Morning Mind check-in</strong>
+                    <p>A nudge to set today's intention in Mind if you haven't yet.</p>
+                  </div>
+                  <button
+                    className={`toggle ${notificationPrefs.morningMindCheckIn ? 'on' : ''}`}
+                    onClick={() => updateNotificationPref('morningMindCheckIn', !notificationPrefs.morningMindCheckIn)}
+                  >
+                    <span />
+                  </button>
+                </div>
+
+                <div className="settings-card">
+                  <div>
+                    <strong>Night Mind review</strong>
+                    <p>A nudge to reflect in Mind before you close out the day.</p>
+                  </div>
+                  <button
+                    className={`toggle ${notificationPrefs.nightMindReview ? 'on' : ''}`}
+                    onClick={() => updateNotificationPref('nightMindReview', !notificationPrefs.nightMindReview)}
+                  >
+                    <span />
+                  </button>
+                </div>
+
                 <button className="backup-download-button" onClick={handleTestNotification}>
                   Send a test notification
                 </button>
