@@ -119,11 +119,24 @@ function daysBetween(fromKey, toKey) {
   return Math.round((to - from) / 86400000)
 }
 
-function deadlineLabel(daysUntil) {
-  if (daysUntil < 0) return `${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} overdue`
-  if (daysUntil === 0) return 'Due today'
-  if (daysUntil === 1) return 'Due tomorrow'
-  return `Due in ${daysUntil} days`
+const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+// UTC-anchored on purpose, same convention as daysBetween() above -- a
+// bare 'YYYY-MM-DD' has no timezone of its own, and parsing it any other
+// way (e.g. `new Date(dateKey)`, which treats it as UTC midnight then
+// renders in local time) can walk it back a day depending on Dylan's
+// timezone. This reads back the exact same calendar day the string says.
+function weekdayForDateKey(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  return WEEKDAY_NAMES[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]
+}
+
+function deadlineLabel(daysUntil, dateKey) {
+  const weekday = dateKey ? ` (${weekdayForDateKey(dateKey)})` : ''
+  if (daysUntil < 0) return `${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} overdue${weekday}`
+  if (daysUntil === 0) return `Due today${weekday}`
+  if (daysUntil === 1) return `Due tomorrow${weekday}`
+  return `Due in ${daysUntil} days${weekday}`
 }
 
 function upcomingItems(classes, assignments, tests, canvasAssignments) {
@@ -288,7 +301,7 @@ export default function SchoolPage({
           <strong>{item.title}</strong>
           <span className="deadline-class">{item.className}</span>
         </div>
-        <span className="deadline-when">{deadlineLabel(item.daysUntil)}</span>
+        <span className="deadline-when">{deadlineLabel(item.daysUntil, item.dueDate)}</span>
       </div>
     )
   }
@@ -503,7 +516,11 @@ export default function SchoolPage({
                     <div className="item-content">
                       <strong>{assignment.title}</strong>
                       <div className="item-meta">
-                        {assignment.dueDate && <span>Due {assignment.dueDate}</span>}
+                        {assignment.dueDate && (
+                        <span>
+                          Due {assignment.dueDate} ({weekdayForDateKey(assignment.dueDate)})
+                        </span>
+                      )}
                       </div>
                     </div>
                     <select
@@ -549,7 +566,9 @@ export default function SchoolPage({
                     <div className="item-content">
                       <strong>{c.title}</strong>
                       <div className="item-meta">
-                        <span>Due {c.dueAt.slice(0, 10)} &middot; Canvas</span>
+                        <span>
+                          Due {c.dueAt.slice(0, 10)} ({weekdayForDateKey(c.dueAt.slice(0, 10))}) &middot; Canvas
+                        </span>
                       </div>
                     </div>
                   </div>
