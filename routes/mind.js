@@ -107,11 +107,259 @@ router.post('/completions/toggle', (req, res) => {
       done = false
     }
     saveData('mind_completions', completions)
+    // Discipline XP only on the completing edge, not on un-checking --
+    // toggling on then off shouldn't be a free 5 XP.
+    if (done) awardSkillXp('discipline', 5)
     res.json({ done, date: date || todayKey() })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Could not update completion' })
   }
+})
+
+// ---------------------------------------------------------------------
+// 5-skill gamification: Focus, Awareness, Discipline, Impulse-Control,
+// Decision-Making. Same accelerating XP curve as routes/skills.js's
+// computeLevel (50*N per level) -- duplicated locally per this codebase's
+// established convention of not importing route-to-route, matched
+// deliberately so "Level 3" means the same thing in both places.
+// ---------------------------------------------------------------------
+function computeSkillLevel(xp) {
+  let level = 1
+  let required = 50
+  let remaining = Number(xp) || 0
+  while (remaining >= required) {
+    remaining -= required
+    level += 1
+    required = 50 * level
+  }
+  return { level, xpIntoLevel: remaining, xpForNextLevel: required }
+}
+
+const SKILL_KEYS = ['focus', 'awareness', 'discipline', 'impulseControl', 'decisionMaking']
+
+function loadSkillXp() {
+  const rows = loadData('mind_skill_xp')
+  const raw = rows[0] || {}
+  const xp = {}
+  for (const key of SKILL_KEYS) xp[key] = Number(raw[key]) || 0
+  return xp
+}
+
+function saveSkillXp(xp) {
+  saveData('mind_skill_xp', [xp])
+}
+
+// The only path that ever changes a skill's XP -- called from server-side
+// handlers below (completions, reviews, decisions), never driven directly
+// by a frontend request, so Dylan can't inflate a skill by replaying one.
+function awardSkillXp(skillKey, amount) {
+  if (!SKILL_KEYS.includes(skillKey)) return
+  const xp = loadSkillXp()
+  xp[skillKey] = (xp[skillKey] || 0) + amount
+  saveSkillXp(xp)
+}
+
+router.get('/skills', (req, res) => {
+  const xp = loadSkillXp()
+  const skills = SKILL_KEYS.map((key) => ({ key, xp: xp[key], ...computeSkillLevel(xp[key]) }))
+  res.json({ skills })
+})
+
+// ---------------------------------------------------------------------
+// Morning Check-In / Night Review. One row per date+type (upsert) --
+// filling in today's morning check-in twice edits the same entry rather
+// than duplicating it, matching this app's "one row per day" convention
+// already used by Health goals and Gym day-notes.
+// ---------------------------------------------------------------------
+router.get('/reviews', (req, res) => {
+  res.json({ reviews: loadData('mind_reviews') })
+})
+
+router.post('/reviews', (req, res) => {
+  try {
+    const { type, date, ...fields } = req.body
+    if (type !== 'morning' && type !== 'night') {
+      return res.status(400).json({ error: 'type must be "morning" or "night"' })
+    }
+    const day = date || todayKey()
+    const reviews = loadData('mind_reviews')
+    const existingIndex = reviews.findIndex((r) => r.type === type && r.date === day)
+    const isNew = existingIndex === -1
+    const entry = {
+      id: isNew ? Date.now().toString() : reviews[existingIndex].id,
+      type,
+      date: day,
+      ...fields,
+      createdAt: isNew ? new Date().toISOString() : reviews[existingIndex].createdAt,
+      updatedAt: new Date().toISOString(),
+    }
+    if (isNew) {
+      reviews.push(entry)
+    } else {
+      reviews[existingIndex] = entry
+    }
+    saveData('mind_reviews', reviews)
+    // Only award XP the first time a given day's review is filled in --
+    // editing it later to fix a typo shouldn't pay out a second time.
+    if (isNew) {
+      awardSkillXp(type === 'morning' ? 'focus' : 'awareness', 8)
+    }
+    res.json({ review: entry })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save review' })
+  }
+})
+
+// ---------------------------------------------------------------------
+// Pause & Choose: the spec's core decision-support flow. Before acting on
+// an impulse, walk through what you're about to do, why, and what a
+// clearer head would say -- then log the actual decision. Every outcome
+// (proceed/wait/different) is kept and counted the same way for the base
+// Impulse-Control award, since the point is building the habit of
+// pausing at all, not steering Dylan toward any one answer -- the spec is
+// explicit that this app should never replace his own thinking.
+// ---------------------------------------------------------------------
+router.get('/decisions', (req, res) => {
+  res.json({ decisions: loadData('mind_decisions') })
+})
+
+router.post('/decisions', (req, res) => {
+  try {
+    const { situation, why, perspective, decision } = req.body
+    if (!situation || !situation.trim()) {
+      return res.status(400).json({ error: 'What you are about to do is required' })
+    }
+    if (!['proceed', 'wait', 'different'].includes(decision)) {
+      return res.status(400).json({ error: 'decision must be proceed, wait, or different' })
+    }
+    const decisions = loadData('mind_decisions')
+    const entry = {
+      id: Date.now().toString(),
+      situation: situation.trim(),
+      why: (why || '').trim(),
+      perspective: (perspective || '').trim(),
+      decision,
+      outcomeNote: '',
+      createdAt: new Date().toISOString(),
+    }
+    decisions.push(entry)
+    saveData('mind_decisions', decisions)
+    // Impulse-Control for doing the pause at all; Decision-Making gets an
+    // extra bump specifically for choosing to wait or do something
+    // different. Proceeding isn't penalized -- that would punish an
+    // honest "I paused and still decided to go ahead" -- it just doesn't
+    // earn the second bonus.
+    awardSkillXp('impulseControl', 6)
+    if (decision !== 'proceed') awardSkillXp('decisionMaking', 6)
+    res.json({ decision: entry })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save decision' })
+  }
+})
+
+router.put('/decisions/:id', (req, res) => {
+  try {
+    const decisions = loadData('mind_decisions')
+    const index = decisions.findIndex((d) => d.id === req.params.id)
+    if (index === -1) return res.status(404).json({ error: 'Decision not found' })
+    const { outcomeNote } = req.body
+    decisions[index] = { ...decisions[index], outcomeNote: (outcomeNote || '').trim() }
+    saveData('mind_decisions', decisions)
+    res.json({ decision: decisions[index] })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not update decision' })
+  }
+})
+
+// ---------------------------------------------------------------------
+// Pattern detection + cross-life-area intelligence. Every insight is
+// computed live from Dylan's own real data, never canned -- and every
+// check has its own minimum-data bar so it stays silent (not wrong)
+// until there is enough history to say something true.
+// ---------------------------------------------------------------------
+function weekdayName(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(y, m - 1, d).getDay()]
+}
+
+// Pulled out of the route handler so bootstrap.js can compute the same
+// insights for the initial page load without a second round trip -- the
+// route below stays as the on-demand refresh path (e.g. after logging a
+// new habit completion) and calls this exact same function.
+export function computeMindInsights() {
+  const insights = []
+  const completions = loadData('mind_completions')
+  const habits = loadData('mind_habits').filter((h) => h.active !== false)
+
+  // Pattern 1: which weekday habits get skipped most often -- only once
+  // there's at least two weeks of real history, so this isn't a fluke
+  // from one bad Tuesday.
+  if (habits.length > 0) {
+    const distinctDates = new Set(completions.map((c) => c.date))
+    if (distinctDates.size >= 14) {
+      const doneByWeekday = {}
+      const possibleByWeekday = {}
+      for (let i = 0; i < 60; i += 1) {
+        const d = new Date()
+        d.setDate(d.getDate() - i)
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        const eligible = habits.filter((h) => new Date(h.createdAt) <= d)
+        if (eligible.length === 0) continue
+        const done = completions.filter((c) => c.date === key).length
+        const wd = weekdayName(key)
+        doneByWeekday[wd] = (doneByWeekday[wd] || 0) + done
+        possibleByWeekday[wd] = (possibleByWeekday[wd] || 0) + eligible.length
+      }
+      let worstDay = null
+      let worstRate = 1
+      for (const wd of Object.keys(possibleByWeekday)) {
+        if (possibleByWeekday[wd] < 4) continue
+        const rate = doneByWeekday[wd] / possibleByWeekday[wd]
+        if (rate < worstRate) {
+          worstRate = rate
+          worstDay = wd
+        }
+      }
+      if (worstDay && worstRate < 0.6) {
+        insights.push(
+          `You complete your Mind habits least often on ${worstDay}s (${Math.round(worstRate * 100)}% of the time) -- worth a lighter target or a reminder that day.`
+        )
+      }
+    }
+  }
+
+  // Cross-life-area: does logging Health on a given day correlate with
+  // also completing a Mind habit that day, beyond what chance alone
+  // would predict.
+  const healthEntries = loadData('health')
+  if (healthEntries.length > 0 && completions.length > 0) {
+    const healthDates = new Set(healthEntries.map((e) => e.date || (e.createdAt || '').slice(0, 10)))
+    const habitDates = new Set(completions.map((c) => c.date))
+    if (healthDates.size >= 10 && habitDates.size >= 10) {
+      const allDates = new Set([...healthDates, ...habitDates])
+      let bothDays = 0
+      for (const d of allDates) {
+        if (healthDates.has(d) && habitDates.has(d)) bothDays += 1
+      }
+      const mindRateOnHealthDays = bothDays / healthDates.size
+      const mindRateOverall = habitDates.size / allDates.size
+      if (mindRateOnHealthDays - mindRateOverall > 0.15) {
+        insights.push(
+          `On days you log Health, you're about ${Math.round((mindRateOnHealthDays - mindRateOverall) * 100)} points more likely to also complete a Mind habit -- the two seem to reinforce each other for you.`
+        )
+      }
+    }
+  }
+
+  return insights
+}
+
+router.get('/insights', (req, res) => {
+  res.json({ insights: computeMindInsights() })
 })
 
 export default router

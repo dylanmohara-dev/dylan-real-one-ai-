@@ -6,6 +6,7 @@ import { computeTradingStats, DEFAULT_TRADING_SETTINGS } from './trading.js'
 import { DEFAULT_WEEK_PLAN } from './gym.js'
 import { DEFAULT_SCHEDULE } from './sports.js'
 import { loadPlayerStats } from '../lib/playerXP.js'
+import { computeMindInsights } from './mind.js'
 
 const router = Router()
 
@@ -76,6 +77,10 @@ router.get('/bootstrap', (req, res) => {
       mind: {
         habits: loadData('mind_habits'),
         completions: loadData('mind_completions'),
+        reviews: loadData('mind_reviews'),
+        decisions: loadData('mind_decisions'),
+        skillXp: loadData('mind_skill_xp')[0] || {},
+        insights: computeMindInsights(),
       },
       family: {
         members: loadData('family_members'),
