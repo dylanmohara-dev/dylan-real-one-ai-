@@ -1,6 +1,24 @@
 import { useState } from 'react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 
+// Mirrors routes/mind.js's computeSkillLevel exactly -- mindSkillXp from
+// bootstrap is raw XP totals per skill ({focus: 40, ...}), not pre-computed
+// level info, so the same accelerating curve (Level N needs 50*N XP) is
+// duplicated here rather than adding a frontend/backend shared-module story
+// for one small formula, matching this project's existing convention
+// (routes/mind.js already duplicates routes/skills.js's version the same way).
+function computeSkillLevel(xp) {
+  let level = 1
+  let required = 50
+  let remaining = Number(xp) || 0
+  while (remaining >= required) {
+    remaining -= required
+    level += 1
+    required = 50 * level
+  }
+  return { level, xpIntoLevel: remaining, xpForNextLevel: required }
+}
+
 function todayKey() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -240,20 +258,251 @@ function FrequencyEditor({ habit, saving, updateMindHabit }) {
   )
 }
 
+const SKILL_LABELS = {
+  focus: 'Focus',
+  awareness: 'Awareness',
+  discipline: 'Discipline',
+  impulseControl: 'Impulse Control',
+  decisionMaking: 'Decision-Making',
+}
+
+function SkillBar({ label, skill }) {
+  const pct = skill.xpForNextLevel ? Math.round((skill.xpIntoLevel / skill.xpForNextLevel) * 100) : 0
+  return (
+    <div className="item-card">
+      <div className="item-content">
+        <div className="mind-checkbox-row">
+          <strong>{label}</strong>
+          <span className="skill-card-level">Level {skill.level}</span>
+        </div>
+        <div className="skill-xp-bar">
+          <div className="skill-xp-bar-fill" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+        </div>
+        <span className="item-meta">
+          {skill.xpIntoLevel} / {skill.xpForNextLevel} XP to level {skill.level + 1}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function MorningReviewForm({ saving, addMindReview, todayReview }) {
+  const [intention, setIntention] = useState('')
+  const [mindset, setMindset] = useState('')
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    if (!intention.trim()) return
+    await addMindReview('morning', { intention: intention.trim(), mindset: mindset.trim() })
+    setIntention('')
+    setMindset('')
+  }
+
+  if (todayReview) {
+    return (
+      <div className="item-card">
+        <div className="item-content">
+          <strong>Today's intention</strong>
+          <p>{todayReview.intention}</p>
+          {todayReview.mindset && <p className="item-meta">Feeling: {todayReview.mindset}</p>}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <form className="form-card" onSubmit={handleSubmit}>
+      <label htmlFor="mind-morning-intention">What's your intention for today?</label>
+      <input
+        id="mind-morning-intention"
+        value={intention}
+        onChange={(e) => setIntention(e.target.value)}
+        placeholder="e.g. Finish the proposal before anything else"
+      />
+      <label htmlFor="mind-morning-mindset">How do you feel right now? (optional)</label>
+      <input
+        id="mind-morning-mindset"
+        value={mindset}
+        onChange={(e) => setMindset(e.target.value)}
+        placeholder="e.g. focused, anxious, tired"
+      />
+      <button type="submit" disabled={saving || !intention.trim()}>
+        Save morning check-in
+      </button>
+    </form>
+  )
+}
+
+function NightReviewForm({ saving, addMindReview, todayReview }) {
+  const [wins, setWins] = useState('')
+  const [friction, setFriction] = useState('')
+  const [lesson, setLesson] = useState('')
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    if (!wins.trim() && !friction.trim() && !lesson.trim()) return
+    await addMindReview('night', { wins: wins.trim(), friction: friction.trim(), lesson: lesson.trim() })
+    setWins('')
+    setFriction('')
+    setLesson('')
+  }
+
+  if (todayReview) {
+    return (
+      <div className="item-card">
+        <div className="item-content">
+          {todayReview.wins && (
+            <p>
+              <strong>Went well:</strong> {todayReview.wins}
+            </p>
+          )}
+          {todayReview.friction && (
+            <p>
+              <strong>Didn't:</strong> {todayReview.friction}
+            </p>
+          )}
+          {todayReview.lesson && (
+            <p>
+              <strong>Lesson:</strong> {todayReview.lesson}
+            </p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <form className="form-card" onSubmit={handleSubmit}>
+      <label htmlFor="mind-night-wins">What went well today?</label>
+      <input id="mind-night-wins" value={wins} onChange={(e) => setWins(e.target.value)} placeholder="Be specific" />
+      <label htmlFor="mind-night-friction">What didn't?</label>
+      <input
+        id="mind-night-friction"
+        value={friction}
+        onChange={(e) => setFriction(e.target.value)}
+        placeholder="Name it plainly"
+      />
+      <label htmlFor="mind-night-lesson">One lesson for tomorrow</label>
+      <input
+        id="mind-night-lesson"
+        value={lesson}
+        onChange={(e) => setLesson(e.target.value)}
+        placeholder="What would you do differently?"
+      />
+      <button type="submit" disabled={saving || (!wins.trim() && !friction.trim() && !lesson.trim())}>
+        Save night review
+      </button>
+    </form>
+  )
+}
+
+function DecisionForm({ saving, addMindDecision }) {
+  const [situation, setSituation] = useState('')
+  const [why, setWhy] = useState('')
+  const [perspective, setPerspective] = useState('')
+  const [decision, setDecision] = useState('proceed')
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    if (!situation.trim()) return
+    await addMindDecision({ situation: situation.trim(), why: why.trim(), perspective: perspective.trim(), decision })
+    setSituation('')
+    setWhy('')
+    setPerspective('')
+    setDecision('proceed')
+  }
+
+  return (
+    <form className="form-card" onSubmit={handleSubmit}>
+      <label htmlFor="mind-pause-situation">What are you about to do?</label>
+      <input
+        id="mind-pause-situation"
+        value={situation}
+        onChange={(e) => setSituation(e.target.value)}
+        placeholder="e.g. Text my ex back at 1am"
+      />
+      <label htmlFor="mind-pause-why">Why, really?</label>
+      <input
+        id="mind-pause-why"
+        value={why}
+        onChange={(e) => setWhy(e.target.value)}
+        placeholder="The honest reason, not the story you'd tell someone else"
+      />
+      <label htmlFor="mind-pause-perspective">What would you tell a friend doing this?</label>
+      <input
+        id="mind-pause-perspective"
+        value={perspective}
+        onChange={(e) => setPerspective(e.target.value)}
+        placeholder="Step outside it for a second"
+      />
+      <label htmlFor="mind-pause-decision">Your call</label>
+      <select id="mind-pause-decision" value={decision} onChange={(e) => setDecision(e.target.value)}>
+        <option value="proceed">Proceed anyway</option>
+        <option value="wait">Wait -- sit on it</option>
+        <option value="different">Do something different</option>
+      </select>
+      <button type="submit" disabled={saving || !situation.trim()}>
+        Log it
+      </button>
+    </form>
+  )
+}
+
+function DecisionCard({ item, saving, updateMindDecision }) {
+  const [note, setNote] = useState(item.outcomeNote || '')
+  const decisionLabel = { proceed: 'Proceeded anyway', wait: 'Chose to wait', different: 'Did something different' }[item.decision] || item.decision
+
+  return (
+    <div className="item-card">
+      <div className="item-content">
+        <strong>{item.situation}</strong>
+        {item.why && <p className="item-meta">Why: {item.why}</p>}
+        {item.perspective && <p className="item-meta">Outside view: {item.perspective}</p>}
+        <span className="mind-best">{decisionLabel}</span>
+        <label htmlFor={`mind-outcome-${item.id}`}>How'd it turn out? (optional)</label>
+        <input
+          id={`mind-outcome-${item.id}`}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          onBlur={() => {
+            if (note !== (item.outcomeNote || '')) updateMindDecision(item.id, { outcomeNote: note })
+          }}
+          disabled={saving}
+          placeholder="Add later once you know"
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function MindPage({
   mindHabits,
   mindCompletions,
+  mindReviews,
+  mindDecisions,
+  mindSkillXp,
+  mindInsights,
   saving,
   addMindHabit,
   updateMindHabit,
   deleteMindHabit,
   toggleMindCompletion,
+  addMindReview,
+  addMindDecision,
+  updateMindDecision,
   assistantContext,
   openChat,
 }) {
   const [activeTab, setActiveTab] = useState('today')
   const activeHabits = mindHabits.filter((h) => h.active !== false)
   const doneToday = new Set(mindCompletions.filter((c) => c.date === todayKey()).map((c) => c.habitId))
+  const todayMorningReview = mindReviews.find((r) => r.type === 'morning' && r.date === todayKey())
+  const todayNightReview = mindReviews.find((r) => r.type === 'night' && r.date === todayKey())
+  const decisionHistory = [...mindDecisions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+  const skills = Object.keys(SKILL_LABELS).map((key) => {
+    const xp = Number(mindSkillXp?.[key]) || 0
+    return { key, xp, ...computeSkillLevel(xp) }
+  })
 
   return (
     <div className="page mind-page">
@@ -280,6 +529,12 @@ export default function MindPage({
         <button type="button" className={activeTab === 'today' ? 'active' : ''} onClick={() => setActiveTab('today')}>
           Today
         </button>
+        <button type="button" className={activeTab === 'review' ? 'active' : ''} onClick={() => setActiveTab('review')}>
+          Review
+        </button>
+        <button type="button" className={activeTab === 'pause' ? 'active' : ''} onClick={() => setActiveTab('pause')}>
+          Pause & Choose
+        </button>
         <button type="button" className={activeTab === 'progress' ? 'active' : ''} onClick={() => setActiveTab('progress')}>
           Progress
         </button>
@@ -287,6 +542,60 @@ export default function MindPage({
           Habits
         </button>
       </div>
+
+      {activeTab === 'review' && (
+        <div className="items-list">
+          <h3 className="mind-section-heading">Morning check-in</h3>
+          <MorningReviewForm saving={saving} addMindReview={addMindReview} todayReview={todayMorningReview} />
+          <h3 className="mind-section-heading">Night review</h3>
+          <NightReviewForm saving={saving} addMindReview={addMindReview} todayReview={todayNightReview} />
+          {mindReviews.length > 0 && (
+            <>
+              <h3 className="mind-section-heading">History</h3>
+              {[...mindReviews]
+                .sort((a, b) => (a.date === b.date ? (a.type === 'morning' ? -1 : 1) : b.date.localeCompare(a.date)))
+                .slice(0, 14)
+                .map((r) => (
+                  <div className="item-card" key={r.id}>
+                    <div className="item-content">
+                      <strong>
+                        {r.date} -- {r.type === 'morning' ? 'Morning' : 'Night'}
+                      </strong>
+                      {r.intention && <p className="item-meta">Intention: {r.intention}</p>}
+                      {r.mindset && <p className="item-meta">Feeling: {r.mindset}</p>}
+                      {r.wins && <p className="item-meta">Went well: {r.wins}</p>}
+                      {r.friction && <p className="item-meta">Didn't: {r.friction}</p>}
+                      {r.lesson && <p className="item-meta">Lesson: {r.lesson}</p>}
+                    </div>
+                  </div>
+                ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'pause' && (
+        <div className="items-list">
+          <p className="mind-intro-text">
+            Before you act on impulse, run it through here. Naming the decision -- even briefly -- is the whole point.
+          </p>
+          <DecisionForm saving={saving} addMindDecision={addMindDecision} />
+          {decisionHistory.length === 0 ? (
+            <div className="empty-state">
+              <div>&#9878;</div>
+              <h3>Nothing logged yet</h3>
+              <p>Use this before your next impulsive decision, not after.</p>
+            </div>
+          ) : (
+            <>
+              <h3 className="mind-section-heading">History</h3>
+              {decisionHistory.map((item) => (
+                <DecisionCard key={item.id} item={item} saving={saving} updateMindDecision={updateMindDecision} />
+              ))}
+            </>
+          )}
+        </div>
+      )}
 
       {activeTab === 'today' && (
         <div className="items-list">
@@ -324,6 +633,25 @@ export default function MindPage({
 
       {activeTab === 'progress' && (
         <div className="items-list">
+          <h3 className="mind-section-heading">Skills</h3>
+          {skills.map((skill) => (
+            <SkillBar key={skill.key} label={SKILL_LABELS[skill.key]} skill={skill} />
+          ))}
+
+          <h3 className="mind-section-heading">Patterns</h3>
+          {mindInsights.length === 0 ? (
+            <p className="item-meta">Not enough history yet -- keep logging and real patterns will show up here.</p>
+          ) : (
+            mindInsights.map((insight, i) => (
+              <div className="item-card" key={i}>
+                <div className="item-content">
+                  <p>{insight}</p>
+                </div>
+              </div>
+            ))
+          )}
+
+          <h3 className="mind-section-heading">Habit streaks</h3>
           {activeHabits.length === 0 && (
             <div className="empty-state">
               <div>&#128200;</div>

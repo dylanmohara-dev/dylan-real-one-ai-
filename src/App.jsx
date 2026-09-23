@@ -455,11 +455,18 @@ function App() {
         <MindPage
           mindHabits={data.mindHabits}
           mindCompletions={data.mindCompletions}
+          mindReviews={data.mindReviews}
+          mindDecisions={data.mindDecisions}
+          mindSkillXp={data.mindSkillXp}
+          mindInsights={data.mindInsights}
           saving={data.saving}
           addMindHabit={data.addMindHabit}
           updateMindHabit={data.updateMindHabit}
           deleteMindHabit={data.deleteMindHabit}
           toggleMindCompletion={data.toggleMindCompletion}
+          addMindReview={data.addMindReview}
+          addMindDecision={data.addMindDecision}
+          updateMindDecision={data.updateMindDecision}
           assistantContext={assistantContext}
           openChat={openChat}
         />

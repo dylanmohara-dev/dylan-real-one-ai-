@@ -8530,6 +8530,29 @@ button:disabled:active {
   margin-top: 2px;
 }
 
+/* Sub-headings inside a Mind tab (e.g. "Skills", "Patterns", "History")
+   -- same visual language as .eyebrow (the mode's accent color, uppercase,
+   tracked-out) but sized for a subsection rather than the page eyebrow. */
+.mind-section-heading {
+  margin: 18px 0 8px;
+  color: rgb(var(--mode-accent-rgb));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.mind-section-heading:first-child {
+  margin-top: 0;
+}
+
+.mind-intro-text {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  margin-bottom: 10px;
+}
+
 /* ---------- Gym mode: tabs, Today view, Routines ---------- */
 
 .gym-tabs {

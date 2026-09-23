@@ -134,6 +134,10 @@ export function useAppData() {
   const [readingGoals, setReadingGoals] = useState({ dailyPageGoal: 10 })
   const [mindHabits, setMindHabits] = useState([])
   const [mindCompletions, setMindCompletions] = useState([])
+  const [mindReviews, setMindReviews] = useState([])
+  const [mindDecisions, setMindDecisions] = useState([])
+  const [mindSkillXp, setMindSkillXp] = useState({})
+  const [mindInsights, setMindInsights] = useState([])
   const [familyMembers, setFamilyMembers] = useState([])
   const [familyLog, setFamilyLog] = useState([])
   const [familyGoals, setFamilyGoals] = useState({ weeklyMinutesGoal: 360 })
@@ -464,6 +468,10 @@ export function useAppData() {
       setReadingGoals(data.reading?.goals || { dailyPageGoal: 10 })
       setMindHabits(data.mind?.habits || [])
       setMindCompletions(data.mind?.completions || [])
+      setMindReviews(data.mind?.reviews || [])
+      setMindDecisions(data.mind?.decisions || [])
+      setMindSkillXp(data.mind?.skillXp || {})
+      setMindInsights(data.mind?.insights || [])
       setFamilyMembers(data.family?.members || [])
       setFamilyLog(data.family?.log || [])
       setFamilyGoals(data.family?.goals || { weeklyMinutesGoal: 360 })
@@ -1311,6 +1319,45 @@ export function useAppData() {
           }
         }
       }
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function addMindReview(type, fields = {}) {
+    setSaving(true)
+    try {
+      const result = await request('/mind/reviews', { method: 'POST', body: JSON.stringify({ type, ...fields }) })
+      await loadData()
+      showSuccess(type === 'morning' ? 'Morning check-in saved.' : 'Night review saved.')
+      return result.review
+    } catch (error) {
+      showError(error.message)
+      return null
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function addMindDecision(fields = {}) {
+    setSaving(true)
+    try {
+      const result = await request('/mind/decisions', { method: 'POST', body: JSON.stringify(fields) })
+      await loadData()
+      showSuccess('Logged -- nice pause.')
+      return result.decision
+    } catch (error) {
+      showError(error.message)
+      return null
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function updateMindDecision(id, updates) {
+    try {
+      await request(`/mind/decisions/${id}`, { method: 'PUT', body: JSON.stringify(updates) })
+      await loadData()
     } catch (error) {
       showError(error.message)
     }
@@ -3023,10 +3070,17 @@ export function useAppData() {
     // mind
     mindHabits,
     mindCompletions,
+    mindReviews,
+    mindDecisions,
+    mindSkillXp,
+    mindInsights,
     addMindHabit,
     updateMindHabit,
     deleteMindHabit,
     toggleMindCompletion,
+    addMindReview,
+    addMindDecision,
+    updateMindDecision,
 
     // family
     familyMembers,
