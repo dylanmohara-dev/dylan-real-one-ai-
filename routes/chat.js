@@ -253,6 +253,105 @@ Dylan is a BEGINNER investor currently focused on stocks and ETFs. You are his r
 - This is analysis and education, not licensed financial advice -- say so once, briefly, without repeating it every message.
 `
 
+const MODE_ACTION_DOCS = {
+  health: `log_health — use this whenever Dylan mentions eating/drinking something, sleeping, or physical activity, even casually. Fields: category (must be exactly one of "food", "sleep", "water", "activity"), value (a short quantity/summary, e.g. "300 calories" or "7 hours"), note (the specific detail, e.g. "chicken breast" or "ran 3 miles").
+
+Examples:
+Dylan: "I ate 300 calories of chicken"
+{"reply": "Logged: 300 calories (chicken) under Health.", "action": {"type": "log_health", "category": "food", "value": "300 calories", "note": "chicken"}}
+
+Dylan: "I slept 7 hours last night"
+{"reply": "Logged: 7 hours of sleep.", "action": {"type": "log_health", "category": "sleep", "value": "7 hours", "note": ""}}
+
+Dylan: "drank a liter of water"
+{"reply": "Logged: 1 liter of water.", "action": {"type": "log_health", "category": "water", "value": "1 liter", "note": ""}}
+
+Dylan: "went for a 3 mile run"
+{"reply": "Logged: activity — ran 3 miles.", "action": {"type": "log_health", "category": "activity", "value": "3 miles", "note": "run"}}
+
+`,
+  skills: `log_skill_practice — use this whenever Dylan mentions practicing or logging progress on a tracked skill (he can track any number of skills at once -- there is no cap). Fields: skillName (which skill he means, even a partial/casual name — required if he's tracking more than one skill), quantity (a number, in whatever unit that skill uses — reps, pages, problems, etc.), note (optional short detail).
+
+Dylan: "did 20 reps of squats for gym skill"
+{"reply": "Logged 20 reps for Gym Skill.", "action": {"type": "log_skill_practice", "skillName": "gym skill", "quantity": 20, "note": ""}}
+
+Dylan: "practiced guitar, got through 3 pages of sheet music"
+{"reply": "Logged 3 pages for Guitar.", "action": {"type": "log_skill_practice", "skillName": "guitar", "quantity": 3, "note": "sheet music"}}
+
+If Dylan only has one skill being tracked, skillName can be omitted or guessed loosely — the app will default to it.
+
+`,
+  sports: `log_sports_session — use this whenever Dylan logs a practice or game he actually did (not something upcoming -- that's create_event or a task). Fields: sessionType (must be exactly "practice" or "game"), durationMinutes (number, practice only), intensity (short string, practice only, e.g. "hard"), opponent (string, game only), teamScore (number, game only), opponentScore (number, game only), notes (optional).
+
+Dylan: "had a hard 90 minute practice today"
+{"reply": "Logged practice (90 min).", "action": {"type": "log_sports_session", "sessionType": "practice", "durationMinutes": 90, "intensity": "hard"}}
+
+Dylan: "we beat Central 4-2 tonight"
+{"reply": "Logged game vs Central (win, 4-2).", "action": {"type": "log_sports_session", "sessionType": "game", "opponent": "Central", "teamScore": 4, "opponentScore": 2}}
+
+`,
+  gym: `log_gym_set — use this whenever Dylan logs a set he actually lifted for an exercise he already tracks in the Gym tab. Fields: exerciseName (required, even a partial/casual name -- matched against his existing exercise library), weight (number), reps (number), sets (optional -- an array of {weight, reps} instead of the single weight/reps pair, for multiple work sets in one message), date (optional, defaults to today).
+
+Dylan: "hit 225 for 5 on bench"
+{"reply": "Logged Bench Press: 225x5.", "action": {"type": "log_gym_set", "exerciseName": "bench press", "weight": 225, "reps": 5}}
+
+Dylan: "3 sets of 135x8 on squats"
+{"reply": "Logged Squat: 135x8, 135x8, 135x8.", "action": {"type": "log_gym_set", "exerciseName": "squat", "sets": [{"weight": 135, "reps": 8}, {"weight": 135, "reps": 8}, {"weight": 135, "reps": 8}]}}
+
+If the exercise doesn't match anything in his library, say so in "reply" and ask him to add it in the Gym tab first -- never invent a new exercise name.
+
+`,
+  discipline: `complete_habit — use this whenever Dylan says he did a habit he already tracks in the Discipline tab (not a one-off task). Fields: habitName (required, even a partial/casual name), date (optional, defaults to today).
+
+Dylan: "did my cold shower today"
+{"reply": "Marked Cold Shower done for today.", "action": {"type": "complete_habit", "habitName": "cold shower"}}
+
+If the habit doesn't match anything he tracks, ask which habit in "reply" instead.
+
+`,
+  finance: `log_transaction — use this whenever Dylan logs real money moving through an actual Finance account he already has (not a hypothetical, and not a trade -- that's Trading). Fields: accountName (required, matched against his existing accounts), transactionType (must be exactly "income" or "expense"), amount (positive number), category (required for an expense, must be exactly one of groceries/dining/transport/housing/utilities/entertainment/shopping/health/subscriptions/other), note (optional), date (optional, defaults to today).
+
+Dylan: "spent 40 bucks on groceries from checking"
+{"reply": "Logged -$40.00 (groceries) on Checking.", "action": {"type": "log_transaction", "accountName": "checking", "transactionType": "expense", "amount": 40, "category": "groceries"}}
+
+Dylan: "got paid, 2000 into checking"
+{"reply": "Logged +$2000.00 (income) on Checking.", "action": {"type": "log_transaction", "accountName": "checking", "transactionType": "income", "amount": 2000}}
+
+If the account doesn't match anything he has, ask which account in "reply" instead.
+
+`,
+  family: `log_family_entry — use this whenever Dylan mentions spending time with a family member he already has in the Family tab, or a faith-practice moment. Fields: entryType (must be exactly "checkin" or "faith"), memberName (required for a checkin, matched against his existing family members), minutesSpent (number, checkin only), note (optional), date (optional, defaults to today).
+
+Dylan: "spent an hour with mom today"
+{"reply": "Logged time with Mom (60 min).", "action": {"type": "log_family_entry", "entryType": "checkin", "memberName": "mom", "minutesSpent": 60}}
+
+Dylan: "did my devotional this morning"
+{"reply": "Logged faith practice.", "action": {"type": "log_family_entry", "entryType": "faith", "note": "morning devotional"}}
+
+If a checkin's family member doesn't match anyone he has, ask who in "reply" instead.
+
+`,
+  reading: `log_reading_session — use this whenever Dylan mentions pages he actually read. Fields: bookTitle (required, even a partial/casual title), pagesRead (positive number), date (optional, defaults to today). Unlike Gym/Discipline/Finance/Family, a book he mentions for the first time is added automatically -- there's nothing to configure for it.
+
+Dylan: "read 20 pages of Atomic Habits"
+{"reply": "Logged 20 pages of Atomic Habits.", "action": {"type": "log_reading_session", "bookTitle": "Atomic Habits", "pagesRead": 20}}
+
+`,
+  school: `complete_assignment — use this whenever Dylan says he finished a school assignment he already has (not a general task). Fields: title (required, even a partial/casual title).
+
+Dylan: "finished my calc homework"
+{"reply": "Completed assignment: Calc homework.", "action": {"type": "complete_assignment", "title": "calc homework"}}
+
+If it doesn't match an open assignment, say so in "reply" instead.
+
+`,
+}
+
+// Reconstructs the original always-everything prompt for general (non-mode-scoped)
+// chat, where we genuinely don't know which action the user might mean.
+const ALL_MODE_ACTION_DOCS = Object.values(MODE_ACTION_DOCS).join('')
+
+
 function personaFraming(modeLabel) {
   const persona = modeLabel ? MODE_PERSONA[modeLabel] : null
   if (!persona) return ''
@@ -585,88 +684,7 @@ update_goal
 create_note
 save_memory
 forget_memory
-log_health — use this whenever Dylan mentions eating/drinking something, sleeping, or physical activity, even casually. Fields: category (must be exactly one of "food", "sleep", "water", "activity"), value (a short quantity/summary, e.g. "300 calories" or "7 hours"), note (the specific detail, e.g. "chicken breast" or "ran 3 miles").
-
-Examples:
-Dylan: "I ate 300 calories of chicken"
-{"reply": "Logged: 300 calories (chicken) under Health.", "action": {"type": "log_health", "category": "food", "value": "300 calories", "note": "chicken"}}
-
-Dylan: "I slept 7 hours last night"
-{"reply": "Logged: 7 hours of sleep.", "action": {"type": "log_health", "category": "sleep", "value": "7 hours", "note": ""}}
-
-Dylan: "drank a liter of water"
-{"reply": "Logged: 1 liter of water.", "action": {"type": "log_health", "category": "water", "value": "1 liter", "note": ""}}
-
-Dylan: "went for a 3 mile run"
-{"reply": "Logged: activity — ran 3 miles.", "action": {"type": "log_health", "category": "activity", "value": "3 miles", "note": "run"}}
-
-log_skill_practice — use this whenever Dylan mentions practicing or logging progress on a tracked skill (he can track any number of skills at once -- there is no cap). Fields: skillName (which skill he means, even a partial/casual name — required if he's tracking more than one skill), quantity (a number, in whatever unit that skill uses — reps, pages, problems, etc.), note (optional short detail).
-
-Dylan: "did 20 reps of squats for gym skill"
-{"reply": "Logged 20 reps for Gym Skill.", "action": {"type": "log_skill_practice", "skillName": "gym skill", "quantity": 20, "note": ""}}
-
-Dylan: "practiced guitar, got through 3 pages of sheet music"
-{"reply": "Logged 3 pages for Guitar.", "action": {"type": "log_skill_practice", "skillName": "guitar", "quantity": 3, "note": "sheet music"}}
-
-If Dylan only has one skill being tracked, skillName can be omitted or guessed loosely — the app will default to it.
-
-log_sports_session — use this whenever Dylan logs a practice or game he actually did (not something upcoming -- that's create_event or a task). Fields: sessionType (must be exactly "practice" or "game"), durationMinutes (number, practice only), intensity (short string, practice only, e.g. "hard"), opponent (string, game only), teamScore (number, game only), opponentScore (number, game only), notes (optional).
-
-Dylan: "had a hard 90 minute practice today"
-{"reply": "Logged practice (90 min).", "action": {"type": "log_sports_session", "sessionType": "practice", "durationMinutes": 90, "intensity": "hard"}}
-
-Dylan: "we beat Central 4-2 tonight"
-{"reply": "Logged game vs Central (win, 4-2).", "action": {"type": "log_sports_session", "sessionType": "game", "opponent": "Central", "teamScore": 4, "opponentScore": 2}}
-
-log_gym_set — use this whenever Dylan logs a set he actually lifted for an exercise he already tracks in the Gym tab. Fields: exerciseName (required, even a partial/casual name -- matched against his existing exercise library), weight (number), reps (number), sets (optional -- an array of {weight, reps} instead of the single weight/reps pair, for multiple work sets in one message), date (optional, defaults to today).
-
-Dylan: "hit 225 for 5 on bench"
-{"reply": "Logged Bench Press: 225x5.", "action": {"type": "log_gym_set", "exerciseName": "bench press", "weight": 225, "reps": 5}}
-
-Dylan: "3 sets of 135x8 on squats"
-{"reply": "Logged Squat: 135x8, 135x8, 135x8.", "action": {"type": "log_gym_set", "exerciseName": "squat", "sets": [{"weight": 135, "reps": 8}, {"weight": 135, "reps": 8}, {"weight": 135, "reps": 8}]}}
-
-If the exercise doesn't match anything in his library, say so in "reply" and ask him to add it in the Gym tab first -- never invent a new exercise name.
-
-complete_habit — use this whenever Dylan says he did a habit he already tracks in the Discipline tab (not a one-off task). Fields: habitName (required, even a partial/casual name), date (optional, defaults to today).
-
-Dylan: "did my cold shower today"
-{"reply": "Marked Cold Shower done for today.", "action": {"type": "complete_habit", "habitName": "cold shower"}}
-
-If the habit doesn't match anything he tracks, ask which habit in "reply" instead.
-
-log_transaction — use this whenever Dylan logs real money moving through an actual Finance account he already has (not a hypothetical, and not a trade -- that's Trading). Fields: accountName (required, matched against his existing accounts), transactionType (must be exactly "income" or "expense"), amount (positive number), category (required for an expense, must be exactly one of groceries/dining/transport/housing/utilities/entertainment/shopping/health/subscriptions/other), note (optional), date (optional, defaults to today).
-
-Dylan: "spent 40 bucks on groceries from checking"
-{"reply": "Logged -$40.00 (groceries) on Checking.", "action": {"type": "log_transaction", "accountName": "checking", "transactionType": "expense", "amount": 40, "category": "groceries"}}
-
-Dylan: "got paid, 2000 into checking"
-{"reply": "Logged +$2000.00 (income) on Checking.", "action": {"type": "log_transaction", "accountName": "checking", "transactionType": "income", "amount": 2000}}
-
-If the account doesn't match anything he has, ask which account in "reply" instead.
-
-log_family_entry — use this whenever Dylan mentions spending time with a family member he already has in the Family tab, or a faith-practice moment. Fields: entryType (must be exactly "checkin" or "faith"), memberName (required for a checkin, matched against his existing family members), minutesSpent (number, checkin only), note (optional), date (optional, defaults to today).
-
-Dylan: "spent an hour with mom today"
-{"reply": "Logged time with Mom (60 min).", "action": {"type": "log_family_entry", "entryType": "checkin", "memberName": "mom", "minutesSpent": 60}}
-
-Dylan: "did my devotional this morning"
-{"reply": "Logged faith practice.", "action": {"type": "log_family_entry", "entryType": "faith", "note": "morning devotional"}}
-
-If a checkin's family member doesn't match anyone he has, ask who in "reply" instead.
-
-log_reading_session — use this whenever Dylan mentions pages he actually read. Fields: bookTitle (required, even a partial/casual title), pagesRead (positive number), date (optional, defaults to today). Unlike Gym/Discipline/Finance/Family, a book he mentions for the first time is added automatically -- there's nothing to configure for it.
-
-Dylan: "read 20 pages of Atomic Habits"
-{"reply": "Logged 20 pages of Atomic Habits.", "action": {"type": "log_reading_session", "bookTitle": "Atomic Habits", "pagesRead": 20}}
-
-complete_assignment — use this whenever Dylan says he finished a school assignment he already has (not a general task). Fields: title (required, even a partial/casual title).
-
-Dylan: "finished my calc homework"
-{"reply": "Completed assignment: Calc homework.", "action": {"type": "complete_assignment", "title": "calc homework"}}
-
-If it doesn't match an open assignment, say so in "reply" instead.
-
+${modeLabel && MODE_ACTION_DOCS[modeLabel] ? MODE_ACTION_DOCS[modeLabel] : ALL_MODE_ACTION_DOCS}
 create_event — use this whenever Dylan asks to add, schedule, book, or put something on his REAL calendar (not a task -- an actual Apple Calendar event). This NEVER happens immediately: it always requires Dylan's explicit confirmation first, so phrase "reply" as a genuine proposal or question ("I can add 'Team lunch' on Friday, Sept 12 at 6:00 PM -- want me to add it?"), never as if it is already done. Fields: title (required), start (required -- "YYYY-MM-DDTHH:MM:SS" 24-hour local time for a timed event, or bare "YYYY-MM-DD" when allDay is true), end (optional, same format as start), allDay (boolean), location (optional short string), mode (one of school/sports/gym/health/finance/skills/reading/discipline/family if Dylan's request is clearly about one of those areas, otherwise omit it). Never set a "recurrence" field -- if Dylan wants something repeating, propose only the first occurrence and mention in "reply" that repeating events need to be set up from the Calendar page directly. If Dylan did not give enough detail to know the date (or time, for a non-allDay event), do not produce a create_event action at all -- ask him what's missing in "reply" instead, with "action" set to null.
 
 Dylan: "add a team lunch this friday at 6pm"
