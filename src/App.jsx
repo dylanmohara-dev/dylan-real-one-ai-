@@ -943,7 +943,7 @@ function App() {
                 screen, not just a header strip. */}
             {activeModeHeroUrl && (
               <div
-                className="overview-hero-bg"
+                className="overview-hero-bg mode-page-hero-bg"
                 style={{ '--hero-photo': `url(${activeModeHeroUrl})` }}
               />
             )}
