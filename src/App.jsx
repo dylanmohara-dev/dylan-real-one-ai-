@@ -1,6 +1,6 @@
 import './App.css'
 import { useEffect, useRef, useState } from 'react'
-import { LayoutGrid, Lock, CalendarDays, ArrowLeft } from 'lucide-react'
+import { LayoutGrid, Lock, CalendarDays, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useAppData } from './hooks/useAppData.js'
 import { useJournal } from './hooks/useJournal.js'
 import { useCalendar } from './hooks/useCalendar.js'
@@ -734,6 +734,49 @@ function App() {
     }
   }, [])
 
+  // Touch half of "add swipe/arrow navigation" (the arrow buttons
+  // themselves are in the JSX below) -- a left/right swipe on a
+  // touchscreen cycles modes the same way the arrows do. Re-binds
+  // whenever activeMode changes (cheap -- switches at most a few times a
+  // minute) so adjacentMode() inside the handler always reflects whatever
+  // mode is actually open right now, not whatever it was when the effect
+  // first ran.
+  useEffect(() => {
+    if (!activeMode) return
+    const container = mainContentRef.current
+    if (!container) return
+
+    let touchStartX = null
+    let touchStartY = null
+
+    function handleTouchStart(event) {
+      const touch = event.touches[0]
+      touchStartX = touch.clientX
+      touchStartY = touch.clientY
+    }
+
+    function handleTouchEnd(event) {
+      if (touchStartX === null) return
+      const touch = event.changedTouches[0]
+      const deltaX = touch.clientX - touchStartX
+      const deltaY = touch.clientY - touchStartY
+      touchStartX = null
+      touchStartY = null
+      // Require a real horizontal swipe, not a vertical scroll or a tap --
+      // 60px minimum, and clearly more horizontal than vertical movement.
+      if (Math.abs(deltaX) < 60 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return
+      const target = adjacentMode(deltaX < 0 ? 1 : -1)
+      if (target) navigateTo(target.key)
+    }
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true })
+    container.addEventListener('touchend', handleTouchEnd, { passive: true })
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart)
+      container.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [activeMode])
+
   if (!settings.onboardingComplete) {
     return <OnboardingWizard onComplete={completeOnboarding} />
   }
@@ -747,6 +790,20 @@ function App() {
   // duplicated, since the negative-margin breakout math is identical
   // either way: it's always escaping .content's own padding).
   const activeModeHeroUrl = activeMode ? data.heroImages?.[activeMode.key] : null
+
+  // Round 9, "add swipe/arrow navigation": cycling straight to the next/
+  // previous mode without detouring through Overview first, now that a
+  // direct mode-to-mode switch is otherwise 2 clicks (Back, then pick).
+  // LIFE_MODES' own array order is the cycle order -- it's already the
+  // order Dylan gave us his 9 photos in (school, sports, gym, health,
+  // finance, skills, reading, mind, family), so "next" reads as a
+  // natural sequence, not an arbitrary one.
+  const activeModeIndex = activeMode ? LIFE_MODES.findIndex((mode) => mode.key === activeMode.key) : -1
+  const adjacentMode = (direction) => {
+    if (activeModeIndex === -1) return null
+    const nextIndex = (activeModeIndex + direction + LIFE_MODES.length) % LIFE_MODES.length
+    return LIFE_MODES[nextIndex]
+  }
 
   const modeThemeClass = activeMode
     ? `theme-${activeMode.key}`
@@ -846,6 +903,30 @@ function App() {
               <ArrowLeft size={22} strokeWidth={2.75} />
               <span>Back</span>
             </button>
+          )}
+
+          {/* Cycle straight to the previous/next mode -- LIFE_MODES' own
+              order -- without detouring through Overview. Each arrow
+              passes itself as the zoom-transition's origin hint, same
+              mechanism as the Back button, since there's no sidebar icon
+              to zoom from/to while a mode's own sidebar is hidden. */}
+          {activeMode && (
+            <>
+              <button
+                className="mode-fullscreen-nav mode-fullscreen-prev"
+                onClick={(event) => navigateTo(adjacentMode(-1).key, event.currentTarget)}
+                aria-label={`Previous mode: ${adjacentMode(-1)?.title || ''}`}
+              >
+                <ChevronLeft size={26} strokeWidth={2.75} />
+              </button>
+              <button
+                className="mode-fullscreen-nav mode-fullscreen-next"
+                onClick={(event) => navigateTo(adjacentMode(1).key, event.currentTarget)}
+                aria-label={`Next mode: ${adjacentMode(1)?.title || ''}`}
+              >
+                <ChevronRight size={26} strokeWidth={2.75} />
+              </button>
+            </>
           )}
 
           {(errorMessage || successMessage) && (

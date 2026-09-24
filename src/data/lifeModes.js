@@ -32,12 +32,17 @@ export const DEFAULT_SETTINGS = {
   // the whole app's visual style to match the GTA/videogame feel he's
   // been asking for across every other round. He picked switching.
   designSystem: 'neon-arcade',
-  colorPalette: 'vivid',
+  // 'rich' -- deeper, more saturated tones -- picked explicitly to pair
+  // with the neon-arcade design system switch (was 'vivid').
+  colorPalette: 'rich',
   // 'subtle' | 'normal' | 'flashy' -- scales duration/scale of the
   // celebration-layer animations (toasts, mode flash, achievement unlocks).
   // Separate from Transitions/Enter Animation above, which only control
   // the full-screen navigation flash.
-  animationIntensity: 'normal',
+  // 'flashy' -- picked explicitly to match the arcade direction
+  // (was 'normal') -- bigger/longer toasts, achievement pop-ups, and
+  // celebration effects app-wide.
+  animationIntensity: 'flashy',
   soundEffects: true,
 }
 
