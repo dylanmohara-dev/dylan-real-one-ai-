@@ -199,14 +199,14 @@ select option {
 .app-shell.theme-school {
   --mode-accent-rgb: 244, 196, 48;
   --mode-accent2-rgb: 255, 157, 58;
-  --mode-heading-font: 'Lora', Georgia, serif;
-  --mode-radius-scale: 0.85;
+  --mode-heading-font: 'Anton', sans-serif;
+  --mode-radius-scale: 0.3;
   --mode-border-width: 1px;
   --bg-glow-1: rgba(244, 196, 48, 0.22);
   --bg-glow-2: rgba(244, 196, 48, 0.13);
   --bg: #1c1608;
-  --mode-tracking: 0.16em;
-  --mode-body-font: 'Lora', Georgia, serif;
+  --mode-tracking: -0.01em;
+  --mode-body-font: 'Barlow Condensed', sans-serif;
   --surface: rgba(var(--mode-accent-rgb), 0.055);
   --surface-hover: rgba(var(--mode-accent-rgb), 0.09);
   --surface-input: rgba(var(--mode-accent-rgb), 0.065);
@@ -218,14 +218,14 @@ select option {
 .app-shell.theme-sports {
   --mode-accent-rgb: 34, 197, 94;
   --mode-accent2-rgb: 163, 230, 53;
-  --mode-heading-font: 'Bebas Neue', 'Anton', sans-serif;
+  --mode-heading-font: 'Space Grotesk', sans-serif;
   --mode-radius-scale: 0.5;
-  --mode-border-width: 2px;
+  --mode-border-width: 1px;
   --bg-glow-1: rgba(34, 197, 94, 0.22);
   --bg-glow-2: rgba(34, 197, 94, 0.13);
   --bg: #06190f;
-  --mode-tracking: 0.20em;
-  --mode-body-font: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --mode-tracking: -0.005em;
+  --mode-body-font: 'Manrope', sans-serif;
   --surface: rgba(var(--mode-accent-rgb), 0.055);
   --surface-hover: rgba(var(--mode-accent-rgb), 0.09);
   --surface-input: rgba(var(--mode-accent-rgb), 0.065);
@@ -237,13 +237,13 @@ select option {
 .app-shell.theme-gym {
   --mode-accent-rgb: 249, 115, 22;
   --mode-accent2-rgb: 239, 68, 68;
-  --mode-heading-font: 'Anton', 'Bebas Neue', sans-serif;
-  --mode-radius-scale: 0.35;
+  --mode-heading-font: 'Rajdhani', sans-serif;
+  --mode-radius-scale: 0.4;
   --mode-border-width: 2px;
   --bg-glow-1: rgba(249, 115, 22, 0.22);
   --bg-glow-2: rgba(249, 115, 22, 0.13);
   --bg: #1a0d04;
-  --mode-tracking: 0.22em;
+  --mode-tracking: 0.02em;
   --mode-body-font: 'Oswald', 'Arial Narrow', sans-serif;
   --surface: rgba(var(--mode-accent-rgb), 0.055);
   --surface-hover: rgba(var(--mode-accent-rgb), 0.09);
@@ -411,13 +411,13 @@ select option {
    the top bar (and anything else outside .app-shell) picks up mode color
    too, instead of always falling back to the :root defaults. */
 
-.app-root.theme-school {  --mode-accent-rgb: 244, 196, 48;  --mode-accent2-rgb: 255, 157, 58;  --mode-heading-font: 'Playfair Display', Georgia, serif;  --mode-radius-scale: 0.9;  --mode-border-width: 1px;  --bg-glow-1: rgba(244, 196, 48, 0.42);  --bg-glow-2: rgba(255, 157, 58, 0.3);  --bg: #1c1608;  --mode-tracking: 0.01em;  --mode-body-font: 'Lora', Georgia, serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(57, 48, 23, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
+.app-root.theme-school {  --mode-accent-rgb: 244, 196, 48;  --mode-accent2-rgb: 255, 157, 58;  --mode-heading-font: 'Anton', sans-serif;  --mode-radius-scale: 0.3;  --mode-border-width: 1px;  --bg-glow-1: rgba(244, 196, 48, 0.42);  --bg-glow-2: rgba(255, 157, 58, 0.3);  --bg: #1c1608;  --mode-tracking: -0.01em;  --mode-body-font: 'Barlow Condensed', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(57, 48, 23, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
 }
 
-.app-root.theme-sports {  --mode-accent-rgb: 34, 197, 94;  --mode-accent2-rgb: 163, 230, 53;  --mode-heading-font: 'Barlow Condensed', sans-serif;  --mode-radius-scale: 0.55;  --mode-border-width: 1px;  --bg-glow-1: rgba(34, 197, 94, 0.42);  --bg-glow-2: rgba(163, 230, 53, 0.3);  --bg: #06190f;  --mode-tracking: 0.06em;  --mode-body-font: 'Inter', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(19, 49, 32, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
+.app-root.theme-sports {  --mode-accent-rgb: 34, 197, 94;  --mode-accent2-rgb: 163, 230, 53;  --mode-heading-font: 'Space Grotesk', sans-serif;  --mode-radius-scale: 0.5;  --mode-border-width: 1px;  --bg-glow-1: rgba(34, 197, 94, 0.42);  --bg-glow-2: rgba(163, 230, 53, 0.3);  --bg: #06190f;  --mode-tracking: -0.005em;  --mode-body-font: 'Manrope', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(19, 49, 32, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
 }
 
-.app-root.theme-gym {  --mode-accent-rgb: 249, 115, 22;  --mode-accent2-rgb: 239, 68, 68;  --mode-heading-font: 'Oswald', sans-serif;  --mode-radius-scale: 0.25;  --mode-border-width: 2px;  --bg-glow-1: rgba(249, 115, 22, 0.42);  --bg-glow-2: rgba(239, 68, 68, 0.3);  --bg: #1a0d04;  --mode-tracking: 0.10em;  --mode-body-font: 'Barlow Condensed', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(58, 34, 19, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
+.app-root.theme-gym {  --mode-accent-rgb: 249, 115, 22;  --mode-accent2-rgb: 239, 68, 68;  --mode-heading-font: 'Rajdhani', sans-serif;  --mode-radius-scale: 0.4;  --mode-border-width: 2px;  --bg-glow-1: rgba(249, 115, 22, 0.42);  --bg-glow-2: rgba(239, 68, 68, 0.3);  --bg: #1a0d04;  --mode-tracking: 0.02em;  --mode-body-font: 'Oswald', 'Arial Narrow', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(58, 34, 19, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
 }
 
 .app-root.theme-health {  --mode-accent-rgb: 45, 212, 191;  --mode-accent2-rgb: 20, 184, 166;  --mode-heading-font: 'Manrope', sans-serif;  --mode-radius-scale: 1.1;  --mode-border-width: 1px;  --bg-glow-1: rgba(45, 212, 191, 0.42);  --bg-glow-2: rgba(20, 184, 166, 0.3);  --bg: #051a17;  --mode-tracking: 0.02em;  --mode-body-font: 'Manrope', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(21, 51, 49, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
@@ -1264,8 +1264,8 @@ select option {
    the card lives outside the themed .app-shell wrapper. */
 
 .mode-card.theme-school {
-  --mode-heading-font: 'Lora', Georgia, serif;
-  --mode-radius-scale: 0.85;
+  --mode-heading-font: 'Anton', sans-serif;
+  --mode-radius-scale: 0.3;
   /* Notebook ruled lines, matching the full School page's own texture. */
   background-image: repeating-linear-gradient(
     rgba(var(--card-rgb), 0.22) 0,
@@ -1280,7 +1280,7 @@ select option {
 }
 
 .mode-card.theme-sports {
-  --mode-heading-font: 'Bebas Neue', 'Anton', sans-serif;
+  --mode-heading-font: 'Space Grotesk', sans-serif;
   --mode-radius-scale: 0.5;
   /* Field yard-lines, matching the full Sports page's own texture. */
   background-image: repeating-linear-gradient(
@@ -1296,8 +1296,8 @@ select option {
 }
 
 .mode-card.theme-gym {
-  --mode-heading-font: 'Anton', 'Bebas Neue', sans-serif;
-  --mode-radius-scale: 0.35;
+  --mode-heading-font: 'Rajdhani', sans-serif;
+  --mode-radius-scale: 0.4;
   /* Crosshatch floor-mat diamonds, matching the full Gym page's texture. */
   background-image:
     repeating-linear-gradient(45deg, rgba(var(--card-rgb), 0.2) 0, rgba(var(--card-rgb), 0.2) 2px, transparent 2px, transparent 10px),
@@ -7552,6 +7552,8 @@ button:disabled:active {
   border-bottom: 3px solid rgba(var(--mode-accent-rgb), 0.5);
   padding-bottom: 6px;
   display: inline-block;
+  font-size: clamp(34px, 5vw, 54px);
+  text-transform: uppercase;
 }
 
 /* --- Sports: jersey-notch corner, bouncy kick --- */
@@ -7572,6 +7574,8 @@ button:disabled:active {
 .app-shell.theme-sports .page-header h1 {
   border-left: 6px solid rgb(var(--mode-accent-rgb));
   padding-left: 12px;
+  font-weight: 700;
+  font-size: clamp(30px, 4.4vw, 44px);
 }
 
 /* --- Gym: hard offset shadow that physically collapses on press --- */
@@ -7591,7 +7595,9 @@ button:disabled:active {
 }
 .app-shell.theme-gym .page-header h1 {
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+  font-weight: 700;
+  font-size: clamp(32px, 4.6vw, 46px);
 }
 
 /* --- Health: pill-soft shapes, ambient glow, gentle scale --- */
