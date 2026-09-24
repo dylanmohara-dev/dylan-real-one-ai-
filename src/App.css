@@ -7134,23 +7134,21 @@ button:disabled:active {
    it IS today's look. Nothing to add. */
 
 /* --- Neon Arcade --- */
-.app-shell.design-neon-arcade,
-.app-root.design-neon-arcade {
-  /* Signature color — overrides whichever of the 9 modes is active, on
-     purpose. This design system IS a magenta/cyan arcade cabinet no matter
-     which life area you're in; mode identity still shows up in which icon
-     is highlighted and what the AI talks about, just not in hue here. */
-  --mode-accent-rgb: 255, 0, 200;
-  --mode-accent2-rgb: 0, 229, 255;
-  --bg-glow-1: rgba(255, 0, 200, 0.28);
-  --bg-glow-2: rgba(0, 229, 255, 0.18);
-  --bg: #0a0014;
-  --mode-heading-font: 'Orbitron', var(--font-sans);
-  --mode-body-font: 'Space Grotesk', var(--font-sans);
-  --mode-radius-scale: 1.1;
-  --mode-border-width: 2px;
-  --mode-tracking: 0.12em;
-}
+/* Round 10: Dylan's explicit pick was "let each mode be its own arcade
+   cabinet" -- this used to force EVERY mode to the same magenta/cyan
+   color and 'Orbitron'/'Space Grotesk' font, which is exactly why modes
+   stopped feeling different from each other the moment Neon Arcade got
+   turned on. All the actual arcade EFFECTS below (the scanline grid, the
+   sidebar/topbar neon pulse, the glowing active nav icon, the glowing
+   cards) already read --mode-accent-rgb/--mode-accent2-rgb via var() --
+   they never needed to be forced to one hue, they just inherited
+   whichever value was set last in the cascade, which was always this
+   block. Deleting the overrides here (radius/border/tracking too, not
+   just color+font) means each mode's own .theme-X block -- already
+   defined, already different per mode -- is what actually wins now: 9
+   different colors, font pairings and card shapes, each rendered through
+   the same neon/glow chrome. Nothing below this comment needed to change
+   for that to work. */
 
 @keyframes neonPulse {
   0%, 100% { box-shadow: inset 0 0 36px rgba(var(--mode-accent-rgb), 0.14), 0 0 18px rgba(var(--mode-accent2-rgb), 0.1); }
