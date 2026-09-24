@@ -119,6 +119,7 @@ export default function TopSettingsBar({ settings, setSettings, playerStats, onO
                 }))
               }
             >
+              <option value="zoom">Zoom (new)</option>
               <option value="wipe">Wipe</option>
               <option value="fade">Fade</option>
               <option value="none">None</option>

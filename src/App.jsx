@@ -1,5 +1,5 @@
 import './App.css'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LayoutGrid, Lock, CalendarDays } from 'lucide-react'
 import { useAppData } from './hooks/useAppData.js'
 import { useJournal } from './hooks/useJournal.js'
@@ -32,6 +32,7 @@ import MindPage from './components/MindPage.jsx'
 import FamilyPage from './components/FamilyPage.jsx'
 import ModeBackground from './components/ModeBackground.jsx'
 import ModeTransition from './components/ModeTransition.jsx'
+import ZoomTransition from './components/ZoomTransition.jsx'
 import CalendarPage from './components/CalendarPage.jsx'
 import ConnectionsPage from './components/ConnectionsPage.jsx'
 import ChatOverlay from './components/ChatOverlay.jsx'
@@ -554,6 +555,45 @@ function App() {
         ? { title: 'Calendar', icon: CalendarDays }
         : { title: 'Overview', icon: LayoutGrid }
 
+  // --- Zoom mode-switch transition (session 37) ---
+  // Deliberately its own self-contained effect rather than reusing
+  // useAppData's modeFlashKey -- that one drives the OLD full-screen flash
+  // (still selectable as Wipe/Fade in Settings) and has no reason to know
+  // about DOM rects. This one measures, on every real page change:
+  //   1. where to start -- the destination mode's sidebar icon, found by
+  //      [data-nav-key] rather than assuming the click came from the
+  //      sidebar, so a mode switch from an Overview card, search, or a
+  //      chat action still zooms from the right icon.
+  //   2. where to end -- .main-content's own box, via mainContentRef.
+  // If either measurement comes up empty (a page with no matching sidebar
+  // icon -- Chat/Tasks/Goals/Notes/Memory aren't in the nav), this simply
+  // renders nothing for that switch and the plain .content fade (App.css)
+  // still plays underneath, so nothing ever looks broken.
+  const mainContentRef = useRef(null)
+  const [zoomTransition, setZoomTransition] = useState(null)
+  const zoomKeyRef = useRef(0)
+  const previousActivePageRef = useRef(activePage)
+
+  useEffect(() => {
+    if (previousActivePageRef.current === activePage) return
+    previousActivePageRef.current = activePage
+
+    if (!settings.signatureTransitions || settings.enterAnimation !== 'zoom') return
+
+    const originEl = document.querySelector(`[data-nav-key="${CSS.escape(activePage)}"]`)
+    const coverEl = mainContentRef.current
+    if (!originEl || !coverEl) return
+
+    zoomKeyRef.current += 1
+    setZoomTransition({
+      key: zoomKeyRef.current,
+      origin: originEl.getBoundingClientRect(),
+      coverRect: coverEl.getBoundingClientRect(),
+      mode: transitionMode,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePage])
+
   if (!settings.onboardingComplete) {
     return <OnboardingWizard onComplete={completeOnboarding} />
   }
@@ -582,7 +622,16 @@ function App() {
           fixed-to-viewport actually mean that. */}
       <GameToast toasts={toasts} dismissToast={dismissToast} />
 
-      {settings.signatureTransitions && settings.enterAnimation !== 'none' && (
+      {settings.signatureTransitions && settings.enterAnimation === 'zoom' && zoomTransition && (
+        <ZoomTransition
+          zoomKey={zoomTransition.key}
+          origin={zoomTransition.origin}
+          coverRect={zoomTransition.coverRect}
+          mode={zoomTransition.mode}
+        />
+      )}
+
+      {settings.signatureTransitions && settings.enterAnimation !== 'none' && settings.enterAnimation !== 'zoom' && (
         <ModeTransition
           flashKey={modeFlashKey}
           animation={settings.enterAnimation}
@@ -619,7 +668,7 @@ function App() {
           onOpenChat={openChat}
         />
 
-        <main className="main-content">
+        <main className="main-content" ref={mainContentRef}>
           <ModeBackground modeKey={backgroundModeKey} />
 
           {(errorMessage || successMessage) && (

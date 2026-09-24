@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 
 // Mirrors routes/mind.js's computeSkillLevel exactly -- mindSkillXp from
@@ -396,58 +397,6 @@ function NightReviewForm({ saving, addMindReview, todayReview }) {
   )
 }
 
-function DecisionForm({ saving, addMindDecision }) {
-  const [situation, setSituation] = useState('')
-  const [why, setWhy] = useState('')
-  const [perspective, setPerspective] = useState('')
-  const [decision, setDecision] = useState('proceed')
-
-  async function handleSubmit(event) {
-    event.preventDefault()
-    if (!situation.trim()) return
-    await addMindDecision({ situation: situation.trim(), why: why.trim(), perspective: perspective.trim(), decision })
-    setSituation('')
-    setWhy('')
-    setPerspective('')
-    setDecision('proceed')
-  }
-
-  return (
-    <form className="form-card" onSubmit={handleSubmit}>
-      <label htmlFor="mind-pause-situation">What are you about to do?</label>
-      <input
-        id="mind-pause-situation"
-        value={situation}
-        onChange={(e) => setSituation(e.target.value)}
-        placeholder="e.g. Text my ex back at 1am"
-      />
-      <label htmlFor="mind-pause-why">Why, really?</label>
-      <input
-        id="mind-pause-why"
-        value={why}
-        onChange={(e) => setWhy(e.target.value)}
-        placeholder="The honest reason, not the story you'd tell someone else"
-      />
-      <label htmlFor="mind-pause-perspective">What would you tell a friend doing this?</label>
-      <input
-        id="mind-pause-perspective"
-        value={perspective}
-        onChange={(e) => setPerspective(e.target.value)}
-        placeholder="Step outside it for a second"
-      />
-      <label htmlFor="mind-pause-decision">Your call</label>
-      <select id="mind-pause-decision" value={decision} onChange={(e) => setDecision(e.target.value)}>
-        <option value="proceed">Proceed anyway</option>
-        <option value="wait">Wait -- sit on it</option>
-        <option value="different">Do something different</option>
-      </select>
-      <button type="submit" disabled={saving || !situation.trim()}>
-        Log it
-      </button>
-    </form>
-  )
-}
-
 function DecisionCard({ item, saving, updateMindDecision }) {
   const [note, setNote] = useState(item.outcomeNote || '')
   const decisionLabel = { proceed: 'Proceeded anyway', wait: 'Chose to wait', different: 'Did something different' }[item.decision] || item.decision
@@ -475,6 +424,199 @@ function DecisionCard({ item, saving, updateMindDecision }) {
   )
 }
 
+// --- Session 37 redesign: a big focal "orb" instead of a flat number ---
+// Headspace/Calm's whole visual language is one calm, breathing shape
+// that IS the screen, not a stat sitting next to a list -- this is Mind's
+// version of that. The ring is today's habit-completion percentage (real
+// data, updates live); the glow intensity beneath it is driven by average
+// skill level, so "doubling as the skill-XP display" is literal, not just
+// a caption -- a higher average level makes the whole orb glow harder.
+function TodayOrb({ doneCount, totalCount, skills }) {
+  const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
+  const avgLevel = skills.length ? skills.reduce((sum, s) => sum + s.level, 0) / skills.length : 1
+  const radius = 84
+  const circumference = 2 * Math.PI * radius
+  const dashOffset = circumference * (1 - pct / 100)
+  const glow = Math.max(0.25, Math.min(1, avgLevel / 8))
+
+  return (
+    <div className="mind-orb-wrap">
+      <div className="mind-orb" style={{ '--mind-orb-glow': glow }}>
+        <svg viewBox="0 0 200 200" className="mind-orb-ring">
+          <circle cx="100" cy="100" r={radius} className="mind-orb-ring-track" />
+          <circle
+            cx="100"
+            cy="100"
+            r={radius}
+            className="mind-orb-ring-fill"
+            style={{ strokeDasharray: circumference, strokeDashoffset: dashOffset }}
+          />
+        </svg>
+        <div className="mind-orb-core">
+          <strong>{pct}%</strong>
+          <span>
+            {doneCount} / {totalCount} today
+          </span>
+        </div>
+      </div>
+      <span className="mind-orb-level">Avg skill level {avgLevel.toFixed(1)}</span>
+    </div>
+  )
+}
+
+// --- Session 37 redesign: Pause & Choose as a full-screen, one-question-
+// at-a-time flow (Day One's entry screen was the reference) instead of a
+// form sitting in the middle of a tab -- the whole point of this tool is
+// making Dylan actually stop and slow down before an impulsive decision,
+// and a form field he can skim past in two seconds defeats that. Forcing
+// one question onto the whole screen at a time is what makes "pause"
+// literal instead of just a label. Same addMindDecision call/shape as the
+// old inline DecisionForm -- nothing about the data changed, only how
+// it's collected.
+function PauseChooseOverlay({ onClose, saving, addMindDecision }) {
+  const [step, setStep] = useState(0)
+  const [situation, setSituation] = useState('')
+  const [why, setWhy] = useState('')
+  const [perspective, setPerspective] = useState('')
+  const [decision, setDecision] = useState('proceed')
+  const [saved, setSaved] = useState(false)
+
+  const QUESTIONS = [
+    {
+      key: 'situation',
+      prompt: 'What are you about to do?',
+      placeholder: 'e.g. Text my ex back at 1am',
+      value: situation,
+      onChange: setSituation,
+    },
+    {
+      key: 'why',
+      prompt: 'Why, really?',
+      placeholder: "The honest reason, not the story you'd tell someone else",
+      value: why,
+      onChange: setWhy,
+    },
+    {
+      key: 'perspective',
+      prompt: 'What would you tell a friend doing this?',
+      placeholder: 'Step outside it for a second',
+      value: perspective,
+      onChange: setPerspective,
+    },
+  ]
+
+  const totalSteps = QUESTIONS.length + 1
+  const current = QUESTIONS[step]
+
+  async function handleFinish() {
+    await addMindDecision({
+      situation: situation.trim(),
+      why: why.trim(),
+      perspective: perspective.trim(),
+      decision,
+    })
+    setSaved(true)
+  }
+
+  const canAdvance = step === 0 ? situation.trim().length > 0 : true
+
+  return (
+    <div className="mind-pause-overlay" role="dialog" aria-modal="true" aria-label="Pause and choose">
+      <button type="button" className="mind-pause-close" onClick={onClose} aria-label="Close">
+        &times;
+      </button>
+
+      {saved ? (
+        <div className="mind-pause-done">
+          <div className="mind-pause-done-icon">&#10003;</div>
+          <h2>Logged.</h2>
+          <p>You can add how it turned out later, from the Pause &amp; Choose history.</p>
+          <button type="button" onClick={onClose}>
+            Done
+          </button>
+        </div>
+      ) : (
+        <div className="mind-pause-card">
+          <div className="mind-pause-progress">
+            {Array.from({ length: totalSteps }).map((_, i) => (
+              <span key={i} className={`mind-pause-dot ${i <= step ? 'filled' : ''}`} />
+            ))}
+          </div>
+
+          {step < QUESTIONS.length ? (
+            <div className="mind-pause-question" key={current.key}>
+              <h2>{current.prompt}</h2>
+              <textarea
+                autoFocus
+                value={current.value}
+                onChange={(e) => current.onChange(e.target.value)}
+                placeholder={current.placeholder}
+                rows={3}
+              />
+              <div className="mind-pause-actions">
+                {step > 0 && (
+                  <button type="button" className="mind-pause-back" onClick={() => setStep(step - 1)}>
+                    Back
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="mind-pause-next"
+                  disabled={!canAdvance}
+                  onClick={() => setStep(step + 1)}
+                >
+                  {step === QUESTIONS.length - 1 ? "What's your call?" : 'Next'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mind-pause-question">
+              <h2>Your call</h2>
+              <div className="mind-pause-decision-options">
+                {[
+                  { key: 'proceed', label: 'Proceed anyway' },
+                  { key: 'wait', label: 'Wait -- sit on it' },
+                  { key: 'different', label: 'Do something different' },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    className={`mind-pause-decision-option ${decision === opt.key ? 'active' : ''}`}
+                    onClick={() => setDecision(opt.key)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="mind-pause-actions">
+                <button type="button" className="mind-pause-back" onClick={() => setStep(step - 1)}>
+                  Back
+                </button>
+                <button type="button" className="mind-pause-next" disabled={saving} onClick={handleFinish}>
+                  Log it
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// --- Session 37 redesign: swipeable paging instead of a persistent tab
+// row -- the same literal .gym-tabs class Finance/Gym/School all reuse
+// verbatim, which was the single biggest reason every mode read as the
+// same template with different colors. Arrows + dots for mouse/keyboard,
+// real touch-swipe for anyone on a trackpad or phone-width layout.
+const MIND_PAGES = [
+  { key: 'today', label: 'Today' },
+  { key: 'review', label: 'Review' },
+  { key: 'pause', label: 'Pause & Choose' },
+  { key: 'progress', label: 'Progress' },
+  { key: 'habits', label: 'Habits' },
+]
+
 export default function MindPage({
   mindHabits,
   mindCompletions,
@@ -493,7 +635,10 @@ export default function MindPage({
   assistantContext,
   openChat,
 }) {
-  const [activeTab, setActiveTab] = useState('today')
+  const [pageIndex, setPageIndex] = useState(0)
+  const [pauseOverlayOpen, setPauseOverlayOpen] = useState(false)
+  const touchStartXRef = useRef(null)
+
   const activeHabits = mindHabits.filter((h) => h.active !== false)
   const doneToday = new Set(mindCompletions.filter((c) => c.date === todayKey()).map((c) => c.habitId))
   const todayMorningReview = mindReviews.find((r) => r.type === 'morning' && r.date === todayKey())
@@ -503,6 +648,23 @@ export default function MindPage({
     const xp = Number(mindSkillXp?.[key]) || 0
     return { key, xp, ...computeSkillLevel(xp) }
   })
+
+  function goToPage(delta) {
+    setPageIndex((i) => Math.max(0, Math.min(MIND_PAGES.length - 1, i + delta)))
+  }
+
+  function handleTouchStart(event) {
+    touchStartXRef.current = event.touches[0].clientX
+  }
+
+  function handleTouchEnd(event) {
+    if (touchStartXRef.current == null) return
+    const dx = event.changedTouches[0].clientX - touchStartXRef.current
+    if (Math.abs(dx) > 60) goToPage(dx < 0 ? 1 : -1)
+    touchStartXRef.current = null
+  }
+
+  const activePageKey = MIND_PAGES[pageIndex].key
 
   return (
     <div className="page mind-page">
@@ -516,198 +678,217 @@ export default function MindPage({
 
       <ModeChatLauncher assistantContext={assistantContext} modeKey="mind" openChat={openChat} />
 
-      <div className="gym-stats-row">
-        <div className="gym-stat-card">
-          <span className="gym-stat-label">TODAY</span>
-          <span className="gym-stat-value">
-            {doneToday.size} / {activeHabits.length}
-          </span>
-        </div>
-      </div>
+      <div className="mind-carousel" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+        <button
+          type="button"
+          className="mind-carousel-arrow left"
+          onClick={() => goToPage(-1)}
+          disabled={pageIndex === 0}
+          aria-label="Previous view"
+        >
+          <ChevronLeft size={18} strokeWidth={2.5} />
+        </button>
 
-      <div className="gym-tabs">
-        <button type="button" className={activeTab === 'today' ? 'active' : ''} onClick={() => setActiveTab('today')}>
-          Today
-        </button>
-        <button type="button" className={activeTab === 'review' ? 'active' : ''} onClick={() => setActiveTab('review')}>
-          Review
-        </button>
-        <button type="button" className={activeTab === 'pause' ? 'active' : ''} onClick={() => setActiveTab('pause')}>
-          Pause & Choose
-        </button>
-        <button type="button" className={activeTab === 'progress' ? 'active' : ''} onClick={() => setActiveTab('progress')}>
-          Progress
-        </button>
-        <button type="button" className={activeTab === 'habits' ? 'active' : ''} onClick={() => setActiveTab('habits')}>
-          Habits
-        </button>
-      </div>
+        <div className="mind-carousel-pane" key={activePageKey}>
+          {activePageKey === 'today' && (
+            <div className="mind-today">
+              <TodayOrb doneCount={doneToday.size} totalCount={activeHabits.length} skills={skills} />
+              {activeHabits.length === 0 ? (
+                <div className="empty-state">
+                  <div>&#9989;</div>
+                  <h3>No habits set</h3>
+                  <p>Add your first habit in the Habits view.</p>
+                </div>
+              ) : (
+                <div className="mind-today-list">
+                  {activeHabits.map((habit) => {
+                    const done = doneToday.has(habit.id)
+                    const stats = habitStats(habit, mindCompletions)
+                    return (
+                      <label className={`mind-today-row ${done ? 'done' : ''}`} key={habit.id}>
+                        <input
+                          type="checkbox"
+                          checked={done}
+                          disabled={saving}
+                          onChange={() => toggleMindCompletion(habit.id, todayKey())}
+                        />
+                        <span className="mind-today-row-name">{habit.name}</span>
+                        <HabitStatsLine stats={stats} />
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
-      {activeTab === 'review' && (
-        <div className="items-list">
-          <h3 className="mind-section-heading">Morning check-in</h3>
-          <MorningReviewForm saving={saving} addMindReview={addMindReview} todayReview={todayMorningReview} />
-          <h3 className="mind-section-heading">Night review</h3>
-          <NightReviewForm saving={saving} addMindReview={addMindReview} todayReview={todayNightReview} />
-          {mindReviews.length > 0 && (
-            <>
-              <h3 className="mind-section-heading">History</h3>
-              {[...mindReviews]
-                .sort((a, b) => (a.date === b.date ? (a.type === 'morning' ? -1 : 1) : b.date.localeCompare(a.date)))
-                .slice(0, 14)
-                .map((r) => (
-                  <div className="item-card" key={r.id}>
+          {activePageKey === 'review' && (
+            <div className="items-list">
+              <h3 className="mind-section-heading">Morning check-in</h3>
+              <MorningReviewForm saving={saving} addMindReview={addMindReview} todayReview={todayMorningReview} />
+              <h3 className="mind-section-heading">Night review</h3>
+              <NightReviewForm saving={saving} addMindReview={addMindReview} todayReview={todayNightReview} />
+              {mindReviews.length > 0 && (
+                <>
+                  <h3 className="mind-section-heading">History</h3>
+                  {[...mindReviews]
+                    .sort((a, b) => (a.date === b.date ? (a.type === 'morning' ? -1 : 1) : b.date.localeCompare(a.date)))
+                    .slice(0, 14)
+                    .map((r) => (
+                      <div className="item-card" key={r.id}>
+                        <div className="item-content">
+                          <strong>
+                            {r.date} -- {r.type === 'morning' ? 'Morning' : 'Night'}
+                          </strong>
+                          {r.intention && <p className="item-meta">Intention: {r.intention}</p>}
+                          {r.mindset && <p className="item-meta">Feeling: {r.mindset}</p>}
+                          {r.wins && <p className="item-meta">Went well: {r.wins}</p>}
+                          {r.friction && <p className="item-meta">Didn't: {r.friction}</p>}
+                          {r.lesson && <p className="item-meta">Lesson: {r.lesson}</p>}
+                        </div>
+                      </div>
+                    ))}
+                </>
+              )}
+            </div>
+          )}
+
+          {activePageKey === 'pause' && (
+            <div className="items-list">
+              <p className="mind-intro-text">
+                Before you act on impulse, run it through here. Naming the decision -- even briefly -- is the whole
+                point.
+              </p>
+              <button type="button" className="mind-pause-launch" onClick={() => setPauseOverlayOpen(true)}>
+                Pause &amp; Choose now
+              </button>
+              {decisionHistory.length === 0 ? (
+                <div className="empty-state">
+                  <div>&#9878;</div>
+                  <h3>Nothing logged yet</h3>
+                  <p>Use this before your next impulsive decision, not after.</p>
+                </div>
+              ) : (
+                <>
+                  <h3 className="mind-section-heading">History</h3>
+                  {decisionHistory.map((item) => (
+                    <DecisionCard key={item.id} item={item} saving={saving} updateMindDecision={updateMindDecision} />
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+
+          {activePageKey === 'progress' && (
+            <div className="items-list">
+              <h3 className="mind-section-heading">Skills</h3>
+              {skills.map((skill) => (
+                <SkillBar key={skill.key} label={SKILL_LABELS[skill.key]} skill={skill} />
+              ))}
+
+              <h3 className="mind-section-heading">Patterns</h3>
+              {mindInsights.length === 0 ? (
+                <p className="item-meta">Not enough history yet -- keep logging and real patterns will show up here.</p>
+              ) : (
+                mindInsights.map((insight, i) => (
+                  <div className="item-card" key={i}>
                     <div className="item-content">
-                      <strong>
-                        {r.date} -- {r.type === 'morning' ? 'Morning' : 'Night'}
-                      </strong>
-                      {r.intention && <p className="item-meta">Intention: {r.intention}</p>}
-                      {r.mindset && <p className="item-meta">Feeling: {r.mindset}</p>}
-                      {r.wins && <p className="item-meta">Went well: {r.wins}</p>}
-                      {r.friction && <p className="item-meta">Didn't: {r.friction}</p>}
-                      {r.lesson && <p className="item-meta">Lesson: {r.lesson}</p>}
+                      <p>{insight}</p>
                     </div>
                   </div>
-                ))}
-            </>
-          )}
-        </div>
-      )}
+                ))
+              )}
 
-      {activeTab === 'pause' && (
-        <div className="items-list">
-          <p className="mind-intro-text">
-            Before you act on impulse, run it through here. Naming the decision -- even briefly -- is the whole point.
-          </p>
-          <DecisionForm saving={saving} addMindDecision={addMindDecision} />
-          {decisionHistory.length === 0 ? (
-            <div className="empty-state">
-              <div>&#9878;</div>
-              <h3>Nothing logged yet</h3>
-              <p>Use this before your next impulsive decision, not after.</p>
-            </div>
-          ) : (
-            <>
-              <h3 className="mind-section-heading">History</h3>
-              {decisionHistory.map((item) => (
-                <DecisionCard key={item.id} item={item} saving={saving} updateMindDecision={updateMindDecision} />
-              ))}
-            </>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'today' && (
-        <div className="items-list">
-          {activeHabits.length === 0 && (
-            <div className="empty-state">
-              <div>&#9989;</div>
-              <h3>No habits set</h3>
-              <p>Add your first habit in the Habits tab.</p>
-            </div>
-          )}
-          {activeHabits.map((habit) => {
-            const done = doneToday.has(habit.id)
-            const stats = habitStats(habit, mindCompletions)
-            return (
-              <div className="item-card" key={habit.id}>
-                <div className="item-content">
-                  <label className="mind-checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={done}
-                      disabled={saving}
-                      onChange={() => toggleMindCompletion(habit.id, todayKey())}
-                    />
-                    <strong style={done ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}>
-                      {habit.name}
-                    </strong>
-                  </label>
-                  <HabitStatsLine stats={stats} />
+              <h3 className="mind-section-heading">Habit streaks</h3>
+              {activeHabits.length === 0 && (
+                <div className="empty-state">
+                  <div>&#128200;</div>
+                  <h3>No progress yet</h3>
+                  <p>Add a habit in the Habits view to start tracking real streaks.</p>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {activeTab === 'progress' && (
-        <div className="items-list">
-          <h3 className="mind-section-heading">Skills</h3>
-          {skills.map((skill) => (
-            <SkillBar key={skill.key} label={SKILL_LABELS[skill.key]} skill={skill} />
-          ))}
-
-          <h3 className="mind-section-heading">Patterns</h3>
-          {mindInsights.length === 0 ? (
-            <p className="item-meta">Not enough history yet -- keep logging and real patterns will show up here.</p>
-          ) : (
-            mindInsights.map((insight, i) => (
-              <div className="item-card" key={i}>
-                <div className="item-content">
-                  <p>{insight}</p>
-                </div>
-              </div>
-            ))
-          )}
-
-          <h3 className="mind-section-heading">Habit streaks</h3>
-          {activeHabits.length === 0 && (
-            <div className="empty-state">
-              <div>&#128200;</div>
-              <h3>No progress yet</h3>
-              <p>Add a habit in the Habits tab to start tracking real streaks.</p>
-            </div>
-          )}
-          {activeHabits.map((habit) => {
-            const stats = habitStats(habit, mindCompletions)
-            return (
-              <div className="item-card" key={habit.id}>
-                <div className="item-content">
-                  <strong>{habit.name}</strong>
-                  <HabitStatsLine stats={stats} />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {activeTab === 'habits' && (
-        <>
-          <AddHabitForm saving={saving} addHabit={addMindHabit} />
-          <div className="items-list">
-            {mindHabits.length === 0 && (
-              <div className="empty-state">
-                <div>&#128203;</div>
-                <h3>No habits yet</h3>
-                <p>Add your first one above.</p>
-              </div>
-            )}
-            {mindHabits.map((habit) => {
-              const stats = habitStats(habit, mindCompletions)
-              return (
-                <div className="item-card" key={habit.id}>
-                  <div className="item-content">
-                    <strong style={habit.active === false ? { opacity: 0.5 } : undefined}>{habit.name}</strong>
-                    <HabitStatsLine stats={stats} />
-                    <FrequencyEditor habit={habit} saving={saving} updateMindHabit={updateMindHabit} />
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={() => updateMindHabit(habit.id, { active: habit.active === false })}
-                    >
-                      {habit.active === false ? 'Reactivate' : 'Archive'}
-                    </button>
+              )}
+              {activeHabits.map((habit) => {
+                const stats = habitStats(habit, mindCompletions)
+                return (
+                  <div className="item-card" key={habit.id}>
+                    <div className="item-content">
+                      <strong>{habit.name}</strong>
+                      <HabitStatsLine stats={stats} />
+                    </div>
                   </div>
-                  <button className="delete-button" onClick={() => deleteMindHabit(habit.id)} aria-label={`Delete ${habit.name}`}>
-                    &times;
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </>
+                )
+              })}
+            </div>
+          )}
+
+          {activePageKey === 'habits' && (
+            <>
+              <AddHabitForm saving={saving} addHabit={addMindHabit} />
+              <div className="items-list">
+                {mindHabits.length === 0 && (
+                  <div className="empty-state">
+                    <div>&#128203;</div>
+                    <h3>No habits yet</h3>
+                    <p>Add your first one above.</p>
+                  </div>
+                )}
+                {mindHabits.map((habit) => {
+                  const stats = habitStats(habit, mindCompletions)
+                  return (
+                    <div className="item-card" key={habit.id}>
+                      <div className="item-content">
+                        <strong style={habit.active === false ? { opacity: 0.5 } : undefined}>{habit.name}</strong>
+                        <HabitStatsLine stats={stats} />
+                        <FrequencyEditor habit={habit} saving={saving} updateMindHabit={updateMindHabit} />
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() => updateMindHabit(habit.id, { active: habit.active === false })}
+                        >
+                          {habit.active === false ? 'Reactivate' : 'Archive'}
+                        </button>
+                      </div>
+                      <button
+                        className="delete-button"
+                        onClick={() => deleteMindHabit(habit.id)}
+                        aria-label={`Delete ${habit.name}`}
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="mind-carousel-arrow right"
+          onClick={() => goToPage(1)}
+          disabled={pageIndex === MIND_PAGES.length - 1}
+          aria-label="Next view"
+        >
+          <ChevronRight size={18} strokeWidth={2.5} />
+        </button>
+      </div>
+
+      <div className="mind-carousel-dots">
+        {MIND_PAGES.map((page, i) => (
+          <button
+            key={page.key}
+            type="button"
+            className={`mind-carousel-dot ${i === pageIndex ? 'active' : ''}`}
+            onClick={() => setPageIndex(i)}
+            title={page.label}
+            aria-label={page.label}
+          />
+        ))}
+      </div>
+
+      {pauseOverlayOpen && (
+        <PauseChooseOverlay onClose={() => setPauseOverlayOpen(false)} saving={saving} addMindDecision={addMindDecision} />
       )}
     </div>
   )

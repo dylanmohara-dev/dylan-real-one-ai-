@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Wallet,
   PiggyBank,
@@ -203,31 +203,131 @@ function normalizeDate(raw) {
   return value
 }
 
-function Sparkline({ history }) {
+// Dylan's own reference points for this redesign were Robinhood (a big,
+// dominant, scrubbable chart is the whole screen) and YNAB (below) -- this
+// is that for net worth. Time-range chips filter which slice of `history`
+// gets drawn; if the selected range has fewer than 2 points (e.g. "1W" on
+// an account that's only had 3 days of snapshots ever) it falls back to
+// showing everything rather than rendering an empty/broken chart.
+const NET_WORTH_RANGES = [
+  { key: '1w', label: '1W', days: 7 },
+  { key: '1m', label: '1M', days: 30 },
+  { key: '3m', label: '3M', days: 90 },
+  { key: '1y', label: '1Y', days: 365 },
+  { key: 'all', label: 'ALL', days: null },
+]
+
+function filterHistoryByDays(history, days) {
+  if (!days) return history
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+  return history.filter((point) => new Date(point.date) >= cutoff)
+}
+
+function NetWorthChart({ history }) {
+  const [range, setRange] = useState('3m')
+  const [hoverIndex, setHoverIndex] = useState(null)
+  const svgRef = useRef(null)
+
   if (history.length < 2) {
     return <p className="finance-sparkline-empty">Add a second day of balances to see a trend line here.</p>
   }
 
-  const values = history.map((point) => point.netWorth)
+  const selectedDays = NET_WORTH_RANGES.find((option) => option.key === range)?.days ?? null
+  const filtered = filterHistoryByDays(history, selectedDays)
+  const points = filtered.length >= 2 ? filtered : history
+
+  const values = points.map((point) => point.netWorth)
   const min = Math.min(...values)
   const max = Math.max(...values)
-  const range = max - min || 1
-  const width = 280
-  const height = 56
-  const step = width / (history.length - 1)
+  const valueRange = max - min || 1
+  const width = 560
+  const height = 140
+  const step = width / (points.length - 1)
 
-  const points = values
-    .map((value, index) => {
-      const x = index * step
-      const y = height - ((value - min) / range) * (height - 8) - 4
-      return `${x.toFixed(1)},${y.toFixed(1)}`
+  const coords = values.map((value, index) => ({
+    x: index * step,
+    y: height - ((value - min) / valueRange) * (height - 12) - 6,
+  }))
+  const polylinePoints = coords.map((c) => `${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ')
+
+  function handlePointerMove(event) {
+    if (!svgRef.current) return
+    const rect = svgRef.current.getBoundingClientRect()
+    if (!rect.width) return
+    const relX = ((event.clientX - rect.left) / rect.width) * width
+    let nearest = 0
+    let nearestDist = Infinity
+    coords.forEach((coord, index) => {
+      const dist = Math.abs(coord.x - relX)
+      if (dist < nearestDist) {
+        nearestDist = dist
+        nearest = index
+      }
     })
-    .join(' ')
+    setHoverIndex(nearest)
+  }
+
+  const hovered = hoverIndex !== null ? points[hoverIndex] : null
 
   return (
-    <svg className="finance-sparkline" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-      <polyline points={points} fill="none" stroke="rgb(var(--mode-accent-rgb))" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
+    <div className="finance-networth-chart">
+      <div className="finance-range-chips">
+        {NET_WORTH_RANGES.map((option) => (
+          <button
+            key={option.key}
+            type="button"
+            className={`finance-range-chip ${range === option.key ? 'active' : ''}`}
+            onClick={() => setRange(option.key)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      <svg
+        ref={svgRef}
+        className="finance-sparkline finance-sparkline-hero"
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        onMouseMove={handlePointerMove}
+        onMouseLeave={() => setHoverIndex(null)}
+      >
+        <polyline
+          points={polylinePoints}
+          fill="none"
+          stroke="rgb(var(--mode-accent-rgb))"
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {hoverIndex !== null && (
+          <>
+            <line
+              x1={coords[hoverIndex].x}
+              x2={coords[hoverIndex].x}
+              y1="0"
+              y2={height}
+              className="finance-scrub-line"
+            />
+            <circle cx={coords[hoverIndex].x} cy={coords[hoverIndex].y} r="4" className="finance-scrub-dot" />
+          </>
+        )}
+      </svg>
+
+      <div className="finance-sparkline-range">
+        {hovered ? (
+          <span className="finance-scrub-readout">
+            {formatShortDate(hovered.date)}: {formatMoney(Math.round(hovered.netWorth))}
+          </span>
+        ) : (
+          <>
+            <span>{formatShortDate(points[0].date)}</span>
+            <span>{formatShortDate(points[points.length - 1].date)}</span>
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -307,28 +407,22 @@ function OverviewTab({ accounts, netWorth, history, saving, addAccount, updateBa
         <div className="finance-hero-figure">
           <span className="finance-hero-label">NET WORTH</span>
           <strong>{formatMoney(Math.round(displayedNetWorth))}</strong>
-          {delta !== null && (
-            <span className={`finance-hero-delta ${delta >= 0 ? 'up' : 'down'}`}>
-              {delta >= 0 ? <ArrowUpRight size={13} strokeWidth={2.5} /> : <ArrowDownRight size={13} strokeWidth={2.5} />}
-              {formatMoney(Math.abs(delta))} since last update
-            </span>
-          )}
-          {weekDelta !== null && (
-            <span className={`finance-hero-delta ${weekDelta >= 0 ? 'up' : 'down'}`}>
-              {weekDelta >= 0 ? <ArrowUpRight size={13} strokeWidth={2.5} /> : <ArrowDownRight size={13} strokeWidth={2.5} />}
-              {formatMoney(Math.abs(weekDelta))} vs 7 days ago
-            </span>
-          )}
+          <div className="finance-hero-deltas">
+            {delta !== null && (
+              <span className={`finance-hero-delta ${delta >= 0 ? 'up' : 'down'}`}>
+                {delta >= 0 ? <ArrowUpRight size={13} strokeWidth={2.5} /> : <ArrowDownRight size={13} strokeWidth={2.5} />}
+                {formatMoney(Math.abs(delta))} since last update
+              </span>
+            )}
+            {weekDelta !== null && (
+              <span className={`finance-hero-delta ${weekDelta >= 0 ? 'up' : 'down'}`}>
+                {weekDelta >= 0 ? <ArrowUpRight size={13} strokeWidth={2.5} /> : <ArrowDownRight size={13} strokeWidth={2.5} />}
+                {formatMoney(Math.abs(weekDelta))} vs 7 days ago
+              </span>
+            )}
+          </div>
         </div>
-        <div className="finance-sparkline-wrap">
-          <Sparkline history={history} />
-          {history.length >= 2 && (
-            <div className="finance-sparkline-range">
-              <span>{formatShortDate(history[0].date)}</span>
-              <span>{formatShortDate(history[history.length - 1].date)}</span>
-            </div>
-          )}
-        </div>
+        <NetWorthChart history={history} />
       </div>
 
       <div className="finance-add-row">
@@ -718,12 +812,17 @@ function BudgetRow({ category, limit, spent, saving, setBudget }) {
         )}
       </div>
       {limit > 0 && (
-        <div className="skill-xp-bar">
-          <div
-            className={`skill-xp-bar-fill finance-budget-bar-fill ${over ? 'over' : ''}`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+        <>
+          <div className="finance-budget-track">
+            <div
+              className={`finance-budget-track-fill ${over ? 'over' : ''}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className={`finance-budget-left ${over ? 'over' : ''}`}>
+            {over ? `${formatMoney(spent - limit)} over` : `${formatMoney(limit - spent)} left`}
+          </span>
+        </>
       )}
     </div>
   )
@@ -749,6 +848,11 @@ function BudgetTab({ transactions, budgets, saving, setBudget }) {
           <strong>
             {formatMoney(totalSpent)} of {formatMoney(totalBudgeted)} budgeted
           </strong>
+          <span className={`finance-budget-left-total ${totalSpent > totalBudgeted ? 'over' : ''}`}>
+            {totalSpent > totalBudgeted
+              ? `${formatMoney(totalSpent - totalBudgeted)} over overall`
+              : `${formatMoney(totalBudgeted - totalSpent)} left to spend overall`}
+          </span>
         </div>
       )}
       {EXPENSE_CATEGORIES.map((category) => (
@@ -907,6 +1011,12 @@ function PositionRow({ position, sizing, saving, closePosition, deletePosition }
         </strong>
         <p>Thesis: {position.thesis}</p>
         <p>Invalidation: {position.invalidation}</p>
+        <div className="trading-size-track">
+          <div
+            className={`trading-size-track-fill ${overConcentrated ? 'over' : ''}`}
+            style={{ width: `${Math.min(100, sizePct)}%` }}
+          />
+        </div>
         <div className="item-meta">
           <span className={`trading-position-sizing ${overConcentrated ? 'over' : ''}`}>
             {overConcentrated ? <AlertTriangle size={12} strokeWidth={2.5} /> : null}

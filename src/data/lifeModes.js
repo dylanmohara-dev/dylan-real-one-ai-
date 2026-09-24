@@ -18,10 +18,14 @@ export const DEFAULT_SETTINGS = {
   // A full-screen color-flash splash on every single navigation read as a
   // game loading screen, not professional software -- 'wipe' and 'fade'
   // both still exist and work exactly as before for anyone who wants them
-  // (Settings -> Display -> Enter Animation), this only changes what a
-  // fresh/default install starts with.
+  // (Settings -> Display -> Enter Animation). 'zoom' (the new default,
+  // session 37) is a different animal from those two: it's contained to
+  // the content pane only -- the sidebar stays put and visible the whole
+  // time -- and grows out of whichever nav icon was clicked (see
+  // ZoomTransition.jsx + App.css's ZOOM TRANSITION section), so it reads
+  // as a real app switching context rather than a loading-screen flash.
   signatureTransitions: true,
-  enterAnimation: 'none',
+  enterAnimation: 'zoom',
   onboardingComplete: false,
   designSystem: 'minimal-glass',
   colorPalette: 'vivid',

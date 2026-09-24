@@ -42,6 +42,7 @@ export default function Sidebar({
           return (
             <button
               key={item.key}
+              data-nav-key={item.key}
               className={`icon-nav-button ${isOverview ? 'overview' : ''} ${isActive ? 'active' : ''}`}
               title={item.label}
               onClick={() => setActivePage(item.key)}
@@ -53,6 +54,7 @@ export default function Sidebar({
       </nav>
 
       <button
+        data-nav-key="Journal"
         className={`icon-nav-button journal ${activePage === 'Journal' ? 'active' : ''}`}
         title="Journal (private)"
         onClick={() => setActivePage('Journal')}
@@ -61,6 +63,7 @@ export default function Sidebar({
       </button>
 
       <button
+        data-nav-key="Calendar"
         className={`icon-nav-button calendar ${activePage === 'Calendar' ? 'active' : ''}`}
         title="Calendar"
         onClick={() => setActivePage('Calendar')}
@@ -69,6 +72,7 @@ export default function Sidebar({
       </button>
 
       <button
+        data-nav-key="Connections"
         className={`icon-nav-button connections ${activePage === 'Connections' ? 'active' : ''}`}
         title="Connections"
         onClick={() => setActivePage('Connections')}
@@ -77,6 +81,7 @@ export default function Sidebar({
       </button>
 
       <button
+        data-nav-key="Settings"
         className={`icon-nav-button gear ${activePage === 'Settings' ? 'active' : ''}`}
         title="Settings"
         onClick={() => setActivePage('Settings')}
