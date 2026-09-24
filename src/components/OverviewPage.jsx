@@ -199,6 +199,36 @@ export default function OverviewPage({
     return pick(userName || 'there')
   }, [userName])
 
+  // GTA-menu-style tilt for the mode cards below (Dylan's "clickable, GTA
+  // real feel" ask) -- a real per-frame 3D tilt tracked off the actual
+  // cursor position within each card, not a canned CSS hover animation.
+  // Deliberately plain DOM writes (card.style.transform) instead of React
+  // state: this fires on every mousemove, and re-rendering 9 cards' worth
+  // of React state that many times a second would be the wrong tool for a
+  // purely visual, non-data effect. touch devices never fire mousemove,
+  // so they simply keep the flat card with no tilt -- never broken, just
+  // plainer, which is correct for a surface that can't hover anyway.
+  const applyCardTilt = (event, pressed) => {
+    // Reduced-motion users get the flat, untilted card -- same as anyone
+    // on a touch device that never fires mousemove at all. This is a
+    // direct DOM write, not a CSS animation, so it's the JS side (not
+    // App.css's prefers-reduced-motion block) that has to be the one to
+    // skip it.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const card = event.currentTarget
+    const rect = card.getBoundingClientRect()
+    const px = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) - 0.5
+    const py = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)) - 0.5
+    const rotateY = px * 14
+    const rotateX = py * -14
+    const scale = pressed ? 0.965 : 1.035
+    const lift = pressed ? 0 : -4
+    card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${scale}) translateY(${lift}px)`
+  }
+  const resetCardTilt = (event) => {
+    event.currentTarget.style.transform = ''
+  }
+
   return (
     <div
       className="overview-page"
@@ -277,46 +307,62 @@ export default function OverviewPage({
         {overviewCards.map((card) => {
           const Icon = card.icon
 
+          const photoUrl = heroImages?.[card.key]
+
           return (
             <button
-              className={`mode-card theme-${card.key}`}
+              className={`mode-card theme-${card.key}${photoUrl ? ' has-photo' : ''}`}
               key={card.key}
               style={{
                 '--card-rgb': card.rgb,
                 '--card-rgb2': card.rgb2,
               }}
               onClick={() => setActivePage(card.key)}
+              onMouseMove={(event) => applyCardTilt(event, false)}
+              onMouseDown={(event) => applyCardTilt(event, true)}
+              onMouseUp={(event) => applyCardTilt(event, false)}
+              onMouseLeave={resetCardTilt}
             >
-              <div className="mode-card-top">
-                <span className="mode-card-label">
-                  <Icon size={14} strokeWidth={2.25} />
-                  {card.title}
-                </span>
-
-                <span className="mode-card-top-right">
-                  {card.streak > 0 && (
-                    <span className="mode-card-streak" title={`${card.streak} day streak`}>
-                      <Flame size={11} strokeWidth={2.5} />
-                      {card.streak}
-                    </span>
-                  )}
-                  <span className="mode-card-dot" />
-                </span>
-              </div>
-
-              <h3 className="serif">{card.headline}</h3>
-              <p>{card.subtitle}</p>
-
-              <div className="mode-card-metric">
-                <span>{card.metricLabel}</span>
-                <strong>{card.metricValue}</strong>
-              </div>
-
-              <div className="mode-progress-track">
+              {photoUrl && (
                 <div
-                  className="mode-progress-fill"
-                  style={{ width: `${card.progress}%` }}
+                  className="mode-card-photo"
+                  style={{ backgroundImage: `url(${photoUrl})` }}
                 />
+              )}
+              <div className="mode-card-scrim" />
+
+              <div className="mode-card-content">
+                <div className="mode-card-top">
+                  <span className="mode-card-label">
+                    <Icon size={14} strokeWidth={2.25} />
+                    {card.title}
+                  </span>
+
+                  <span className="mode-card-top-right">
+                    {card.streak > 0 && (
+                      <span className="mode-card-streak" title={`${card.streak} day streak`}>
+                        <Flame size={11} strokeWidth={2.5} />
+                        {card.streak}
+                      </span>
+                    )}
+                    <span className="mode-card-dot" />
+                  </span>
+                </div>
+
+                <h3 className="serif">{card.headline}</h3>
+                <p>{card.subtitle}</p>
+
+                <div className="mode-card-metric">
+                  <span>{card.metricLabel}</span>
+                  <strong>{card.metricValue}</strong>
+                </div>
+
+                <div className="mode-progress-track">
+                  <div
+                    className="mode-progress-fill"
+                    style={{ width: `${card.progress}%` }}
+                  />
+                </div>
               </div>
             </button>
           )
