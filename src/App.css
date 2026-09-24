@@ -240,22 +240,17 @@ select option {
   --mode-heading-font: 'Rajdhani', sans-serif;
   --mode-radius-scale: 0.4;
   --mode-border-width: 2px;
-  --bg-glow-1: rgba(249, 115, 22, 0.1);
-  --bg-glow-2: rgba(239, 68, 68, 0.06);
-  --bg: #faf7f4;
+  --bg-glow-1: rgba(249, 115, 22, 0.22);
+  --bg-glow-2: rgba(249, 115, 22, 0.13);
+  --bg: #1a0d04;
   --mode-tracking: 0.02em;
   --mode-body-font: 'Oswald', 'Arial Narrow', sans-serif;
-  --surface: #ffffff;
-  --surface-hover: #f7f2ec;
-  --surface-input: #ffffff;
-  --surface-strong: #ffffff;
-  --border: rgba(0, 0, 0, 0.12);
-  --border-strong: rgba(var(--mode-accent-rgb), 0.45);
-  --border-soft: rgba(0, 0, 0, 0.12);
-  --text-primary: #18140f;
-  --text-secondary: #5b544c;
-  --text-muted: #8a8178;
-  color-scheme: light;
+  --surface: rgba(var(--mode-accent-rgb), 0.055);
+  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);
+  --surface-input: rgba(var(--mode-accent-rgb), 0.065);
+  --surface-strong: rgba(58, 34, 19, 0.86);
+  --border: rgba(var(--mode-accent-rgb), 0.18);
+  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
 }
 
 .app-shell.theme-health {
@@ -422,7 +417,7 @@ select option {
 .app-root.theme-sports {  --mode-accent-rgb: 34, 197, 94;  --mode-accent2-rgb: 163, 230, 53;  --mode-heading-font: 'Space Grotesk', sans-serif;  --mode-radius-scale: 0.5;  --mode-border-width: 1px;  --bg-glow-1: rgba(34, 197, 94, 0.42);  --bg-glow-2: rgba(163, 230, 53, 0.3);  --bg: #06190f;  --mode-tracking: -0.005em;  --mode-body-font: 'Manrope', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(19, 49, 32, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
 }
 
-.app-root.theme-gym {  --mode-accent-rgb: 249, 115, 22;  --mode-accent2-rgb: 239, 68, 68;  --mode-heading-font: 'Rajdhani', sans-serif;  --mode-radius-scale: 0.4;  --mode-border-width: 2px;  --bg-glow-1: rgba(249, 115, 22, 0.1);  --bg-glow-2: rgba(239, 68, 68, 0.06);  --bg: #faf7f4;  --mode-tracking: 0.02em;  --mode-body-font: 'Oswald', 'Arial Narrow', sans-serif;  --surface: rgba(0, 0, 0, 0.035);  --surface-hover: rgba(0, 0, 0, 0.06);  --surface-input: rgba(0, 0, 0, 0.035);  --surface-strong: rgba(255, 255, 255, 0.92);  --border: rgba(0, 0, 0, 0.1);  --border-strong: rgba(var(--mode-accent-rgb), 0.4);  --border-soft: rgba(0, 0, 0, 0.08);  --text-primary: #18140f;  --text-secondary: #5b544c;  --text-muted: #8a8178;  color-scheme: light;
+.app-root.theme-gym {  --mode-accent-rgb: 249, 115, 22;  --mode-accent2-rgb: 239, 68, 68;  --mode-heading-font: 'Rajdhani', sans-serif;  --mode-radius-scale: 0.4;  --mode-border-width: 2px;  --bg-glow-1: rgba(249, 115, 22, 0.42);  --bg-glow-2: rgba(239, 68, 68, 0.3);  --bg: #1a0d04;  --mode-tracking: 0.02em;  --mode-body-font: 'Oswald', 'Arial Narrow', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(58, 34, 19, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
 }
 
 .app-root.theme-health {  --mode-accent-rgb: 45, 212, 191;  --mode-accent2-rgb: 20, 184, 166;  --mode-heading-font: 'Manrope', sans-serif;  --mode-radius-scale: 1.1;  --mode-border-width: 1px;  --bg-glow-1: rgba(45, 212, 191, 0.42);  --bg-glow-2: rgba(20, 184, 166, 0.3);  --bg: #051a17;  --mode-tracking: 0.02em;  --mode-body-font: 'Manrope', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(21, 51, 49, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
@@ -7466,8 +7461,8 @@ button:disabled:active {
   inset: 0;
   pointer-events: none;
   background-image:
-    repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.05) 0, rgba(var(--mode-accent-rgb), 0.05) 2px, transparent 2px, transparent 18px),
-    repeating-linear-gradient(-45deg, rgba(var(--mode-accent2-rgb), 0.04) 0, rgba(var(--mode-accent2-rgb), 0.04) 2px, transparent 2px, transparent 18px);
+    repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.14) 0, rgba(var(--mode-accent-rgb), 0.14) 2px, transparent 2px, transparent 18px),
+    repeating-linear-gradient(-45deg, rgba(var(--mode-accent2-rgb), 0.12) 0, rgba(var(--mode-accent2-rgb), 0.12) 2px, transparent 2px, transparent 18px);
 }
 
 /* --- Health: gentle pulse waves --- */
