@@ -245,12 +245,12 @@ select option {
   --bg: #1a0d04;
   --mode-tracking: 0.02em;
   --mode-body-font: 'Oswald', 'Arial Narrow', sans-serif;
-  --surface: rgba(var(--mode-accent-rgb), 0.055);
-  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);
-  --surface-input: rgba(var(--mode-accent-rgb), 0.065);
-  --surface-strong: rgba(58, 34, 19, 0.86);
-  --border: rgba(var(--mode-accent-rgb), 0.18);
-  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
+  --surface: rgba(var(--mode-accent-rgb), 0.08);
+  --surface-hover: rgba(var(--mode-accent-rgb), 0.13);
+  --surface-input: rgba(var(--mode-accent-rgb), 0.09);
+  --surface-strong: rgba(58, 34, 19, 0.94);
+  --border: rgba(var(--mode-accent-rgb), 0.28);
+  --border-strong: rgba(var(--mode-accent-rgb), 0.46);
 }
 
 .app-shell.theme-health {
@@ -7461,8 +7461,8 @@ button:disabled:active {
   inset: 0;
   pointer-events: none;
   background-image:
-    repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.14) 0, rgba(var(--mode-accent-rgb), 0.14) 2px, transparent 2px, transparent 18px),
-    repeating-linear-gradient(-45deg, rgba(var(--mode-accent2-rgb), 0.12) 0, rgba(var(--mode-accent2-rgb), 0.12) 2px, transparent 2px, transparent 18px);
+    repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.05) 0, rgba(var(--mode-accent-rgb), 0.05) 2px, transparent 2px, transparent 18px),
+    repeating-linear-gradient(-45deg, rgba(var(--mode-accent2-rgb), 0.04) 0, rgba(var(--mode-accent2-rgb), 0.04) 2px, transparent 2px, transparent 18px);
 }
 
 /* --- Health: gentle pulse waves --- */
@@ -9542,7 +9542,7 @@ button:disabled:active {
    light here regardless of the mode's own light/dark palette, since this
    bar always sits on the photo, never on the page background. */
 .page-header.mode-hero + .mode-chat-launcher {
-  margin-top: -22px;
+  margin-top: 14px;
   position: relative;
   z-index: 3;
   background: linear-gradient(135deg, rgba(10, 8, 6, 0.72), rgba(10, 8, 6, 0.6));
