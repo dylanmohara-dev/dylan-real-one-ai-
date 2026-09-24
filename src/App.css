@@ -245,13 +245,13 @@ select option {
   --bg: #faf7f4;
   --mode-tracking: 0.02em;
   --mode-body-font: 'Oswald', 'Arial Narrow', sans-serif;
-  --surface: rgba(0, 0, 0, 0.035);
-  --surface-hover: rgba(0, 0, 0, 0.06);
-  --surface-input: rgba(0, 0, 0, 0.035);
-  --surface-strong: rgba(255, 255, 255, 0.92);
-  --border: rgba(0, 0, 0, 0.1);
-  --border-strong: rgba(var(--mode-accent-rgb), 0.4);
-  --border-soft: rgba(0, 0, 0, 0.08);
+  --surface: #ffffff;
+  --surface-hover: #f7f2ec;
+  --surface-input: #ffffff;
+  --surface-strong: #ffffff;
+  --border: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(var(--mode-accent-rgb), 0.45);
+  --border-soft: rgba(0, 0, 0, 0.12);
   --text-primary: #18140f;
   --text-secondary: #5b544c;
   --text-muted: #8a8178;
@@ -7456,14 +7456,18 @@ button:disabled:active {
 }
 
 /* --- Gym: crosshatch floor-mat diamonds --- */
+/* Round 12: this was tuned at 0.14/0.12 opacity for a near-black
+   background, where it reads as a subtle glow. The same opacity against
+   Gym's new near-white background is much more visible and read as a busy
+   tablecloth pattern instead of floor texture -- toned way down. */
 .app-shell.theme-gym .main-content::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   background-image:
-    repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.14) 0, rgba(var(--mode-accent-rgb), 0.14) 2px, transparent 2px, transparent 18px),
-    repeating-linear-gradient(-45deg, rgba(var(--mode-accent2-rgb), 0.12) 0, rgba(var(--mode-accent2-rgb), 0.12) 2px, transparent 2px, transparent 18px);
+    repeating-linear-gradient(45deg, rgba(var(--mode-accent-rgb), 0.05) 0, rgba(var(--mode-accent-rgb), 0.05) 2px, transparent 2px, transparent 18px),
+    repeating-linear-gradient(-45deg, rgba(var(--mode-accent2-rgb), 0.04) 0, rgba(var(--mode-accent2-rgb), 0.04) 2px, transparent 2px, transparent 18px);
 }
 
 /* --- Health: gentle pulse waves --- */
@@ -9614,7 +9618,8 @@ button:disabled:active {
   padding: 14px 16px;
   border-radius: calc(14px * var(--mode-radius-scale, 1));
   background: var(--surface);
-  border: 1px solid var(--border-soft);
+  border: var(--mode-border-width, 1px) solid var(--border-soft);
+  box-shadow: 3px 3px 0 rgba(var(--mode-accent-rgb), 0.18);
 }
 
 .gym-stat-label {
