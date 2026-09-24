@@ -14,6 +14,10 @@ import {
   OLLAMA_PING_TIMEOUT_MS,
   KEEP_ALIVE,
   MAX_CHAT_HISTORY_MESSAGES,
+  GROQ_API_KEY,
+  GROQ_URL,
+  GROQ_MODEL,
+  GROQ_TIMEOUT_MS,
 } from '../lib/aiConfig.js'
 
 const router = Router()
@@ -131,6 +135,65 @@ async function resolveAvailableModel(preferredModel, fallbackModel) {
       `\`ollama list\` shows: ${installedModels.length ? installedModels.join(', ') : '(nothing installed at all)'}. ` +
       `Run \`ollama pull ${preferredModel}\` in a terminal on this Mac, then try again -- it only needs to be done once.`
   )
+}
+
+// Runs one non-vision chat completion. Prefers Groq (see aiConfig.js for
+// why -- llama3.2:3b's speed AND quality ceiling on this Mac can't both be
+// fixed locally) whenever GROQ_API_KEY is set, and transparently falls back
+// to local Ollama if Groq itself fails for this request (rate limit, no
+// internet, a Groq outage) -- Groq is a preference, never a hard
+// dependency, so the app keeps working exactly as it always did if it's
+// unreachable. Every call site hands this a buildBody(model) function that
+// returns the OpenAI-compatible request body for whichever model gets
+// resolved (Groq's fixed GROQ_MODEL, or Ollama's resolved MODEL/
+// FALLBACK_MODEL) -- callers never need their own Groq-vs-Ollama branching.
+// `streaming` controls whether stream: true is set (memory-check wants a
+// single JSON response, the other two text paths want token-by-token SSE).
+async function runChatCompletion(buildBody, { streaming = true } = {}) {
+  if (GROQ_API_KEY) {
+    try {
+      const body = buildBody(GROQ_MODEL)
+      const groqResponse = await fetchWithTimeout(
+        GROQ_URL,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_API_KEY}` },
+          // include_reasoning: false -- gpt-oss models can return their own
+          // internal chain-of-thought in a separate `reasoning` field;
+          // Dylan never asked to see that, and the main chat path's JSON
+          // action-contract parsing has no use for it either, so it's
+          // turned off at the source rather than filtered client-side.
+          body: JSON.stringify({ ...body, stream: streaming, include_reasoning: false }),
+        },
+        GROQ_TIMEOUT_MS,
+        'Groq'
+      )
+      if (!groqResponse.ok) throw new Error(`Groq returned ${groqResponse.status}`)
+      return { response: groqResponse, usedFallback: false, backendNotice: '' }
+    } catch (groqError) {
+      // Deliberately swallowed here, not re-thrown -- falling through to
+      // Ollama below is the whole point of this catch. Logged so a real,
+      // recurring Groq problem (a bad key, a dead free-tier account) is
+      // still visible in the server log instead of silently invisible.
+      console.error('Groq request failed, falling back to local Ollama:', groqError.message)
+    }
+  }
+
+  const { model: resolvedModel, usedFallback } = await resolveAvailableModel(MODEL, FALLBACK_MODEL)
+  const body = buildBody(resolvedModel)
+  const response = await fetchWithTimeout(OLLAMA_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...body, keep_alive: KEEP_ALIVE, stream: streaming }),
+  })
+  if (!response.ok) throw new Error(`Local AI returned ${response.status}`)
+  return {
+    response,
+    usedFallback,
+    backendNotice: GROQ_API_KEY
+      ? '\n\n(Groq is unreachable right now -- answered with the local model instead.)'
+      : '',
+  }
 }
 
 // One-line, low-noise heads-up appended to a reply when the fallback model
@@ -529,13 +592,6 @@ router.post('/chat', async (req, res) => {
     const modeLabel = mode && mode !== 'general' ? mode : null
     const modeStyle = modeLabel ? MODE_STYLE[modeLabel] : null
 
-    // Both the content-request and main paths below use the same everyday
-    // text MODEL -- one resolution covers both rather than duplicating it in
-    // each branch. See resolveAvailableModel above -- this can return the
-    // fallback model instead of MODEL if MODEL isn't pulled yet, rather than
-    // hard-blocking every message.
-    const { model: resolvedModel, usedFallback } = await resolveAvailableModel(MODEL, FALLBACK_MODEL)
-
     // Requests to write/draft/plan/explain something substantial skip the
     // JSON-action contract entirely — the model never sees the action schema,
     // so it has no format to hallucinate a fake multi-turn "completing tasks"
@@ -550,22 +606,12 @@ ${personaFraming(modeLabel) ? `${personaFraming(modeLabel)}
 ` : ''}` : ''}
 Dylan asked you to write, draft, plan, explain, or brainstorm something. Write the complete answer as plain text — no JSON, no code fences, no markdown headers or asterisks. Use plain dashes for lists and blank lines between sections. This is a single response, not a conversation — write the whole thing now and stop; never simulate additional turns, progress updates, or "steps completed."
 `
-      const contentResponse = await fetchWithTimeout(OLLAMA_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: resolvedModel,
-          keep_alive: KEEP_ALIVE,
-          stream: true,
-          messages: [{ role: 'system', content: contentSystemPrompt }, ...messages],
-          temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.4) : 0.4,
-          max_tokens: 900,
-        }),
-      })
-
-      if (!contentResponse.ok) {
-        throw new Error(`Local AI returned ${contentResponse.status}`)
-      }
+      const { response: contentResponse, usedFallback: contentUsedFallback, backendNotice: contentBackendNotice } = await runChatCompletion((model) => ({
+        model,
+        messages: [{ role: 'system', content: contentSystemPrompt }, ...messages],
+        temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.4) : 0.4,
+        max_tokens: 900,
+      }))
 
       // Same as the vision path -- this prompt also asks for plain text, no
       // JSON wrapper, so deltas stream straight through unmodified.
@@ -578,7 +624,7 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
       const contentRaw = contentText.trim()
 
       return sendDone({
-        reply: (contentRaw || 'No response from Dylan AI.') + fallbackNotice(usedFallback),
+        reply: (contentRaw || 'No response from Dylan AI.') + fallbackNotice(contentUsedFallback) + contentBackendNotice,
         actionPerformed: false,
         skipMemoryCheck: false,
       })
@@ -696,22 +742,12 @@ Never claim an action happened unless the application actually performed it.
 ${context}
 `
 
-    const response = await fetchWithTimeout(OLLAMA_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: resolvedModel,
-        keep_alive: KEEP_ALIVE,
-        stream: true,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.2) : 0.2,
-        max_tokens: 500,
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`Local AI returned ${response.status}`)
-    }
+    const { response, usedFallback, backendNotice } = await runChatCompletion((model) => ({
+      model,
+      messages: [{ role: 'system', content: systemPrompt }, ...messages],
+      temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.2) : 0.2,
+      max_tokens: 500,
+    }))
 
     // This path is the whole reason streaming needed the JSON-extraction
     // helper: the model wraps its answer in {"reply": "...", "action": {...}}
@@ -815,7 +851,7 @@ ${context}
     // is always the authoritative final text, and the frontend replaces the
     // in-progress streamed text with it rather than appending.
     sendDone({
-      reply: (finalReply || 'No response from Dylan AI.') + fallbackNotice(usedFallback),
+      reply: (finalReply || 'No response from Dylan AI.') + fallbackNotice(usedFallback) + backendNotice,
       actionPerformed: actionResult.performed,
       skipMemoryCheck: actionResult.performed,
       pendingEvent,
@@ -852,18 +888,12 @@ router.post('/memory-check', async (req, res) => {
     // reason to skip a memory this could have caught just because the
     // bigger model isn't pulled yet when the smaller one still works fine
     // for this narrow a task.
-    const { model: resolvedModel } = await resolveAvailableModel(MODEL, FALLBACK_MODEL)
-
-    const response = await fetchWithTimeout(OLLAMA_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: resolvedModel,
-        keep_alive: KEEP_ALIVE,
-        messages: [
-          {
-            role: 'system',
-            content: `
+    const { response } = await runChatCompletion((model) => ({
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: `
 You are a memory detector.
 
 Suggest a memory whenever the user's message reveals something worth remembering about him long-term -- not just an explicit "remember that" statement. This includes, mentioned in ANY of these ways -- directly stated, mentioned in passing, or implied by what he's doing:
@@ -886,16 +916,11 @@ or:
 NONE
 `,
           },
-          { role: 'user', content: message.trim() },
-        ],
-        temperature: 0,
-        max_tokens: 80,
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`Local AI returned ${response.status}`)
-    }
+        { role: 'user', content: message.trim() },
+      ],
+      temperature: 0,
+      max_tokens: 80,
+    }), { streaming: false })
 
     const data = await response.json()
     const raw = data.choices?.[0]?.message?.content?.trim() || ''
