@@ -150,7 +150,7 @@ function App() {
           modesCount={LIFE_MODES.length}
           setUpCount={data.setUpCount}
           overviewCards={data.overviewCards}
-          setActivePage={setActivePage}
+          setActivePage={navigateTo}
           openChat={openChat}
           saving={data.saving}
           addHealthEntry={data.addHealthEntry}
@@ -288,7 +288,7 @@ function App() {
           deleteTest={data.deleteTest}
           generateStudyPlan={data.generateStudyPlan}
           clearStudyPlan={data.clearStudyPlan}
-          setActivePage={setActivePage}
+          setActivePage={navigateTo}
           assistantContext={assistantContext}
           openChat={openChat}
         />
@@ -300,7 +300,7 @@ function App() {
         <SettingsPage
           settings={settings}
           setSettings={data.setSettings}
-          setActivePage={setActivePage}
+          setActivePage={navigateTo}
           openChat={openChat}
           calendar={calendar}
         />
@@ -524,7 +524,7 @@ function App() {
     }
 
     if (LIFE_MODES.some((mode) => mode.key === activePage)) {
-      return <ModePage modeKey={activePage} setActivePage={setActivePage} assistantContext={assistantContext} openChat={openChat} />
+      return <ModePage modeKey={activePage} setActivePage={navigateTo} assistantContext={assistantContext} openChat={openChat} />
     }
 
     return (
@@ -538,7 +538,7 @@ function App() {
         setUpCount={data.setUpCount}
         overviewCards={data.overviewCards}
         dailyFocus={data.dailyFocus}
-        setActivePage={setActivePage}
+        setActivePage={navigateTo}
         openChat={openChat}
         saving={data.saving}
         addHealthEntry={data.addHealthEntry}
@@ -608,20 +608,46 @@ function App() {
   const zoomKeyRef = useRef(0)
   const previousActivePageRef = useRef(activePage)
 
+  // THE BUG Dylan hit ("zoom feature is bugged"): this used to just
+  // querySelector the destination's sidebar icon INSIDE the effect below,
+  // which only ran after activePage had already changed and React had
+  // already committed the new DOM. That was safe when the sidebar was
+  // always mounted -- but now that it unmounts in that SAME render
+  // whenever activeMode becomes truthy (entering a mode -- the
+  // mode-fullscreen takeover), the icon is already gone by the time the
+  // effect's querySelector runs, so entering a mode silently stopped
+  // producing any transition at all (instant, jarring page-swap instead
+  // of the zoom). navigateTo below captures the origin synchronously,
+  // BEFORE calling the real setActivePage -- i.e. while the CURRENT
+  // (pre-navigation) DOM, sidebar included, is still what's mounted.
+  const pendingZoomOriginRef = useRef(null)
+
+  function navigateTo(nextPage, originHintEl) {
+    // originHintEl covers the reverse case: leaving a mode, the sidebar
+    // isn't mounted at all (there's no [data-nav-key="Overview"] icon to
+    // find), so the Back button passes itself as the origin instead --
+    // zooming back down into where you clicked, rather than skipping the
+    // transition on the way out.
+    const originEl = document.querySelector(`[data-nav-key="${CSS.escape(nextPage)}"]`) || originHintEl || null
+    pendingZoomOriginRef.current = originEl ? originEl.getBoundingClientRect() : null
+    setActivePage(nextPage)
+  }
+
   useEffect(() => {
     if (previousActivePageRef.current === activePage) return
     previousActivePageRef.current = activePage
 
     if (!settings.signatureTransitions || settings.enterAnimation !== 'zoom') return
 
-    const originEl = document.querySelector(`[data-nav-key="${CSS.escape(activePage)}"]`)
+    const originRect = pendingZoomOriginRef.current
+    pendingZoomOriginRef.current = null
     const coverEl = mainContentRef.current
-    if (!originEl || !coverEl) return
+    if (!originRect || !coverEl) return
 
     zoomKeyRef.current += 1
     setZoomTransition({
       key: zoomKeyRef.current,
-      origin: originEl.getBoundingClientRect(),
+      origin: originRect,
       // Full-viewport, not just .main-content's box (coverEl is still
       // required above -- a page must be mounted for the switch to be
       // "real" -- but the rect itself now spans the whole screen). Dylan
@@ -714,7 +740,7 @@ function App() {
         {!activeMode && (
           <Sidebar
             activePage={activePage}
-            setActivePage={setActivePage}
+            setActivePage={navigateTo}
             userInitial={userInitial}
             userName={settings.userName}
             assistantContext={assistantContext}
@@ -739,7 +765,7 @@ function App() {
           {activeMode && (
             <button
               className="mode-fullscreen-back"
-              onClick={() => setActivePage('Overview')}
+              onClick={(event) => navigateTo('Overview', event.currentTarget)}
               aria-label="Back to Overview"
             >
               <ArrowLeft size={18} strokeWidth={2.5} />
@@ -794,7 +820,7 @@ function App() {
           open={searchOverlayOpen}
           onClose={() => setSearchOverlayOpen(false)}
           searchAll={data.searchAll}
-          setActivePage={setActivePage}
+          setActivePage={navigateTo}
         />
 
         <StatsOverlay
