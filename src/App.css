@@ -1512,6 +1512,10 @@ footer {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
 }
 
+.page-header.mode-hero h1 {
+  line-height: 1.15;
+}
+
 /* The one way out of a full-screen mode now that the sidebar disappears
    entirely while one is open (App.jsx, "mode-fullscreen" -- Dylan's
    round-4 ask: "a whole new mode pops up... still able to click back
@@ -1922,9 +1926,12 @@ footer {
   gap: 14px;
   margin-top: 22px;
   padding: 16px 18px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 16px;
-  background: linear-gradient(90deg, rgba(var(--chrome-rgb), 0.10), transparent 70%), var(--surface);
+  background: linear-gradient(90deg, rgba(var(--chrome-rgb), 0.18), rgba(16, 16, 22, 0.6) 70%), rgba(16, 16, 22, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   text-align: left;
   transition: all 0.2s ease;
   animation: fadeUp 0.3s ease;

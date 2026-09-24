@@ -328,9 +328,6 @@ export default function SchoolPage({
             <h1 className="serif">School</h1>
             <p>Pick a class, or add a new one.</p>
           </div>
-          <button onClick={() => setActivePage('Overview')}>
-            ← Back to Overview
-          </button>
         </div>
 
         <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />

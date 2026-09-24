@@ -23,9 +23,6 @@ export default function ModePage({ modeKey, setActivePage, assistantContext, ope
           <p>{mode.subtitle}</p>
         </div>
 
-        <button onClick={() => setActivePage('Overview')}>
-          ← Back to Overview
-        </button>
       </div>
 
       <ModeChatLauncher assistantContext={assistantContext} modeKey={modeKey} openChat={openChat} />

@@ -256,22 +256,6 @@ export default function OverviewPage({
           <h1 className="serif">{greeting}</h1>
         </div>
 
-        <div className="overview-stats">
-          <div className="overview-stat">
-            <span>Modes</span>
-            <strong>{modesCount}</strong>
-          </div>
-
-          <div className="overview-stat">
-            <span>Set Up</span>
-            <strong>{setUpCount}</strong>
-          </div>
-
-          <div className="overview-stat">
-            <span>Assistants</span>
-            <strong>{modesCount}</strong>
-          </div>
-        </div>
       </div>
 
       <DailyFocus items={dailyFocus} setActivePage={setActivePage} />
