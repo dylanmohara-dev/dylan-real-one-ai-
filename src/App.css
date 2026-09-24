@@ -1517,31 +1517,44 @@ footer {
    round-4 ask: "a whole new mode pops up... still able to click back
    button"). Floating over the top-left corner of the full-bleed photo
    like a HUD element, not sitting in the normal document flow, so it
-   stays put regardless of which mode page's own layout is under it. */
+   stays put regardless of which mode page's own layout is under it.
+   Deliberately bigger/louder than a typical secondary nav button --
+   Dylan's explicit pick when asked directly ("bigger and more obvious"),
+   since with the sidebar gone this is the ONLY navigation control on
+   screen, not one of several. The mode's own accent color (--card-rgb,
+   already set per mode page) rings the icon so it reads as "this
+   button", not just chrome. */
 .mode-fullscreen-back {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 24px;
+  left: 24px;
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 16px 9px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  gap: 10px;
+  padding: 14px 26px 14px 18px;
+  border: 2px solid rgba(var(--mode-accent-rgb, 255, 255, 255), 0.55);
   border-radius: 999px;
-  background: rgba(10, 12, 18, 0.42);
-  backdrop-filter: blur(14px);
+  background: rgba(8, 10, 16, 0.6);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
   color: #fff;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.mode-fullscreen-back svg {
+  color: rgb(var(--mode-accent-rgb, 255, 255, 255));
 }
 
 .mode-fullscreen-back:hover {
-  background: rgba(10, 12, 18, 0.64);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateX(-2px);
+  background: rgba(8, 10, 16, 0.82);
+  border-color: rgba(var(--mode-accent-rgb, 255, 255, 255), 0.85);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.55), 0 0 22px rgba(var(--mode-accent-rgb, 255, 255, 255), 0.3);
+  transform: translateX(-3px) scale(1.03);
 }
 
 .mode-fullscreen-back:active {
@@ -1550,9 +1563,9 @@ footer {
 
 @media (max-width: 720px) {
   .mode-fullscreen-back {
-    top: 14px;
-    left: 14px;
-    padding: 8px 12px;
+    top: 16px;
+    left: 16px;
+    padding: 12px 16px;
   }
 
   .mode-fullscreen-back span {
@@ -2307,6 +2320,8 @@ footer {
 }
 
 .item-card {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -2315,14 +2330,54 @@ footer {
   border: var(--mode-border-width, 1px) solid var(--border);
   border-radius: calc(13px * var(--mode-radius-scale, 1));
   background: var(--surface);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.2s ease;
+  /* transform is excluded from the "all" transition here -- App.jsx's
+     delegated mousemove listener (round 8, "yes everywhere") drives it
+     every frame while hovered, and a 0.2s ease on a value changing that
+     often reads as laggy. It gets its own fast, explicit transition
+     below instead. */
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.2s ease, transform 0.1s ease-out;
   animation: fadeUp 0.2s ease;
+  will-change: transform;
 }
 
 .item-card:hover {
   border-color: rgba(var(--mode-accent-rgb), 0.35);
   background: rgba(var(--mode-accent-rgb), 0.05);
-  transform: translateY(-1px);
+}
+
+/* A very faint wash of the CURRENT mode's own hero photo behind every
+   row -- round 8, "yes everywhere": every list item across every mode
+   picks up a bit of that mode's photo, not just the Overview tiles and
+   the full-screen mode background. --mode-hero-photo is set once, on
+   .app-shell, whenever a mode is open (App.jsx) -- .item-card doesn't
+   need its own copy of the URL threaded through 14 different page
+   components, it just inherits the variable. Pages with no active mode
+   (Tasks, Calendar, Notes, Journal, Memory, Connections) never set the
+   variable, so var(..., none) falls through and these rows look exactly
+   as they always did -- never a broken/grey box. Deliberately much
+   fainter than the Overview tiles' own photo (0.07 vs 0.4-0.62): a
+   single hero image repeated behind dozens of small rows on the same
+   screen needs to read as ambient texture, not a busy wallpaper. */
+.item-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: var(--mode-hero-photo, none);
+  background-size: cover;
+  background-position: center;
+  opacity: 0.07;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.item-card:hover::before {
+  opacity: 0.13;
+}
+
+.item-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .item-card.completed {
@@ -3984,12 +4039,17 @@ footer {
 
 /* ============ ZOOM TRANSITION (mode-switch, session 37) ============
    The new default Enter Animation -- see ZoomTransition.jsx for how the
-   start/end rects are measured. Unlike the flash system above, this only
-   ever covers .main-content: position/size are set inline per-switch
-   (they have to be, the numbers are different every time), everything
-   that actually animates is transform + opacity on .zoom-transition-panel,
-   driven by --zoom-scale-x0/y0 (also set inline) so it's pure compositor
-   work, not layout. */
+   start/end rects are measured. position/size are set inline per-switch
+   (they have to be, the numbers are different every time) and now cover
+   the full viewport (round 4), not just .main-content -- everything that
+   actually animates is transform + opacity/filter, driven by
+   --zoom-scale-x0/y0 (also set inline) so it's pure compositor work, not
+   layout. Base duration is 1.7s (was 0.95s) -- Dylan's explicit pick when
+   asked directly: longer/more cinematic now that it's a full-screen
+   takeover, not the quicker content-pane-only version. Every one of the 7
+   keyframe animations below shares this same base via
+   `calc(1.7s * var(--celebrate-speed))`, so they always stay in sync with
+   each other and with Settings -> Display -> Animation Intensity. */
 
 .zoom-transition {
   position: fixed;
@@ -4014,7 +4074,7 @@ footer {
   position: absolute;
   inset: 0;
   background: linear-gradient(135deg, rgb(var(--mode-accent-rgb)), rgb(var(--mode-accent2-rgb)));
-  animation: zoomPanelPlay calc(0.95s * var(--celebrate-speed)) cubic-bezier(0.65, 0, 0.2, 1) forwards;
+  animation: zoomPanelPlay calc(1.7s * var(--celebrate-speed)) cubic-bezier(0.65, 0, 0.2, 1) forwards;
   will-change: transform, opacity, filter;
   backface-visibility: hidden;
 }
@@ -4047,7 +4107,7 @@ footer {
   inset: 0;
   z-index: 2;
   background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.6) 100%);
-  animation: zoomVignettePlay calc(0.95s * var(--celebrate-speed)) ease forwards;
+  animation: zoomVignettePlay calc(1.7s * var(--celebrate-speed)) ease forwards;
   pointer-events: none;
 }
 
@@ -4060,7 +4120,7 @@ footer {
   justify-content: center;
   color: var(--text-on-accent, #171004);
   opacity: 0;
-  animation: zoomIconPlay calc(0.95s * var(--celebrate-speed)) ease forwards;
+  animation: zoomIconPlay calc(1.7s * var(--celebrate-speed)) ease forwards;
 }
 
 /* The core 3D "fly-through": starts tipped forward and pushed back in Z
@@ -4133,7 +4193,7 @@ footer {
   mix-blend-mode: screen;
   opacity: 0;
   transform: scale(0.1) rotate(0deg);
-  animation: zoomStreaksPlay calc(0.95s * var(--celebrate-speed)) cubic-bezier(0.5, 0, 0.25, 1) forwards;
+  animation: zoomStreaksPlay calc(1.7s * var(--celebrate-speed)) cubic-bezier(0.5, 0, 0.25, 1) forwards;
   pointer-events: none;
 }
 
@@ -4185,7 +4245,7 @@ footer {
   );
   mix-blend-mode: overlay;
   opacity: 0.5;
-  animation: zoomScanlinesPlay calc(0.95s * var(--celebrate-speed)) ease forwards;
+  animation: zoomScanlinesPlay calc(1.7s * var(--celebrate-speed)) ease forwards;
   pointer-events: none;
 }
 
@@ -4214,7 +4274,7 @@ footer {
   gap: 12px;
   opacity: 0;
   text-align: center;
-  animation: zoomTitlePlay calc(0.95s * var(--celebrate-speed)) ease forwards;
+  animation: zoomTitlePlay calc(1.7s * var(--celebrate-speed)) ease forwards;
   pointer-events: none;
 }
 
@@ -4257,7 +4317,7 @@ footer {
   background: #fff;
   transform: scaleX(0);
   transform-origin: left;
-  animation: zoomBarPlay calc(0.95s * var(--celebrate-speed)) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: zoomBarPlay calc(1.7s * var(--celebrate-speed)) cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes zoomBarPlay {

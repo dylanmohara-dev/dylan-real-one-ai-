@@ -27,7 +27,11 @@ export const DEFAULT_SETTINGS = {
   signatureTransitions: true,
   enterAnimation: 'zoom',
   onboardingComplete: false,
-  designSystem: 'minimal-glass',
+  // Switched to 'neon-arcade' (from 'minimal-glass') per Dylan's explicit
+  // choice when asked directly: keep the clean look, or actually switch
+  // the whole app's visual style to match the GTA/videogame feel he's
+  // been asking for across every other round. He picked switching.
+  designSystem: 'neon-arcade',
   colorPalette: 'vivid',
   // 'subtle' | 'normal' | 'flashy' -- scales duration/scale of the
   // celebration-layer animations (toasts, mode flash, achievement unlocks).

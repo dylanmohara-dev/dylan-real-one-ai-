@@ -662,6 +662,78 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePage])
 
+  // Round 8, "yes everywhere": the GTA-menu tilt OverviewPage's own 9
+  // tiles already have, extended app-wide -- every .item-card (School's
+  // classes, Finance's accounts/transactions, Gym's exercises, Reading's
+  // books, and so on across all 14 pages that use that class) now tilts
+  // toward the cursor too. A single delegated listener on .main-content,
+  // not per-card handlers copy-pasted into 14 files -- the interaction is
+  // identical everywhere, and any future .item-card automatically gets it
+  // for free. Kept subtler than Overview's big tiles (±5deg vs ±14deg):
+  // a page can show dozens of these in a list, and each one independently
+  // fighting for a dramatic tilt would read as chaotic, not game-like.
+  useEffect(() => {
+    const container = mainContentRef.current
+    if (!container) return
+
+    const TILT_SELECTOR = '.item-card, .mode-page-card'
+    let tiltedEl = null
+
+    function reduceMotion() {
+      return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    }
+
+    function clearTilt() {
+      if (tiltedEl) {
+        tiltedEl.style.transform = ''
+        tiltedEl = null
+      }
+    }
+
+    function tiltFor(card, event, pressed) {
+      const rect = card.getBoundingClientRect()
+      const px = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) - 0.5
+      const py = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)) - 0.5
+      const scale = pressed ? 0.985 : 1
+      card.style.transform = `perspective(600px) rotateX(${py * -5}deg) rotateY(${px * 5}deg) translateY(-1px) scale(${scale})`
+    }
+
+    function handleMove(event) {
+      if (reduceMotion()) return
+      const card = event.target.closest(TILT_SELECTOR)
+      if (!card || !container.contains(card)) {
+        clearTilt()
+        return
+      }
+      if (tiltedEl && tiltedEl !== card) tiltedEl.style.transform = ''
+      tiltedEl = card
+      tiltFor(card, event, false)
+    }
+
+    function handleDown(event) {
+      if (reduceMotion()) return
+      const card = event.target.closest(TILT_SELECTOR)
+      if (card) tiltFor(card, event, true)
+    }
+
+    function handleUp(event) {
+      if (reduceMotion()) return
+      const card = event.target.closest(TILT_SELECTOR)
+      if (card) tiltFor(card, event, false)
+    }
+
+    container.addEventListener('mousemove', handleMove)
+    container.addEventListener('mouseleave', clearTilt)
+    container.addEventListener('mousedown', handleDown)
+    container.addEventListener('mouseup', handleUp)
+    return () => {
+      container.removeEventListener('mousemove', handleMove)
+      container.removeEventListener('mouseleave', clearTilt)
+      container.removeEventListener('mousedown', handleDown)
+      container.removeEventListener('mouseup', handleUp)
+    }
+  }, [])
+
   if (!settings.onboardingComplete) {
     return <OnboardingWizard onComplete={completeOnboarding} />
   }
@@ -731,7 +803,10 @@ function App() {
         onDismiss={data.dismissAchievement}
       />
 
-      <div className={`app-shell ${themeClass}${activeMode ? ' mode-fullscreen' : ''}`}>
+      <div
+        className={`app-shell ${themeClass}${activeMode ? ' mode-fullscreen' : ''}`}
+        style={activeModeHeroUrl ? { '--mode-hero-photo': `url(${activeModeHeroUrl})` } : undefined}
+      >
         {/* Hidden outright, not just visually -- while a mode is open, this
             entire column disappears and .main-content (flex: 1) fills the
             space on its own, no extra CSS needed for the reflow. Overview,
@@ -768,7 +843,7 @@ function App() {
               onClick={(event) => navigateTo('Overview', event.currentTarget)}
               aria-label="Back to Overview"
             >
-              <ArrowLeft size={18} strokeWidth={2.5} />
+              <ArrowLeft size={22} strokeWidth={2.75} />
               <span>Back</span>
             </button>
           )}
