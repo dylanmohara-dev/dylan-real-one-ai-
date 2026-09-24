@@ -200,11 +200,21 @@ export default function OverviewPage({
   }, [userName])
 
   return (
-    <div className="overview-page">
-      <div
-        className="overview-header"
-        style={heroImages?.overview ? { '--hero-photo': `url(${heroImages.overview})` } : undefined}
-      >
+    <div
+      className="overview-page"
+      style={heroImages?.overview ? { '--hero-photo': `url(${heroImages.overview})` } : undefined}
+    >
+      {/* Dylan asked for the photo to cover the whole home screen, not a
+          240px strip -- this is a real full-bleed hero band (see
+          .overview-hero-bg in App.css), not just a taller header. It's
+          absolutely positioned and out of flow specifically so it can
+          break out of .overview-page's own 1000px reading-column width
+          via negative margins, while .overview-header (right below it,
+          in normal flow) still renders at the same visual spot it always
+          did -- nothing else on this page had to move. */}
+      <div className="overview-hero-bg" />
+
+      <div className="overview-header">
         <HeroPhotoButton
           modeKey="overview"
           heroUrl={heroImages?.overview}

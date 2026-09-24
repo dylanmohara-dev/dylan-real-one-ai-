@@ -49,6 +49,11 @@ export default function ZoomTransition({ zoomKey, origin, coverRect, mode, heroU
         top: `${coverRect.top}px`,
         width: `${coverRect.width}px`,
         height: `${coverRect.height}px`,
+        // The 3D "camera" (App.css's perspective: 1400px on this element)
+        // pushes toward/away from THIS point, not the box's center -- so
+        // the fly-through actually originates from the sidebar icon that
+        // was clicked, matching where the panel itself scales from.
+        perspectiveOrigin: `${originXPct}% ${originYPct}%`,
       }}
     >
       <div
