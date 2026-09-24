@@ -1523,9 +1523,70 @@ footer {
   background-image:
     linear-gradient(180deg, rgba(8, 12, 22, 0.15) 0%, rgba(6, 8, 16, 0.82) 100%),
     url('/hero-office-view.jpg');
-  background-size: cover;
-  background-position: center 60%;
+  background-size: cover, 108%;
+  background-position: center, center 58%;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  animation: overviewHeroDrift 24s ease-in-out infinite alternate;
+}
+
+/* Dylan asked for "animations like within the pictures... like a videogame"
+   -- true interactive/GTA-style animation isn't realistic for a static
+   hero background in a personal web app, so this is the honest, real
+   version: a slow Ken Burns drift on the photo itself (never touches the
+   gradient scrim, so text contrast never shifts) plus a soft diagonal
+   light sweep, like light moving across glass. Both are transform/
+   background-only, so they're cheap, and both fully disable under
+   prefers-reduced-motion below. */
+@keyframes overviewHeroDrift {
+  0% {
+    background-size: cover, 108%;
+    background-position: center, center 58%;
+  }
+  100% {
+    background-size: cover, 122%;
+    background-position: center, center 68%;
+  }
+}
+
+.overview-header::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: -30%;
+  width: 45%;
+  height: 140%;
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.16) 45%, transparent 100%);
+  transform: skewX(-18deg) translateX(-40%);
+  animation: overviewHeroSweep 7s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: overlay;
+}
+
+@keyframes overviewHeroSweep {
+  0%, 15% {
+    transform: skewX(-18deg) translateX(-40%);
+  }
+  65%, 100% {
+    transform: skewX(-18deg) translateX(340%);
+  }
+}
+
+.overview-header .eyebrow,
+.overview-header h1,
+.overview-header .overview-stats {
+  position: relative;
+  z-index: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview-header {
+    animation: none;
+  }
+
+  .overview-header::after {
+    display: none;
+  }
 }
 
 .overview-header .eyebrow {
@@ -4765,7 +4826,12 @@ footer {
     align-items: flex-start;
     padding: 36px 20px 24px;
     min-height: 180px;
-    background-position: center 70%;
+    background-position: center, center 70%;
+    animation: none;
+  }
+
+  .overview-header::after {
+    display: none;
   }
 
   .dashboard-grid {
