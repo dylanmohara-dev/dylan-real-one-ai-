@@ -149,8 +149,8 @@ async function resolveAvailableModel(preferredModel, fallbackModel) {
 // FALLBACK_MODEL) -- callers never need their own Groq-vs-Ollama branching.
 // `streaming` controls whether stream: true is set (memory-check wants a
 // single JSON response, the other two text paths want token-by-token SSE).
-async function runChatCompletion(buildBody, { streaming = true } = {}) {
-  if (GROQ_API_KEY) {
+async function runChatCompletion(buildBody, { streaming = true, preferGroq = true } = {}) {
+  if (preferGroq && GROQ_API_KEY) {
     try {
       const body = buildBody(GROQ_MODEL)
       const groqResponse = await fetchWithTimeout(
@@ -888,6 +888,14 @@ router.post('/memory-check', async (req, res) => {
     // reason to skip a memory this could have caught just because the
     // bigger model isn't pulled yet when the smaller one still works fine
     // for this narrow a task.
+    // preferGroq: false -- this is a tiny, fire-and-forget classification
+    // call (max_tokens: 80, temp 0) that never needed Groq's bigger model
+    // in the first place, and it runs on every single message Dylan
+    // sends. Spending a Groq request on it doubled how fast a real chat
+    // session burned through the free tier's per-minute cap for no
+    // quality benefit here -- routing it straight to local Ollama instead
+    // leaves that whole budget for the calls that actually show up on
+    // screen and are worth waiting on.
     const { response } = await runChatCompletion((model) => ({
       model,
       messages: [
@@ -920,7 +928,7 @@ NONE
       ],
       temperature: 0,
       max_tokens: 80,
-    }), { streaming: false })
+    }), { streaming: false, preferGroq: false })
 
     const data = await response.json()
     const raw = data.choices?.[0]?.message?.content?.trim() || ''
