@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
+import RadialProgress from './RadialProgress.jsx'
 
 // Standard US 4.0 scale. No school-specific customization yet (some
 // schools weight AP/honors classes, use +/- differently, etc.) — this is
@@ -271,6 +273,18 @@ export default function SchoolPage({
   // actual fix; nothing about which items show is changed, only how
   // they're organized.
   const [showLaterDeadlines, setShowLaterDeadlines] = useState(false)
+  // Holds the id of whichever deadline item was just checked off, so its
+  // row can play a completion animation for a beat before upcomingItems()
+  // (driven by the real completed flag) drops it from the list on the
+  // next data refresh.
+  const [celebratingId, setCelebratingId] = useState(null)
+  function completeWithCelebration(item) {
+    setCelebratingId(item.id)
+    window.setTimeout(() => {
+      if (item.kind === 'Assignment') toggleAssignment(item.raw)
+      else toggleTest(item.raw)
+    }, 420)
+  }
   const overdueDeadlines = deadlines.filter((item) => item.daysUntil < 0)
   const thisWeekDeadlines = deadlines.filter((item) => item.daysUntil >= 0 && item.daysUntil <= 7)
   const laterDeadlines = deadlines.filter((item) => item.daysUntil > 7)
@@ -278,9 +292,10 @@ export default function SchoolPage({
   function renderDeadlineItem(item) {
     const tone = item.daysUntil < 0 ? 'overdue' : item.daysUntil <= 2 ? 'soon' : 'normal'
     const isCanvas = item.kind === 'Canvas'
+    const isCelebrating = celebratingId === item.id
     return (
       <div
-        className={`deadline-item deadline-${tone} deadline-clickable`}
+        className={`deadline-item deadline-${tone} deadline-clickable${isCelebrating ? ' deadline-celebrating' : ''}`}
         key={item.id}
         onClick={() => {
           if (isCanvas) window.open(item.raw.url, '_blank', 'noopener')
@@ -291,14 +306,15 @@ export default function SchoolPage({
           <span className="check-button check-button-canvas" title="From Canvas -- mark done in Canvas itself"></span>
         ) : (
           <button
-            className="check-button"
+            className={`check-button${isCelebrating ? ' check-button-done' : ''}`}
             onClick={(event) => {
               event.stopPropagation()
-              if (item.kind === 'Assignment') toggleAssignment(item.raw)
-              else toggleTest(item.raw)
+              if (!isCelebrating) completeWithCelebration(item)
             }}
             title="Mark done"
-          ></button>
+          >
+            {isCelebrating && <Check size={14} strokeWidth={3} />}
+          </button>
         )}
         <span className="deadline-kind">{item.kind}</span>
         <div className="deadline-body">
@@ -396,6 +412,14 @@ export default function SchoolPage({
               const level = classLevel(schoolClass)
               return (
                 <div className="item-card" key={schoolClass.id}>
+                  <button
+                    type="button"
+                    className="school-grade-ring-button"
+                    onClick={() => setSelectedClassId(schoolClass.id)}
+                    title={avg !== null ? `${avg.toFixed(1)}% average` : 'No grades yet'}
+                  >
+                    <RadialProgress percent={avg} size={40} strokeWidth={4} label={avg !== null ? Math.round(avg) : '–'} />
+                  </button>
                   <div
                     className="item-content"
                     style={{ cursor: 'pointer' }}
@@ -449,6 +473,9 @@ export default function SchoolPage({
   return (
     <div className="page school-page">
       <div className="page-header">
+        {classAvg !== null && (
+          <RadialProgress percent={classAvg} size={56} strokeWidth={5} label={`${Math.round(classAvg)}%`} />
+        )}
         <div>
           <span className="eyebrow">SCHOOL MODE</span>
           <h1 className="serif">{activeClass ? activeClass.name : 'Class'}</h1>
@@ -460,7 +487,7 @@ export default function SchoolPage({
               }).`}
           </p>
         </div>
-        <button onClick={() => setSelectedClassId(null)}>
+        <button className="school-back-to-classes" onClick={() => setSelectedClassId(null)}>
           ← Back to Classes
         </button>
       </div>

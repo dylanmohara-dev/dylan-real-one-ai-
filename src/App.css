@@ -11203,3 +11203,82 @@ button:disabled:active {
     font-size: 0.6rem;
   }
 }
+
+/* ============ SCHOOL: bespoke interactive pieces (round 11) ============
+   Dylan's ask was a bespoke interaction per mode, not the same icon-picker
+   reused everywhere. School already had a working "mark done" toggle and
+   a real weighted grade average per class -- both previously invisible/
+   inert. This surfaces them: a radial ring shows each class's actual grade
+   at a glance (clickable, same target as the row), and checking off a
+   deadline plays a real completion beat (checkmark + pulse + brief glow)
+   before the item drops out of the list, instead of just vanishing. */
+
+.radial-progress-fill {
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.radial-progress-label {
+  font-size: 11px;
+  font-weight: 800;
+  fill: var(--text-primary);
+}
+
+.school-grade-ring-button {
+  flex-shrink: 0;
+  display: flex;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+}
+
+.school-grade-ring-button:hover {
+  transform: scale(1.08);
+}
+
+.school-back-to-classes {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.school-back-to-classes:hover {
+  border-color: rgb(var(--mode-accent-rgb));
+  background: rgba(var(--mode-accent-rgb), 0.12);
+}
+
+@keyframes deadlinePulse {
+  0% { box-shadow: 0 0 0 0 rgba(var(--mode-accent-rgb), 0.5); }
+  100% { box-shadow: 0 0 0 14px rgba(var(--mode-accent-rgb), 0); }
+}
+
+.deadline-celebrating {
+  background: rgba(var(--mode-accent-rgb), 0.14);
+  border-color: rgba(var(--mode-accent-rgb), 0.4);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.check-button-done {
+  background: rgb(var(--mode-accent-rgb));
+  border-color: rgb(var(--mode-accent-rgb));
+  color: #fff;
+  animation: deadlinePulse 0.5s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .radial-progress-fill {
+    transition: none;
+  }
+  .check-button-done {
+    animation: none;
+  }
+}
