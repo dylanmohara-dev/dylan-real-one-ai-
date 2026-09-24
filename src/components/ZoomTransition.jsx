@@ -65,12 +65,43 @@ export default function ZoomTransition({ zoomKey, origin, coverRect, mode, heroU
           ...(heroUrl ? { '--zoom-hero': `url(${heroUrl})` } : {}),
         }}
       />
+
+      {/* Warp-speed light streaks, radiating from the exact clicked icon --
+          the classic "hyperspace jump" cue every loading-screen transition
+          in a real game leans on. Screen-blended so they read as light, not
+          a flat shape, over whatever the panel is showing underneath. */}
+      <div
+        className="zoom-transition-streaks"
+        style={{ transformOrigin: `${originXPct}% ${originYPct}%` }}
+      />
+
+      {/* A faint scanline texture, only visible during the fast in/out
+          warp -- nearly gone during the crisp arrived hold -- the last bit
+          of "this is a loading screen, not just a fade" texture. */}
+      <div className="zoom-transition-scanlines" />
+
       {Icon && (
         <div
           className="zoom-transition-icon-wrap"
           style={{ left: `${originXPct}%`, top: `${originYPct}%` }}
         >
           <Icon size={20} strokeWidth={2.25} />
+        </div>
+      )}
+
+      {/* The actual "loading screen" identity: a centered title card --
+          icon, mode name, filling progress bar -- independent of the
+          origin-point icon above. That one sells "flying FROM the sidebar
+          icon you clicked"; this one sells "you are now loading
+          <mode name>", which is what a videogame loading screen actually
+          shows. Both play together during the same ~1s window. */}
+      {Icon && (
+        <div className="zoom-transition-title">
+          <div className="zoom-transition-title-icon">
+            <Icon size={26} strokeWidth={2} />
+          </div>
+          <div className="zoom-transition-title-text">{mode.title}</div>
+          <div className="zoom-transition-bar" />
         </div>
       )}
     </div>

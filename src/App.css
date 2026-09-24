@@ -3906,7 +3906,13 @@ footer {
 
 .zoom-transition {
   position: fixed;
-  z-index: 40;
+  /* Was 40 (just above .main-content, below the sidebar/topbar) back when
+     this only covered the content pane. Now that App.jsx hands it the
+     full viewport as coverRect, it needs to sit above literally
+     everything -- sidebar, top bar, settings panel, toasts -- for the
+     ~1s it plays, or that chrome would visibly poke through what's
+     supposed to read as a full-screen loading take-over. */
+  z-index: 5000;
   overflow: hidden;
   pointer-events: none;
   /* Real 3D depth, not a flat 2D scale -- perspective-origin is set
@@ -3972,32 +3978,226 @@ footer {
 
 /* The core 3D "fly-through": starts tipped forward and pushed back in Z
    (small, blurred, darkened, oversaturated -- a warp-speed look), rushes
-   to translateZ(0)/rotateX(0)/full scale/zero blur by 40%, holds crisp
-   through the actual page swap (40-60%), then reverses out the other way
-   -- tilted back instead of forward, so the in and out halves read as
-   distinct directions, not a mirrored replay. Still driven by the same
+   to translateZ(0)/rotateX(0)/full scale/zero blur, SLAMS through a
+   quick screen-shake + brightness flash right at arrival (36-40%, the
+   "level loaded" jolt every game loading screen has), holds crisp through
+   the actual page swap (40-60%), then reverses out the other way -- tilted
+   back instead of forward, so the in and out halves read as distinct
+   directions, not a mirrored replay. Depth pushed further than before
+   (-460px vs -340px) and blur/saturation both raised -- Dylan's ask,
+   across three rounds of feedback, was consistently "more 3D, more
+   extreme," never "too much." Still driven by the same
    --zoom-scale-x0/y0 + transform-origin from ZoomTransition.jsx as
-   before, just with real depth added on top of that 2D scale. */
+   before. */
 @keyframes zoomPanelPlay {
   0% {
-    transform: translateZ(-340px) rotateX(12deg) scale(var(--zoom-scale-x0), var(--zoom-scale-y0));
+    transform: translate(0, 0) translateZ(-460px) rotateX(16deg) scale(var(--zoom-scale-x0), var(--zoom-scale-y0));
     opacity: 1;
-    filter: blur(8px) brightness(0.6) saturate(1.25);
+    filter: blur(14px) brightness(0.5) saturate(1.4);
+  }
+  30% {
+    transform: translate(0, 0) translateZ(-60px) rotateX(4deg) scale(0.99, 0.99);
+    opacity: 1;
+    filter: blur(3px) brightness(0.8) saturate(1.2);
+  }
+  36% {
+    transform: translate(-7px, 4px) translateZ(0) rotateX(0deg) scale(1.015, 1.015);
+    opacity: 1;
+    filter: blur(0) brightness(1.35) saturate(1.1);
   }
   38% {
-    transform: translateZ(0) rotateX(0deg) scale(1, 1);
+    transform: translate(6px, -3px) translateZ(0) rotateX(0deg) scale(0.99, 0.99);
+    opacity: 1;
+    filter: blur(0) brightness(1.1) saturate(1.02);
+  }
+  40% {
+    transform: translate(0, 0) translateZ(0) rotateX(0deg) scale(1, 1);
     opacity: 1;
     filter: blur(0) brightness(1) saturate(1);
   }
-  62% {
-    transform: translateZ(0) rotateX(0deg) scale(1, 1);
+  60% {
+    transform: translate(0, 0) translateZ(0) rotateX(0deg) scale(1, 1);
     opacity: 1;
     filter: blur(0) brightness(1) saturate(1);
   }
   100% {
-    transform: translateZ(-340px) rotateX(-12deg) scale(var(--zoom-scale-x0), var(--zoom-scale-y0));
+    transform: translate(0, 0) translateZ(-460px) rotateX(-16deg) scale(var(--zoom-scale-x0), var(--zoom-scale-y0));
     opacity: 0;
-    filter: blur(8px) brightness(0.6) saturate(1.25);
+    filter: blur(14px) brightness(0.5) saturate(1.4);
+  }
+}
+
+/* Radiating light streaks from the clicked icon -- the "hyperspace jump"
+   cue. repeating-conic-gradient draws even spokes of light around the
+   origin point for free (no images, no JS-generated particles), scaled
+   from tiny to way oversize and back so they read as bursting outward
+   then sucking back in around the reverse-out half. screen blend keeps
+   them looking like light hitting whatever's under them, not a flat
+   sprite. */
+.zoom-transition-streaks {
+  position: absolute;
+  inset: -60%;
+  z-index: 3;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0.4) 0deg 1deg,
+    transparent 1deg 8deg
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: scale(0.1) rotate(0deg);
+  animation: zoomStreaksPlay calc(0.95s * var(--celebrate-speed)) cubic-bezier(0.5, 0, 0.25, 1) forwards;
+  pointer-events: none;
+}
+
+@keyframes zoomStreaksPlay {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.08) rotate(0deg);
+  }
+  18% {
+    opacity: 0.6;
+    transform: scale(0.55) rotate(10deg);
+  }
+  36% {
+    opacity: 0.15;
+    transform: scale(1.15) rotate(18deg);
+  }
+  40% {
+    opacity: 0;
+    transform: scale(1.3) rotate(20deg);
+  }
+  60% {
+    opacity: 0;
+    transform: scale(1.3) rotate(20deg);
+  }
+  82% {
+    opacity: 0.55;
+    transform: scale(0.6) rotate(-10deg);
+  }
+  100% {
+    opacity: 0.9;
+    transform: scale(0.08) rotate(-20deg);
+  }
+}
+
+/* A faint moving scanline texture -- present (barely) during the crisp
+   hold, much stronger during the warp -- the last "this is a tech/game
+   loading screen, not a photo fade" cue, on top of the depth/blur/streaks
+   above. */
+.zoom-transition-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.06) 0px,
+    rgba(255, 255, 255, 0.06) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+  animation: zoomScanlinesPlay calc(0.95s * var(--celebrate-speed)) ease forwards;
+  pointer-events: none;
+}
+
+@keyframes zoomScanlinesPlay {
+  0% { opacity: 0.55; }
+  38% { opacity: 0.1; }
+  62% { opacity: 0.1; }
+  100% { opacity: 0.55; }
+}
+
+/* The actual loading-screen identity card: icon + mode name + a progress
+   bar that fills across the hold window, centered on the now-full-screen
+   panel. This is what makes it read as "loading <life area>" instead of
+   just a fancy fade -- distinct from .zoom-transition-icon-wrap below,
+   which is the small icon popping specifically from the clicked sidebar
+   icon's position. */
+.zoom-transition-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 5;
+  transform: translate(-50%, -50%) scale(0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  text-align: center;
+  animation: zoomTitlePlay calc(0.95s * var(--celebrate-speed)) ease forwards;
+  pointer-events: none;
+}
+
+.zoom-transition-title-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.zoom-transition-title-text {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.94);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+}
+
+.zoom-transition-bar {
+  width: 160px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.zoom-transition-bar::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #fff;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: zoomBarPlay calc(0.95s * var(--celebrate-speed)) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes zoomBarPlay {
+  0% { transform: scaleX(0); }
+  40% { transform: scaleX(1); }
+  100% { transform: scaleX(1); }
+}
+
+@keyframes zoomTitlePlay {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  22% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  58% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  78% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    opacity: 0;
   }
 }
 
@@ -4103,6 +4303,10 @@ footer {
   .mode-flash.anim-wipe .mode-flash-content,
   .zoom-transition-panel,
   .zoom-transition-icon-wrap,
+  .zoom-transition-streaks,
+  .zoom-transition-scanlines,
+  .zoom-transition-title,
+  .zoom-transition-bar::after,
   .icon-nav-button.active,
   .mind-orb,
   .mind-orb.urgent,

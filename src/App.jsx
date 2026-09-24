@@ -622,7 +622,15 @@ function App() {
     setZoomTransition({
       key: zoomKeyRef.current,
       origin: originEl.getBoundingClientRect(),
-      coverRect: coverEl.getBoundingClientRect(),
+      // Full-viewport, not just .main-content's box (coverEl is still
+      // required above -- a page must be mounted for the switch to be
+      // "real" -- but the rect itself now spans the whole screen). Dylan
+      // asked three rounds running for a real videogame-style loading
+      // screen; .main-content-only was the "professional software"
+      // compromise from session 37, and he's since confirmed (by escalating
+      // past it rather than pulling back) that he wants the full takeover
+      // instead. The sidebar disappearing under it for ~1s is the point.
+      coverRect: { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight },
       mode: transitionMode,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
