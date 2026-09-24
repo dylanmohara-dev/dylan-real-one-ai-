@@ -7,6 +7,7 @@ import { DEFAULT_WEEK_PLAN } from './gym.js'
 import { DEFAULT_SCHEDULE } from './sports.js'
 import { loadPlayerStats } from '../lib/playerXP.js'
 import { computeMindInsights } from './mind.js'
+import { getHeroImages } from './heroImages.js'
 
 const router = Router()
 
@@ -36,6 +37,7 @@ router.get('/bootstrap', (req, res) => {
     const financeAccounts = loadData('finance_accounts')
 
     res.json({
+      heroImages: getHeroImages(),
       tasks: loadData('tasks'),
       goals: loadData('goals'),
       notes: loadData('notes'),

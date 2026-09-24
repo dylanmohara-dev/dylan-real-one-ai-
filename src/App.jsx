@@ -142,6 +142,9 @@ function App() {
     if (activePage === 'Overview') {
       return (
         <OverviewPage
+          heroImages={data.heroImages}
+          updateHeroImage={data.updateHeroImage}
+          resetHeroImage={data.resetHeroImage}
           overviewEyebrow={data.overviewEyebrow}
           userName={settings.userName}
           modesCount={LIFE_MODES.length}
@@ -249,6 +252,9 @@ function App() {
     if (activePage === 'school') {
       return (
         <SchoolPage
+          heroImages={data.heroImages}
+          updateHeroImage={data.updateHeroImage}
+          resetHeroImage={data.resetHeroImage}
           classes={data.classes}
           assignments={data.assignments}
           tests={data.tests}
@@ -316,6 +322,9 @@ function App() {
     if (activePage === 'health') {
       return (
         <HealthPage
+          heroImages={data.heroImages}
+          updateHeroImage={data.updateHeroImage}
+          resetHeroImage={data.resetHeroImage}
           healthEntries={data.healthEntries}
           goals={data.healthGoals}
           saving={data.saving}
@@ -331,6 +340,9 @@ function App() {
     if (activePage === 'finance') {
       return (
         <FinancePage
+          heroImages={data.heroImages}
+          updateHeroImage={data.updateHeroImage}
+          resetHeroImage={data.resetHeroImage}
           accounts={data.financeAccounts}
           netWorth={data.financeNetWorth}
           history={data.financeHistory}
@@ -364,6 +376,9 @@ function App() {
     if (activePage === 'skills') {
       return (
         <SkillsPage
+          heroImages={data.heroImages}
+          updateHeroImage={data.updateHeroImage}
+          resetHeroImage={data.resetHeroImage}
           skills={data.skills}
           saving={data.saving}
           addSkill={data.addSkill}
@@ -381,6 +396,9 @@ function App() {
     if (activePage === 'gym') {
       return (
         <GymPage
+          heroImages={data.heroImages}
+          updateHeroImage={data.updateHeroImage}
+          resetHeroImage={data.resetHeroImage}
           gymExercises={data.gymExercises}
           gymLogs={data.gymLogs}
           gymRoutines={data.gymRoutines}
@@ -414,6 +432,9 @@ function App() {
     if (activePage === 'sports') {
       return (
         <SportsPage
+          heroImages={data.heroImages}
+          updateHeroImage={data.updateHeroImage}
+          resetHeroImage={data.resetHeroImage}
           sportsSessions={data.sportsSessions}
           sportsSchedule={data.sportsSchedule}
           sportsScheduleOverrides={data.sportsScheduleOverrides}
@@ -436,6 +457,9 @@ function App() {
     if (activePage === 'reading') {
       return (
         <ReadingPage
+          heroImages={data.heroImages}
+          updateHeroImage={data.updateHeroImage}
+          resetHeroImage={data.resetHeroImage}
           readingBooks={data.readingBooks}
           readingSessions={data.readingSessions}
           readingGoals={data.readingGoals}
@@ -454,6 +478,9 @@ function App() {
     if (activePage === 'mind') {
       return (
         <MindPage
+          heroImages={data.heroImages}
+          updateHeroImage={data.updateHeroImage}
+          resetHeroImage={data.resetHeroImage}
           mindHabits={data.mindHabits}
           mindCompletions={data.mindCompletions}
           mindReviews={data.mindReviews}
@@ -478,6 +505,9 @@ function App() {
     if (activePage === 'family') {
       return (
         <FamilyPage
+          heroImages={data.heroImages}
+          updateHeroImage={data.updateHeroImage}
+          resetHeroImage={data.resetHeroImage}
           familyMembers={data.familyMembers}
           familyLog={data.familyLog}
           familyGoals={data.familyGoals}
@@ -499,6 +529,9 @@ function App() {
 
     return (
       <OverviewPage
+        heroImages={data.heroImages}
+        updateHeroImage={data.updateHeroImage}
+        resetHeroImage={data.resetHeroImage}
         overviewEyebrow={data.overviewEyebrow}
         userName={settings.userName}
         modesCount={LIFE_MODES.length}
@@ -554,7 +587,7 @@ function App() {
       ? { title: 'Journal', icon: Lock }
       : activePage === 'Calendar'
         ? { title: 'Calendar', icon: CalendarDays }
-        : { title: 'Overview', icon: LayoutGrid }
+        : { title: 'Overview', icon: LayoutGrid, key: 'overview' }
 
   // --- Zoom mode-switch transition (session 37) ---
   // Deliberately its own self-contained effect rather than reusing
@@ -629,6 +662,7 @@ function App() {
           origin={zoomTransition.origin}
           coverRect={zoomTransition.coverRect}
           mode={zoomTransition.mode}
+          heroUrl={data.heroImages?.[zoomTransition.mode?.key]}
         />
       )}
 

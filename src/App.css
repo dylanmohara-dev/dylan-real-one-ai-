@@ -1458,11 +1458,168 @@ footer {
 }
 
 .page-header {
+  position: relative;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
   margin-bottom: 26px;
+}
+
+/* ============ PER-MODE HERO PHOTOS (session 37 round 5) ============
+   Generalized version of the Overview hero (see OVERVIEW section) for
+   the other 9 life-area pages, applied to their existing .page-header
+   only once heroImages[modeKey] actually has something in it -- a mode
+   with no photo yet renders exactly as it did before this existed, zero
+   visual change. --hero-photo is set inline per page from
+   useAppData.js's heroImages map. Same Ken-Burns-drift + light-sweep
+   language as Overview, generalized under its own class/keyframe names
+   so this can be tuned independently later without touching Overview. */
+.page-header.mode-hero {
+  overflow: hidden;
+  border-radius: calc(18px * var(--mode-radius-scale, 1));
+  padding: 40px 28px 26px;
+  min-height: 200px;
+  background-image:
+    linear-gradient(180deg, rgba(8, 12, 22, 0.18) 0%, rgba(6, 8, 16, 0.80) 100%),
+    var(--hero-photo);
+  background-size: cover, 108%;
+  background-position: center, center 55%;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+  animation: modeHeroDrift 26s ease-in-out infinite alternate;
+}
+
+.page-header.mode-hero::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: -30%;
+  width: 45%;
+  height: 140%;
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.14) 45%, transparent 100%);
+  transform: skewX(-18deg) translateX(-40%);
+  animation: modeHeroSweep 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: overlay;
+}
+
+@keyframes modeHeroDrift {
+  0% {
+    background-size: cover, 108%;
+    background-position: center, center 55%;
+  }
+  100% {
+    background-size: cover, 120%;
+    background-position: center, center 65%;
+  }
+}
+
+@keyframes modeHeroSweep {
+  0%, 15% {
+    transform: skewX(-18deg) translateX(-40%);
+  }
+  65%, 100% {
+    transform: skewX(-18deg) translateX(340%);
+  }
+}
+
+.page-header.mode-hero > * {
+  position: relative;
+  z-index: 2;
+}
+
+.page-header.mode-hero .eyebrow,
+.page-header.mode-hero h1,
+.page-header.mode-hero p {
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+
+/* The "+ Add photo" / "Change photo" control -- always present (even on
+   a page-header with no photo yet), always in the corner, out of flex
+   flow entirely so it never disturbs whatever else a given page's header
+   already has as a sibling (School's "back to Overview" button, Finance's
+   own action buttons, etc). */
+.hero-photo-control {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+}
+
+.hero-photo-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(10, 12, 20, 0.45);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  /* Always faintly visible rather than hover-only -- a control that only
+     appears on hover is invisible on touch/mobile, and Dylan finding this
+     by accident is worse than it just being a little more present. */
+  opacity: 0.62;
+  transition: opacity 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.page-header:hover .hero-photo-btn,
+.hero-photo-btn:focus-visible,
+.hero-photo-btn:active {
+  opacity: 1;
+}
+
+.hero-photo-btn:hover {
+  background: rgba(10, 12, 20, 0.7);
+  transform: translateY(-1px);
+}
+
+.hero-photo-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+.hero-photo-btn-reset {
+  padding: 7px 9px;
+}
+
+.hero-photo-btn-reset span {
+  display: none;
+}
+
+/* A page-header with no photo yet has no dark backdrop to sit the button
+   on, so give the control its own -- otherwise white text/icon on a
+   light theme's default header background is unreadable. */
+.page-header:not(.mode-hero) .hero-photo-btn {
+  background: var(--surface-elevated, rgba(20, 20, 24, 0.85));
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.page-header:not(.mode-hero) .hero-photo-btn:hover {
+  background: var(--surface-elevated-hover, rgba(20, 20, 24, 0.95));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-header.mode-hero {
+    animation: none;
+  }
+
+  .page-header.mode-hero::after {
+    display: none;
+  }
+
+  .hero-photo-btn {
+    transition: none;
+  }
 }
 
 .page-header h1 {
@@ -1522,7 +1679,7 @@ footer {
   min-height: 240px;
   background-image:
     linear-gradient(180deg, rgba(8, 12, 22, 0.15) 0%, rgba(6, 8, 16, 0.82) 100%),
-    url('/hero-office-view.jpg');
+    var(--hero-photo, url('/hero-office-view.jpg'));
   background-size: cover, 108%;
   background-position: center, center 58%;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
@@ -3743,6 +3900,23 @@ footer {
   will-change: transform, opacity;
 }
 
+/* Dylan asked the mode-switch zoom to feel like "flying into" the life
+   area instead of a flat color card -- when the destination mode has a
+   hero photo (see heroImages in useAppData.js), the panel shows THAT
+   photo under a dark scrim instead of the flat accent gradient. The
+   panel's own scale animation (zoomPanelPlay above, unchanged) already
+   does the "zoom" -- growing a real photo from icon-size to full-screen
+   IS the videogame-loading-screen feel, no separate animation needed.
+   Modes with no photo yet fall back to the flat gradient exactly as
+   before -- never a broken/empty look. */
+.zoom-transition-panel.has-photo {
+  background-image:
+    linear-gradient(135deg, rgba(10, 12, 20, 0.45) 0%, rgba(6, 8, 16, 0.62) 100%),
+    var(--zoom-hero);
+  background-size: cover;
+  background-position: center;
+}
+
 .zoom-transition-icon-wrap {
   position: absolute;
   width: 40px;
@@ -4832,6 +5006,25 @@ footer {
 
   .overview-header::after {
     display: none;
+  }
+
+  .page-header.mode-hero {
+    padding: 30px 18px 20px;
+    min-height: 160px;
+    background-position: center, center 65%;
+    animation: none;
+  }
+
+  .page-header.mode-hero::after {
+    display: none;
+  }
+
+  .hero-photo-btn span {
+    display: none;
+  }
+
+  .hero-photo-btn {
+    padding: 8px;
   }
 
   .dashboard-grid {

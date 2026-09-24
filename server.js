@@ -35,6 +35,7 @@ import notificationsRouter from './routes/notifications.js'
 import playerRouter from './routes/player.js'
 import tradingRouter from './routes/trading.js'
 import searchRouter from './routes/search.js'
+import heroImagesRouter from './routes/heroImages.js'
 import { startModelWarmup } from './lib/ollamaWarm.js'
 import { startNotificationScheduler } from './lib/notificationScheduler.js'
 
@@ -84,6 +85,7 @@ app.use('/api/notifications', notificationsRouter)
 app.use('/api/player', playerRouter)
 app.use('/api/trading', tradingRouter)
 app.use('/api', searchRouter)
+app.use('/api', heroImagesRouter)
 
 // Phone access (via a tunnel to this Mac) needs the frontend and the API
 // reachable through the SAME origin/port, since a free tunnel forwards

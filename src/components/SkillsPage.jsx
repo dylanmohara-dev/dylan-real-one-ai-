@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Flame, Trophy, Award, X, Plus, Video, Upload } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
+import HeroPhotoButton from './HeroPhotoButton.jsx'
 
 // See useAppData.js's API constant for why this needs the DEV check --
 // a hardcoded localhost:3001 would silently break every skill video's
@@ -242,6 +243,9 @@ function SkillCard({ skill, saving, removeSkill, deleteSkillSession, uploadSkill
 }
 
 export default function SkillsPage({
+  heroImages,
+  updateHeroImage,
+  resetHeroImage,
   skills,
   saving,
   addSkill,
@@ -255,7 +259,16 @@ export default function SkillsPage({
 }) {
   return (
     <div className="page skills-page">
-      <div className="page-header">
+      <div
+        className={`page-header${heroImages?.skills ? ' mode-hero' : ''}`}
+        style={heroImages?.skills ? { '--hero-photo': `url(${heroImages.skills})` } : undefined}
+      >
+        <HeroPhotoButton
+          modeKey="skills"
+          heroUrl={heroImages?.skills}
+          onChange={updateHeroImage}
+          onReset={resetHeroImage}
+        />
         <div>
           <span className="eyebrow">SKILLS MODE</span>
           <h1 className="serif">Skills</h1>

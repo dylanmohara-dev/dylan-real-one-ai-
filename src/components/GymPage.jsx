@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Dumbbell, Trophy, Plus } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
+import HeroPhotoButton from './HeroPhotoButton.jsx'
 import ModeCalendarMonth, { RecurringEventsManager, formatTimeRange } from './ModeCalendarMonth.jsx'
 
 // Epley estimated 1-rep-max: weight * (1 + reps/30). A standard, simple
@@ -1007,6 +1008,9 @@ function GymCalendarTab({ gymRecurringEvents, gymSessions, saving, addGymSession
 }
 
 export default function GymPage({
+  heroImages,
+  updateHeroImage,
+  resetHeroImage,
   gymExercises,
   gymLogs,
   gymRoutines,
@@ -1043,7 +1047,16 @@ export default function GymPage({
 
   return (
     <div className="page gym-page">
-      <div className="page-header">
+      <div
+        className={`page-header${heroImages?.gym ? ' mode-hero' : ''}`}
+        style={heroImages?.gym ? { '--hero-photo': `url(${heroImages.gym})` } : undefined}
+      >
+        <HeroPhotoButton
+          modeKey="gym"
+          heroUrl={heroImages?.gym}
+          onChange={updateHeroImage}
+          onReset={resetHeroImage}
+        />
         <div>
           <span className="eyebrow">GYM MODE</span>
           <h1 className="serif">Gym</h1>

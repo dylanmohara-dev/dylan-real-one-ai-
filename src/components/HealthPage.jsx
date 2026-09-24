@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Bed, Utensils, Droplets, Footprints, ChevronLeft, ChevronRight } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
+import HeroPhotoButton from './HeroPhotoButton.jsx'
 
 const CATEGORY_META = {
   sleep: { label: 'Sleep', icon: Bed, placeholder: 'e.g. 7.5', unit: 'hours', numeric: true },
@@ -360,6 +361,9 @@ function GoalsTab({ goals, setHealthGoal }) {
 }
 
 export default function HealthPage({
+  heroImages,
+  updateHeroImage,
+  resetHeroImage,
   healthEntries,
   goals,
   saving,
@@ -377,7 +381,16 @@ export default function HealthPage({
 
   return (
     <div className="page health-page">
-      <div className="page-header">
+      <div
+        className={`page-header${heroImages?.health ? ' mode-hero' : ''}`}
+        style={heroImages?.health ? { '--hero-photo': `url(${heroImages.health})` } : undefined}
+      >
+        <HeroPhotoButton
+          modeKey="health"
+          heroUrl={heroImages?.health}
+          onChange={updateHeroImage}
+          onReset={resetHeroImage}
+        />
         <div>
           <span className="eyebrow">HEALTH MODE</span>
           <h1 className="serif">Health</h1>

@@ -18,7 +18,7 @@
 // .main-content box), then hands both rects here. Everything below is
 // pure CSS transform + opacity (GPU-composited, no layout thrashing) --
 // the actual keyframes live in App.css's ZOOM TRANSITION section.
-export default function ZoomTransition({ zoomKey, origin, coverRect, mode }) {
+export default function ZoomTransition({ zoomKey, origin, coverRect, mode, heroUrl }) {
   if (!origin || !coverRect || coverRect.width === 0 || coverRect.height === 0) return null
 
   const Icon = mode?.icon
@@ -52,11 +52,12 @@ export default function ZoomTransition({ zoomKey, origin, coverRect, mode }) {
       }}
     >
       <div
-        className="zoom-transition-panel"
+        className={`zoom-transition-panel${heroUrl ? ' has-photo' : ''}`}
         style={{
           transformOrigin: `${originXPct}% ${originYPct}%`,
           '--zoom-scale-x0': scaleX0,
           '--zoom-scale-y0': scaleY0,
+          ...(heroUrl ? { '--zoom-hero': `url(${heroUrl})` } : {}),
         }}
       />
       {Icon && (

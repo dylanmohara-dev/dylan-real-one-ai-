@@ -178,6 +178,12 @@ export function useAppData() {
   // 'current' state to keep in sync with it.
   const [achievementQueue, setAchievementQueue] = useState([])
   const [playerStats, setPlayerStats] = useState({ xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
+  // Per-life-area hero photo overrides -- keyed by mode ('overview',
+  // 'finance', etc), value is a URL (the built-in default) or a data:
+  // URL (a photo Dylan uploaded himself, see updateHeroImage below). A
+  // mode with no key here just has no photo -- every reader treats that
+  // as "render like today," never an error.
+  const [heroImages, setHeroImages] = useState({})
 
   const [taskInput, setTaskInput] = useState('')
   const [taskPriority, setTaskPriority] = useState('medium')
@@ -499,6 +505,7 @@ export function useAppData() {
       setFamilyLog(data.family?.log || [])
       setFamilyGoals(data.family?.goals || { weeklyMinutesGoal: 360 })
       setPlayerStats(data.player || { xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
+      setHeroImages(data.heroImages || {})
 
       // Fire-and-forget: never blocks loadData's own return, and a
       // failure here (a flaky PUT) shouldn't surface as a loadData error
@@ -531,6 +538,47 @@ export function useAppData() {
     } catch (error) {
       setErrorMessage(error.message)
       return null
+    }
+  }
+
+  // Lets Dylan swap any life area's hero photo for his own (a Gemini
+  // generation, a real photo, whatever) without ever touching code -- the
+  // file is read client-side as a data URL and PUT straight to
+  // routes/heroImages.js, which is also the size gate (rejects anything
+  // that would bloat hero_images.json past ~4MB). Optimistic local update
+  // first so the photo changes instantly instead of waiting on a round
+  // trip; reverted if the save actually fails.
+  async function updateHeroImage(modeKey, dataUrl) {
+    const previous = heroImages[modeKey]
+    setHeroImages((prev) => ({ ...prev, [modeKey]: dataUrl }))
+    try {
+      const result = await request(`/hero-images/${modeKey}`, {
+        method: 'PUT',
+        body: JSON.stringify({ dataUrl }),
+      })
+      setHeroImages(result.heroImages || {})
+    } catch (error) {
+      setHeroImages((prev) => ({ ...prev, [modeKey]: previous }))
+      showError(error.message)
+    }
+  }
+
+  // Removes a custom photo, falling back to the mode's built-in default
+  // (or no photo at all, for a mode that never had one) -- see
+  // routes/heroImages.js's getHeroImages for what that default is.
+  async function resetHeroImage(modeKey) {
+    const previous = heroImages[modeKey]
+    setHeroImages((prev) => {
+      const next = { ...prev }
+      delete next[modeKey]
+      return next
+    })
+    try {
+      const result = await request(`/hero-images/${modeKey}`, { method: 'DELETE' })
+      setHeroImages(result.heroImages || {})
+    } catch (error) {
+      setHeroImages((prev) => ({ ...prev, [modeKey]: previous }))
+      showError(error.message)
     }
   }
 
@@ -3039,6 +3087,9 @@ export function useAppData() {
     dismissAchievement,
     maybePlaySound,
     playerStats,
+    heroImages,
+    updateHeroImage,
+    resetHeroImage,
 
     // settings
     settings,

@@ -18,6 +18,7 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
+import HeroPhotoButton from './HeroPhotoButton.jsx'
 import useCountUp from '../hooks/useCountUp.js'
 
 const TYPE_META = {
@@ -1292,6 +1293,9 @@ function TradingTab({
 }
 
 export default function FinancePage({
+  heroImages,
+  updateHeroImage,
+  resetHeroImage,
   accounts,
   netWorth,
   history,
@@ -1323,7 +1327,16 @@ export default function FinancePage({
 
   return (
     <div className="page finance-page">
-      <div className="page-header">
+      <div
+        className={`page-header${heroImages?.finance ? ' mode-hero' : ''}`}
+        style={heroImages?.finance ? { '--hero-photo': `url(${heroImages.finance})` } : undefined}
+      >
+        <HeroPhotoButton
+          modeKey="finance"
+          heroUrl={heroImages?.finance}
+          onChange={updateHeroImage}
+          onReset={resetHeroImage}
+        />
         <div>
           <span className="eyebrow">FINANCE MODE</span>
           <h1 className="serif">The ledger</h1>

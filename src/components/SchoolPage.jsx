@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
+import HeroPhotoButton from './HeroPhotoButton.jsx'
 
 // Standard US 4.0 scale. No school-specific customization yet (some
 // schools weight AP/honors classes, use +/- differently, etc.) — this is
@@ -203,6 +204,9 @@ function upcomingItems(classes, assignments, tests, canvasAssignments) {
 }
 
 export default function SchoolPage({
+  heroImages,
+  updateHeroImage,
+  resetHeroImage,
   classes,
   assignments,
   tests,
@@ -309,7 +313,16 @@ export default function SchoolPage({
   if (!selectedClassId) {
     return (
       <div className="page school-page">
-        <div className="page-header">
+        <div
+          className={`page-header${heroImages?.school ? ' mode-hero' : ''}`}
+          style={heroImages?.school ? { '--hero-photo': `url(${heroImages.school})` } : undefined}
+        >
+          <HeroPhotoButton
+            modeKey="school"
+            heroUrl={heroImages?.school}
+            onChange={updateHeroImage}
+            onReset={resetHeroImage}
+          />
           <div>
             <span className="eyebrow">SCHOOL MODE</span>
             <h1 className="serif">School</h1>

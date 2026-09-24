@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
+import HeroPhotoButton from './HeroPhotoButton.jsx'
 
 function todayKey() {
   const d = new Date()
@@ -244,6 +245,9 @@ function GoalEditor({ weeklyMinutesGoal, saving, setFamilyGoal }) {
 }
 
 export default function FamilyPage({
+  heroImages,
+  updateHeroImage,
+  resetHeroImage,
   familyMembers,
   familyLog,
   familyGoals,
@@ -275,7 +279,16 @@ export default function FamilyPage({
 
   return (
     <div className="page family-page">
-      <div className="page-header">
+      <div
+        className={`page-header${heroImages?.family ? ' mode-hero' : ''}`}
+        style={heroImages?.family ? { '--hero-photo': `url(${heroImages.family})` } : undefined}
+      >
+        <HeroPhotoButton
+          modeKey="family"
+          heroUrl={heroImages?.family}
+          onChange={updateHeroImage}
+          onReset={resetHeroImage}
+        />
         <div>
           <span className="eyebrow">FAMILY/FAITH MODE</span>
           <h1 className="serif">Family/Faith</h1>

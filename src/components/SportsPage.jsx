@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Trophy } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
+import HeroPhotoButton from './HeroPhotoButton.jsx'
 import FootballIcon from './FootballIcon.jsx'
 import ModeCalendarMonth, { RecurringEventsManager, formatTimeRange } from './ModeCalendarMonth.jsx'
 
@@ -485,6 +486,9 @@ function SportsCalendarTab({ sportsRecurringEvents, sportsSessions, saving, addS
 }
 
 export default function SportsPage({
+  heroImages,
+  updateHeroImage,
+  resetHeroImage,
   sportsSessions,
   sportsSchedule,
   sportsScheduleOverrides,
@@ -511,7 +515,16 @@ export default function SportsPage({
 
   return (
     <div className="page sports-page">
-      <div className="page-header">
+      <div
+        className={`page-header${heroImages?.sports ? ' mode-hero' : ''}`}
+        style={heroImages?.sports ? { '--hero-photo': `url(${heroImages.sports})` } : undefined}
+      >
+        <HeroPhotoButton
+          modeKey="sports"
+          heroUrl={heroImages?.sports}
+          onChange={updateHeroImage}
+          onReset={resetHeroImage}
+        />
         <div>
           <span className="eyebrow">SPORTS MODE</span>
           <h1 className="serif">Sports</h1>

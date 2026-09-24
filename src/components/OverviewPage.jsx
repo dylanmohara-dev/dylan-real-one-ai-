@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Sparkles, Droplet, Moon, BookOpen, CheckCircle2, Heart, Flame } from 'lucide-react'
 import { WELCOME_GREETINGS } from '../data/lifeModes.js'
 import FootballIcon from './FootballIcon.jsx'
+import HeroPhotoButton from './HeroPhotoButton.jsx'
 
 function todayKey() {
   const d = new Date()
@@ -189,6 +190,9 @@ export default function OverviewPage({
   addSportsSession,
   skills,
   addSkillSession,
+  heroImages,
+  updateHeroImage,
+  resetHeroImage,
 }) {
   const greeting = useMemo(() => {
     const pick = WELCOME_GREETINGS[Math.floor(Math.random() * WELCOME_GREETINGS.length)]
@@ -197,7 +201,16 @@ export default function OverviewPage({
 
   return (
     <div className="overview-page">
-      <div className="overview-header">
+      <div
+        className="overview-header"
+        style={heroImages?.overview ? { '--hero-photo': `url(${heroImages.overview})` } : undefined}
+      >
+        <HeroPhotoButton
+          modeKey="overview"
+          heroUrl={heroImages?.overview}
+          onChange={updateHeroImage}
+          onReset={resetHeroImage}
+        />
         <div>
           <span className="eyebrow">{overviewEyebrow}</span>
           <h1 className="serif">{greeting}</h1>

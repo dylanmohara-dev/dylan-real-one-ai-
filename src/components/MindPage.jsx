@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Snowflake } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
+import HeroPhotoButton from './HeroPhotoButton.jsx'
 
 // Mirrors routes/mind.js's computeSkillLevel exactly -- mindSkillXp from
 // bootstrap is raw XP totals per skill ({focus: 40, ...}), not pre-computed
@@ -626,6 +627,9 @@ const MIND_PAGES = [
 ]
 
 export default function MindPage({
+  heroImages,
+  updateHeroImage,
+  resetHeroImage,
   mindHabits,
   mindCompletions,
   mindReviews,
@@ -682,7 +686,16 @@ export default function MindPage({
 
   return (
     <div className="page mind-page">
-      <div className="page-header">
+      <div
+        className={`page-header${heroImages?.mind ? ' mode-hero' : ''}`}
+        style={heroImages?.mind ? { '--hero-photo': `url(${heroImages.mind})` } : undefined}
+      >
+        <HeroPhotoButton
+          modeKey="mind"
+          heroUrl={heroImages?.mind}
+          onChange={updateHeroImage}
+          onReset={resetHeroImage}
+        />
         <div>
           <span className="eyebrow">MIND MODE</span>
           <h1 className="serif">Mind</h1>

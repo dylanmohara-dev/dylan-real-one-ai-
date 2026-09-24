@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BookOpen } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
+import HeroPhotoButton from './HeroPhotoButton.jsx'
 
 function todayKey() {
   const d = new Date()
@@ -276,6 +277,9 @@ function BookCard({ book, sessions, saving, updateReadingBook, deleteReadingBook
 const LIBRARY_FILTERS = ['all', 'reading', 'want-to-read', 'finished']
 
 export default function ReadingPage({
+  heroImages,
+  updateHeroImage,
+  resetHeroImage,
   readingBooks,
   readingSessions,
   readingGoals,
@@ -298,7 +302,16 @@ export default function ReadingPage({
 
   return (
     <div className="page reading-page">
-      <div className="page-header">
+      <div
+        className={`page-header${heroImages?.reading ? ' mode-hero' : ''}`}
+        style={heroImages?.reading ? { '--hero-photo': `url(${heroImages.reading})` } : undefined}
+      >
+        <HeroPhotoButton
+          modeKey="reading"
+          heroUrl={heroImages?.reading}
+          onChange={updateHeroImage}
+          onReset={resetHeroImage}
+        />
         <div>
           <span className="eyebrow">READING MODE</span>
           <h1 className="serif">Reading</h1>
