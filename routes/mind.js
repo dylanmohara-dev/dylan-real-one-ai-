@@ -160,6 +160,36 @@ function awardSkillXp(skillKey, amount) {
   saveSkillXp(xp)
 }
 
+// Streak Freezes -- a Duolingo-direct mechanic, not decoration: a habit
+// banks one freeze every time its streak clears a STREAK_MILESTONES rung
+// (client-side, see useAppData.js's toggleMindCompletion), capped at 3
+// banked per habit so it stays a safety net, not a way to stop showing up.
+// Evaluating *whether* a missed day should actually spend one requires
+// knowing what the streak was doing before the gap, which is exactly what
+// useAppData.js already computes client-side (habitCurrentStreak) -- so
+// this store is deliberately dumb (get/set one record), and all the
+// "should this day be frozen" logic lives in one place, not duplicated
+// in two languages.
+router.get('/freezes', (req, res) => {
+  res.json({ freezes: loadData('mind_habit_freezes', {}) })
+})
+
+router.put('/freezes/:habitId', (req, res) => {
+  try {
+    const { freezesAvailable, frozenDates } = req.body
+    const freezes = loadData('mind_habit_freezes', {})
+    freezes[req.params.habitId] = {
+      freezesAvailable: Math.max(0, Number(freezesAvailable) || 0),
+      frozenDates: Array.isArray(frozenDates) ? frozenDates : [],
+    }
+    saveData('mind_habit_freezes', freezes)
+    res.json({ freeze: freezes[req.params.habitId] })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Could not save freeze state' })
+  }
+})
+
 router.get('/skills', (req, res) => {
   const xp = loadSkillXp()
   const skills = SKILL_KEYS.map((key) => ({ key, xp: xp[key], ...computeSkillLevel(xp[key]) }))

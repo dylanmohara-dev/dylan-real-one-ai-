@@ -80,6 +80,7 @@ router.get('/bootstrap', (req, res) => {
         reviews: loadData('mind_reviews'),
         decisions: loadData('mind_decisions'),
         skillXp: loadData('mind_skill_xp')[0] || {},
+        freezes: loadData('mind_habit_freezes', {}),
         insights: computeMindInsights(),
       },
       family: {

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Snowflake } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 
 // Mirrors routes/mind.js's computeSkillLevel exactly -- mindSkillXp from
@@ -431,17 +431,18 @@ function DecisionCard({ item, saving, updateMindDecision }) {
 // data, updates live); the glow intensity beneath it is driven by average
 // skill level, so "doubling as the skill-XP display" is literal, not just
 // a caption -- a higher average level makes the whole orb glow harder.
-function TodayOrb({ doneCount, totalCount, skills }) {
+function TodayOrb({ doneCount, totalCount, skills, urgent }) {
   const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
   const avgLevel = skills.length ? skills.reduce((sum, s) => sum + s.level, 0) / skills.length : 1
   const radius = 84
   const circumference = 2 * Math.PI * radius
   const dashOffset = circumference * (1 - pct / 100)
   const glow = Math.max(0.25, Math.min(1, avgLevel / 8))
+  const remaining = Math.max(0, totalCount - doneCount)
 
   return (
     <div className="mind-orb-wrap">
-      <div className="mind-orb" style={{ '--mind-orb-glow': glow }}>
+      <div className={`mind-orb ${urgent ? 'urgent' : ''}`} style={{ '--mind-orb-glow': glow }}>
         <svg viewBox="0 0 200 200" className="mind-orb-ring">
           <circle cx="100" cy="100" r={radius} className="mind-orb-ring-track" />
           <circle
@@ -459,7 +460,11 @@ function TodayOrb({ doneCount, totalCount, skills }) {
           </span>
         </div>
       </div>
-      <span className="mind-orb-level">Avg skill level {avgLevel.toFixed(1)}</span>
+      {urgent ? (
+        <span className="mind-orb-urgent-note">{remaining} left, and today's running out</span>
+      ) : (
+        <span className="mind-orb-level">Avg skill level {avgLevel.toFixed(1)}</span>
+      )}
     </div>
   )
 }
@@ -473,7 +478,7 @@ function TodayOrb({ doneCount, totalCount, skills }) {
 // literal instead of just a label. Same addMindDecision call/shape as the
 // old inline DecisionForm -- nothing about the data changed, only how
 // it's collected.
-function PauseChooseOverlay({ onClose, saving, addMindDecision }) {
+function PauseChooseOverlay({ onClose, saving, addMindDecision, decisionCount }) {
   const [step, setStep] = useState(0)
   const [situation, setSituation] = useState('')
   const [why, setWhy] = useState('')
@@ -530,6 +535,9 @@ function PauseChooseOverlay({ onClose, saving, addMindDecision }) {
         <div className="mind-pause-done">
           <div className="mind-pause-done-icon">&#10003;</div>
           <h2>Logged.</h2>
+          <p className="mind-pause-done-count">
+            Decision #{decisionCount} you've paused on instead of just reacting.
+          </p>
           <p>You can add how it turned out later, from the Pause &amp; Choose history.</p>
           <button type="button" onClick={onClose}>
             Done
@@ -634,6 +642,7 @@ export default function MindPage({
   updateMindDecision,
   assistantContext,
   openChat,
+  mindFreezes,
 }) {
   const [pageIndex, setPageIndex] = useState(0)
   const [pauseOverlayOpen, setPauseOverlayOpen] = useState(false)
@@ -641,6 +650,11 @@ export default function MindPage({
 
   const activeHabits = mindHabits.filter((h) => h.active !== false)
   const doneToday = new Set(mindCompletions.filter((c) => c.date === todayKey()).map((c) => c.habitId))
+  // Mirrors exactly what a Streak Freeze exists to cover: late in the day
+  // with habits still open is when a miss is about to happen, so the orb
+  // should carry that pressure instead of reading identically at 7am and
+  // 11pm.
+  const todayUrgent = new Date().getHours() >= 18 && activeHabits.length > 0 && doneToday.size < activeHabits.length
   const todayMorningReview = mindReviews.find((r) => r.type === 'morning' && r.date === todayKey())
   const todayNightReview = mindReviews.find((r) => r.type === 'night' && r.date === todayKey())
   const decisionHistory = [...mindDecisions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -692,7 +706,7 @@ export default function MindPage({
         <div className="mind-carousel-pane" key={activePageKey}>
           {activePageKey === 'today' && (
             <div className="mind-today">
-              <TodayOrb doneCount={doneToday.size} totalCount={activeHabits.length} skills={skills} />
+              <TodayOrb doneCount={doneToday.size} totalCount={activeHabits.length} skills={skills} urgent={todayUrgent} />
               {activeHabits.length === 0 ? (
                 <div className="empty-state">
                   <div>&#9989;</div>
@@ -704,6 +718,7 @@ export default function MindPage({
                   {activeHabits.map((habit) => {
                     const done = doneToday.has(habit.id)
                     const stats = habitStats(habit, mindCompletions)
+                    const freezesAvailable = mindFreezes?.[habit.id]?.freezesAvailable || 0
                     return (
                       <label className={`mind-today-row ${done ? 'done' : ''}`} key={habit.id}>
                         <input
@@ -713,6 +728,12 @@ export default function MindPage({
                           onChange={() => toggleMindCompletion(habit.id, todayKey())}
                         />
                         <span className="mind-today-row-name">{habit.name}</span>
+                        {freezesAvailable > 0 && (
+                          <span className="mind-habit-freeze-badge" title={`${freezesAvailable} Streak Freeze${freezesAvailable > 1 ? 's' : ''} banked -- auto-covers one missed day`}>
+                            <Snowflake size={11} strokeWidth={2.5} />
+                            {freezesAvailable}
+                          </span>
+                        )}
                         <HabitStatsLine stats={stats} />
                       </label>
                     )
@@ -888,7 +909,7 @@ export default function MindPage({
       </div>
 
       {pauseOverlayOpen && (
-        <PauseChooseOverlay onClose={() => setPauseOverlayOpen(false)} saving={saving} addMindDecision={addMindDecision} />
+        <PauseChooseOverlay onClose={() => setPauseOverlayOpen(false)} saving={saving} addMindDecision={addMindDecision} decisionCount={mindDecisions.length + 1} />
       )}
     </div>
   )

@@ -781,6 +781,9 @@ function BudgetRow({ category, limit, spent, saving, setBudget }) {
 
   const pct = limit ? Math.min(100, Math.round((spent / limit) * 100)) : 0
   const over = limit ? spent > limit : false
+  // A warning state -- real stakes before it's too late to matter, not
+  // just a color change once the money's already gone.
+  const warning = limit ? !over && spent / limit >= 0.8 : false
 
   function handleSave() {
     setBudget(category, value)
@@ -813,13 +816,13 @@ function BudgetRow({ category, limit, spent, saving, setBudget }) {
       </div>
       {limit > 0 && (
         <>
-          <div className="finance-budget-track">
+          <div className={`finance-budget-track ${warning ? 'warning' : ''} ${over ? 'over' : ''}`}>
             <div
-              className={`finance-budget-track-fill ${over ? 'over' : ''}`}
+              className={`finance-budget-track-fill ${warning ? 'warning' : ''} ${over ? 'over' : ''}`}
               style={{ width: `${pct}%` }}
             />
           </div>
-          <span className={`finance-budget-left ${over ? 'over' : ''}`}>
+          <span className={`finance-budget-left ${warning ? 'warning' : ''} ${over ? 'over' : ''}`}>
             {over ? `${formatMoney(spent - limit)} over` : `${formatMoney(limit - spent)} left`}
           </span>
         </>

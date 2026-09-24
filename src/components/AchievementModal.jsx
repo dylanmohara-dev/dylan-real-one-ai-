@@ -22,7 +22,7 @@ export default function AchievementModal({ achievement, onDismiss }) {
   const Icon = ICONS[achievement.kind] || Trophy
 
   return (
-    <div className="achievement-modal-backdrop" onClick={onDismiss}>
+    <div className={`achievement-modal-backdrop achievement-modal-backdrop-${achievement.kind}`} onClick={onDismiss}>
       <div
         className={`achievement-modal-card achievement-modal-${achievement.kind}`}
         onClick={(event) => event.stopPropagation()}

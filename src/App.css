@@ -3774,10 +3774,15 @@ footer {
   .zoom-transition-icon-wrap,
   .icon-nav-button.active,
   .mind-orb,
+  .mind-orb.urgent,
   .mind-carousel-pane,
   .mind-pause-overlay,
   .mind-pause-card,
   .mind-pause-question,
+  .finance-budget-track-fill.warning,
+  .finance-budget-track-fill.over,
+  .achievement-modal-backdrop-milestone::before,
+  .achievement-modal-backdrop-finance::before,
   .game-toast,
   .game-toast-levelup .game-toast-icon,
   .player-level-bar-fill {
@@ -3786,6 +3791,11 @@ footer {
   }
 
   .zoom-transition {
+    display: none !important;
+  }
+
+  .achievement-modal-backdrop-milestone::before,
+  .achievement-modal-backdrop-finance::before {
     display: none !important;
   }
 }
@@ -4142,6 +4152,35 @@ footer {
 @keyframes achievementBackdropIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+.achievement-modal-backdrop-milestone::before,
+.achievement-modal-backdrop-finance::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(circle at center, rgba(249, 115, 22, 0.35), transparent 60%);
+  animation: achievementFlashBurst calc(0.9s * var(--celebrate-speed)) ease-out both;
+}
+
+.achievement-modal-backdrop-finance::before {
+  background: radial-gradient(circle at center, rgba(34, 197, 94, 0.35), transparent 60%);
+}
+
+@keyframes achievementFlashBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(calc(1.1 * var(--celebrate-scale)));
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
 }
 
 .achievement-modal-card {
@@ -5527,6 +5566,29 @@ footer {
 
 .finance-budget-track-fill.over {
   background: #ff7272;
+  animation: financeBudgetOverPulse 1.8s ease-in-out infinite;
+}
+
+/* Real stakes before the money's actually gone, not just after --
+   80%+ and still climbing gets its own escalated, still-not-alarming
+   state distinct from the calm default and the red "over" state. */
+.finance-budget-track.warning {
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.finance-budget-track-fill.warning {
+  background: #fbbf24;
+  animation: financeBudgetWarningPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes financeBudgetWarningPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.25); }
+}
+
+@keyframes financeBudgetOverPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.35); }
 }
 
 .finance-budget-left {
@@ -5534,6 +5596,10 @@ footer {
   font-size: 11px;
   font-weight: 700;
   color: #4ade80;
+}
+
+.finance-budget-left.warning {
+  color: #fbbf24;
 }
 
 .finance-budget-left.over {
@@ -8965,6 +9031,34 @@ button:disabled:active {
   }
 }
 
+/* Session 37 round 2: real stakes, not just a passive readout -- late in
+   the day with habits still open, the orb itself carries the pressure
+   (a faster, warmer pulse) instead of looking identical at 7am and 11pm. */
+.mind-orb.urgent {
+  animation: mindUrgentPulse 1.6s ease-in-out infinite;
+  filter: drop-shadow(0 0 22px rgba(255, 120, 90, 0.55));
+}
+
+.mind-orb.urgent .mind-orb-ring-fill {
+  stroke: #ff7a5a;
+}
+
+@keyframes mindUrgentPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.mind-orb-urgent-note {
+  color: #ff8a68;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .mind-orb-ring {
   width: 100%;
   height: 100%;
@@ -9010,6 +9104,23 @@ button:disabled:active {
   color: var(--text-muted);
   font-size: 11px;
   letter-spacing: 0.04em;
+}
+
+.mind-habit-freeze-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(125, 211, 252, 0.16);
+  color: #7dd3fc;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.mind-pause-done-count {
+  color: rgb(var(--mode-accent-rgb));
+  font-weight: 600;
 }
 
 .mind-today {

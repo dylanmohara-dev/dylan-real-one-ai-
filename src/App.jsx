@@ -470,6 +470,7 @@ function App() {
           updateMindDecision={data.updateMindDecision}
           assistantContext={assistantContext}
           openChat={openChat}
+          mindFreezes={data.mindFreezes}
         />
       )
     }

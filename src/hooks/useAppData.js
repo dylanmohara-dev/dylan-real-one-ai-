@@ -41,8 +41,9 @@ function streakFromDateKeys(dateKeys) {
   return streak
 }
 
-function habitCurrentStreak(completions, habitId) {
+function habitCurrentStreak(completions, habitId, frozenDates = []) {
   const doneDates = new Set(completions.filter((c) => c.habitId === habitId).map((c) => c.date))
+  frozenDates.forEach((d) => doneDates.add(d))
   return streakFromDateKeys(doneDates)
 }
 
@@ -91,6 +92,26 @@ function checkNetWorthSwing(history) {
   return { pct, netWorth: todayEntry.netWorth }
 }
 
+// A first-time crossing of a round net-worth number -- separate from the
+// day-to-day swing check above (that one is about notable daily moves;
+// this one is about a lifetime first). Only the highest rung crossed in
+// one jump fires, so a big one-day gain that clears two rungs at once
+// doesn't queue two achievements back to back.
+const NET_WORTH_MILESTONES = [1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2000000, 5000000]
+
+function hitNetWorthMilestone(prevValue, nextValue) {
+  const crossed = NET_WORTH_MILESTONES.filter((m) => prevValue < m && nextValue >= m)
+  return crossed.length ? crossed[crossed.length - 1] : null
+}
+
+function formatMoneyShort(value) {
+  const sign = value < 0 ? '-' : ''
+  const abs = Math.abs(value)
+  if (abs >= 1000000) return `${sign}$${(abs / 1000000).toFixed(abs % 1000000 === 0 ? 0 : 1)}M`
+  if (abs >= 1000) return `${sign}$${Math.round(abs / 1000)}k`
+  return `${sign}$${Math.round(abs)}`
+}
+
 export function useAppData() {
   const [message, setMessage] = useState('')
   const [activePage, setActivePage] = useState('Overview')
@@ -134,6 +155,7 @@ export function useAppData() {
   const [readingGoals, setReadingGoals] = useState({ dailyPageGoal: 10 })
   const [mindHabits, setMindHabits] = useState([])
   const [mindCompletions, setMindCompletions] = useState([])
+  const [mindFreezes, setMindFreezes] = useState({})
   const [mindReviews, setMindReviews] = useState([])
   const [mindDecisions, setMindDecisions] = useState([])
   const [mindSkillXp, setMindSkillXp] = useState({})
@@ -472,10 +494,18 @@ export function useAppData() {
       setMindDecisions(data.mind?.decisions || [])
       setMindSkillXp(data.mind?.skillXp || {})
       setMindInsights(data.mind?.insights || [])
+      setMindFreezes(data.mind?.freezes || {})
       setFamilyMembers(data.family?.members || [])
       setFamilyLog(data.family?.log || [])
       setFamilyGoals(data.family?.goals || { weeklyMinutesGoal: 360 })
       setPlayerStats(data.player || { xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
+
+      // Fire-and-forget: never blocks loadData's own return, and a
+      // failure here (a flaky PUT) shouldn't surface as a loadData error
+      // for some unrelated caller just trying to refresh the dashboard.
+      evaluateMindFreezes(data.mind?.habits || [], data.mind?.completions || [], data.mind?.freezes || {}).catch(
+        (error) => console.error('Freeze evaluation failed:', error)
+      )
 
       // Returned (not just set into state) so a caller that just mutated
       // something can compare against the FRESH value in the same tick --
@@ -603,6 +633,86 @@ export function useAppData() {
         title: 'NET WORTH DOWN',
         message: `${swing.pct.toFixed(1)}% today`,
       })
+    }
+  }
+
+  // A first-time crossing of a round net-worth number -- distinct from the
+  // swing check above (that one is day-to-day noise-filtered movement;
+  // this one is a lifetime first). Gated by the milestone VALUE itself,
+  // never by calendar day, since crossing $50k only ever happens once.
+  function maybeCelebrateNetWorthMilestone(fresh) {
+    if (!fresh?.finance?.history?.length) return
+    const sorted = [...fresh.finance.history].sort((a, b) => (a.date < b.date ? -1 : 1))
+    const latest = sorted[sorted.length - 1]
+    const prior = sorted.length > 1 ? sorted[sorted.length - 2] : null
+    if (!latest) return
+
+    const milestone = hitNetWorthMilestone(prior?.netWorth ?? 0, latest.netWorth)
+    if (!milestone) return
+
+    const flagKey = `dylan-ai-networth-milestone-${milestone}`
+    if (localStorage.getItem(flagKey)) return
+    localStorage.setItem(flagKey, '1')
+
+    pushAchievement({
+      kind: 'finance',
+      title: `NET WORTH: ${formatMoneyShort(milestone)}`,
+      subtitle: 'A new personal high, crossed for the first time',
+      duration: 3600,
+    })
+    maybePlaySound('achievement')
+  }
+
+  const MAX_HABIT_FREEZES = 3
+
+  // Duolingo-style streak freeze: a habit that banked one (awarded in
+  // toggleMindCompletion below, on the same STREAK_MILESTONES ladder as
+  // the Achievement unlock) auto-covers ONE missed day instead of the
+  // streak just breaking. Runs at most once per calendar day (the flagKey
+  // below) even though loadData() itself runs constantly, so a single gap
+  // can never be charged twice.
+  async function evaluateMindFreezes(habits, completions, freezes) {
+    const flagKey = `dylan-ai-freezes-evaluated-${todayKeyLocal()}`
+    if (localStorage.getItem(flagKey)) return
+    localStorage.setItem(flagKey, '1')
+
+    const yesterday = daysAgoKeyLocal(1)
+    const dayBeforeYesterday = daysAgoKeyLocal(2)
+
+    for (const habit of habits) {
+      if (habit.active === false || habit.frequency === 'weekly') continue
+      if (new Date(habit.createdAt) > new Date(`${yesterday}T23:59:59`)) continue
+
+      const record = freezes[habit.id] || { freezesAvailable: 0, frozenDates: [] }
+      if (record.freezesAvailable <= 0) continue
+      if (record.frozenDates.includes(yesterday)) continue
+
+      const doneDates = new Set(completions.filter((c) => c.habitId === habit.id).map((c) => c.date))
+      if (doneDates.has(yesterday)) continue
+
+      // Only worth spending the freeze if a real streak was actually
+      // running into the gap -- a habit that hadn't been touched in days
+      // anyway isn't "at risk," so this can't burn the safety net on
+      // nothing.
+      const hadActiveStreak = doneDates.has(dayBeforeYesterday) || record.frozenDates.includes(dayBeforeYesterday)
+      if (!hadActiveStreak) continue
+
+      const updated = {
+        freezesAvailable: record.freezesAvailable - 1,
+        frozenDates: [...record.frozenDates, yesterday],
+      }
+      try {
+        await request(`/mind/freezes/${habit.id}`, { method: 'PUT', body: JSON.stringify(updated) })
+        setMindFreezes((prev) => ({ ...prev, [habit.id]: updated }))
+        pushAchievement({
+          kind: 'milestone',
+          title: 'STREAK FROZEN',
+          subtitle: `${habit.name} -- yesterday's miss didn't cost you the streak`,
+        })
+        maybePlaySound('milestone')
+      } catch (error) {
+        console.error('Freeze evaluation failed for', habit.id, error)
+      }
     }
   }
 
@@ -1310,12 +1420,21 @@ export function useAppData() {
           const newStreak = habitCurrentStreak(fresh.mind.completions, habitId)
           const milestone = hitMilestone(newStreak)
           if (milestone) {
+            const record = mindFreezes[habitId] || { freezesAvailable: 0, frozenDates: [] }
+            const earnedFreeze = record.freezesAvailable < MAX_HABIT_FREEZES
             pushAchievement({
               kind: 'milestone',
               title: `${milestone}-DAY STREAK`,
-              subtitle: habit ? habit.name : 'Habit',
+              subtitle: (habit ? habit.name : 'Habit') + (earnedFreeze ? ' -- +1 Streak Freeze earned' : ''),
             })
             maybePlaySound('milestone')
+
+            if (earnedFreeze) {
+              const updated = { ...record, freezesAvailable: record.freezesAvailable + 1 }
+              request(`/mind/freezes/${habitId}`, { method: 'PUT', body: JSON.stringify(updated) })
+                .then(() => setMindFreezes((prev) => ({ ...prev, [habitId]: updated })))
+                .catch((error) => console.error('Could not save earned freeze:', error))
+            }
           }
         }
       }
@@ -1488,6 +1607,7 @@ export function useAppData() {
           detectHabitCompletions(previousCompletions, fresh.mind.completions, fresh.mind.habits)
           detectHealthStreak(previousHealthEntries, fresh.health.entries)
           maybeCelebrateNetWorthSwing(fresh)
+          maybeCelebrateNetWorthMilestone(fresh)
         }
       }
 
@@ -1699,6 +1819,7 @@ export function useAppData() {
 
       const fresh = await loadData()
       maybeCelebrateNetWorthSwing(fresh)
+      maybeCelebrateNetWorthMilestone(fresh)
       showSuccess('Balance updated.')
     } catch (error) {
       showError(error.message)
@@ -1732,6 +1853,7 @@ export function useAppData() {
 
       const fresh = await loadData()
       maybeCelebrateNetWorthSwing(fresh)
+      maybeCelebrateNetWorthMilestone(fresh)
       showSuccess(type === 'expense' ? 'Expense logged.' : 'Income logged.')
     } catch (error) {
       showError(error.message)
@@ -1764,6 +1886,7 @@ export function useAppData() {
       })
       const fresh = await loadData()
       maybeCelebrateNetWorthSwing(fresh)
+      maybeCelebrateNetWorthMilestone(fresh)
       showSuccess(
         result.skipped?.length
           ? `Imported ${result.imported}, skipped ${result.skipped.length}.`
@@ -1843,12 +1966,40 @@ export function useAppData() {
     if (!exitPrice || !lesson?.trim()) return
     setSaving(true)
     try {
+      // Captured before the request -- once this position moves to
+      // 'closed' server-side, loadData()'s reload is what tells the rest
+      // of the app about it; reading shares/avgCost from local state now
+      // is simpler than re-deriving them from the closed record after.
+      const position = tradingPositions.find((p) => p.id === id)
       await request(`/trading/positions/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ status: 'closed', exitPrice: Number(exitPrice), lesson: lesson.trim() }),
       })
       await loadData()
       showSuccess('Position closed.')
+
+      // Realized P/L from numbers Dylan just typed in (exit price; the
+      // position's own recorded shares/avgCost) -- never estimated, since
+      // there's no live price feed to estimate FROM. A loss gets the same
+      // calm, non-celebratory toast as a net-worth-down day; celebrating
+      // a loss would be a genuinely dishonest UI, not just a stylistic one.
+      if (position) {
+        const realizedGain = (Number(exitPrice) - position.avgCost) * position.shares
+        if (realizedGain > 0) {
+          pushAchievement({
+            kind: 'finance',
+            title: `+${formatMoneyShort(Math.round(realizedGain))} REALIZED`,
+            subtitle: `${position.ticker} closed for a real, locked-in gain`,
+          })
+          maybePlaySound('achievement')
+        } else if (realizedGain < 0) {
+          pushToast({
+            kind: 'alert',
+            title: 'POSITION CLOSED AT A LOSS',
+            message: `${position.ticker}: ${formatMoneyShort(Math.round(realizedGain))}`,
+          })
+        }
+      }
     } catch (error) {
       showError(error.message)
     } finally {
@@ -3074,6 +3225,7 @@ export function useAppData() {
     mindDecisions,
     mindSkillXp,
     mindInsights,
+    mindFreezes,
     addMindHabit,
     updateMindHabit,
     deleteMindHabit,
