@@ -1,6 +1,6 @@
 import './App.css'
 import { useEffect, useRef, useState } from 'react'
-import { LayoutGrid, Lock, CalendarDays } from 'lucide-react'
+import { LayoutGrid, Lock, CalendarDays, ArrowLeft } from 'lucide-react'
 import { useAppData } from './hooks/useAppData.js'
 import { useJournal } from './hooks/useJournal.js'
 import { useCalendar } from './hooks/useCalendar.js'
@@ -640,6 +640,16 @@ function App() {
     return <OnboardingWizard onComplete={completeOnboarding} />
   }
 
+  // Dylan's "whole screen, whole app changes" ask (round 4): while a
+  // life-area mode is open, the app takes it over completely -- sidebar
+  // gone, that mode's own photo full-bleed behind the page, one back
+  // control to leave. activeModeHeroUrl feeds the shared full-bleed
+  // background below (the exact same element/CSS Overview already uses,
+  // see .overview-hero-bg in App.css -- reused as-is rather than
+  // duplicated, since the negative-margin breakout math is identical
+  // either way: it's always escaping .content's own padding).
+  const activeModeHeroUrl = activeMode ? data.heroImages?.[activeMode.key] : null
+
   const modeThemeClass = activeMode
     ? `theme-${activeMode.key}`
     : activePage === 'Journal'
@@ -695,24 +705,47 @@ function App() {
         onDismiss={data.dismissAchievement}
       />
 
-      <div className={`app-shell ${themeClass}`}>
-        <Sidebar
-          activePage={activePage}
-          setActivePage={setActivePage}
-          userInitial={userInitial}
-          userName={settings.userName}
-          assistantContext={assistantContext}
-          modeKey={activeMode ? activeMode.key : null}
-          chatMessages={data.chatMessages}
-          message={message}
-          setMessage={setMessage}
-          sendMessage={sendMessage}
-          loading={loading}
-          onOpenChat={openChat}
-        />
+      <div className={`app-shell ${themeClass}${activeMode ? ' mode-fullscreen' : ''}`}>
+        {/* Hidden outright, not just visually -- while a mode is open, this
+            entire column disappears and .main-content (flex: 1) fills the
+            space on its own, no extra CSS needed for the reflow. Overview,
+            Chat, Tasks, Settings etc. (activeMode is null there) keep the
+            sidebar exactly as before. */}
+        {!activeMode && (
+          <Sidebar
+            activePage={activePage}
+            setActivePage={setActivePage}
+            userInitial={userInitial}
+            userName={settings.userName}
+            assistantContext={assistantContext}
+            modeKey={activeMode ? activeMode.key : null}
+            chatMessages={data.chatMessages}
+            message={message}
+            setMessage={setMessage}
+            sendMessage={sendMessage}
+            loading={loading}
+            onOpenChat={openChat}
+          />
+        )}
 
         <main className="main-content" ref={mainContentRef}>
           <ModeBackground modeKey={backgroundModeKey} />
+
+          {/* The one way back once the sidebar is gone -- a single,
+              consistent control instead of duplicating a "Back to
+              Overview" button inside every one of the 9 mode page
+              components (School already had its own; this replaces the
+              need for that everywhere). */}
+          {activeMode && (
+            <button
+              className="mode-fullscreen-back"
+              onClick={() => setActivePage('Overview')}
+              aria-label="Back to Overview"
+            >
+              <ArrowLeft size={18} strokeWidth={2.5} />
+              <span>Back</span>
+            </button>
+          )}
 
           {(errorMessage || successMessage) && (
             <div className={`app-notification ${errorMessage ? 'error' : 'success'}`}>
@@ -720,7 +753,20 @@ function App() {
             </div>
           )}
 
-          <div className="content" key={activePage}>{renderPage()}</div>
+          <div className="content" key={activePage}>
+            {/* Reuses Overview's own full-bleed hero element/CSS as-is --
+                same negative-margin breakout out of .content's padding,
+                just fed this mode's photo instead of Overview's. This is
+                what makes each life area's picture cover the whole
+                screen, not just a header strip. */}
+            {activeModeHeroUrl && (
+              <div
+                className="overview-hero-bg"
+                style={{ '--hero-photo': `url(${activeModeHeroUrl})` }}
+              />
+            )}
+            {renderPage()}
+          </div>
 
           <footer>Dylan AI can make mistakes. Check important information.</footer>
         </main>

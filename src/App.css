@@ -1421,6 +1421,11 @@ select option {
   min-height: 0;
   overflow-y: auto;
   padding: 34px 40px 50px;
+  /* Needed as the containing block for .overview-hero-bg when it's used
+     as a direct child here (mode-fullscreen pages, App.jsx) rather than
+     nested inside .overview-page -- same negative-margin breakout math
+     either way, since both cases escape THIS element's own padding. */
+  position: relative;
 }
 
 .content > .page,
@@ -1455,6 +1460,13 @@ footer {
 
 .page {
   animation: fadeUp 0.3s ease;
+  /* Positioned + explicitly stacked above .overview-hero-bg (z-index: 0)
+     when that's rendered as .page's sibling instead of its parent
+     (mode-fullscreen pages) -- without this, CSS's actual paint order
+     would put the positioned photo ABOVE this normal-flow, non-positioned
+     page content, not behind it. */
+  position: relative;
+  z-index: 1;
 }
 
 .page-header {
@@ -1466,62 +1478,26 @@ footer {
   margin-bottom: 26px;
 }
 
-/* ============ PER-MODE HERO PHOTOS (session 37 round 5) ============
-   Generalized version of the Overview hero (see OVERVIEW section) for
-   the other 9 life-area pages, applied to their existing .page-header
-   only once heroImages[modeKey] actually has something in it -- a mode
-   with no photo yet renders exactly as it did before this existed, zero
-   visual change. --hero-photo is set inline per page from
-   useAppData.js's heroImages map. Same Ken-Burns-drift + light-sweep
-   language as Overview, generalized under its own class/keyframe names
-   so this can be tuned independently later without touching Overview. */
+/* ============ PER-MODE HERO PHOTOS (session 37 round 5, revised
+   round 8) ============
+   Round 5's version gave each mode page its own bounded, ~200px-tall
+   photo banner (its own background-image + Ken-Burns drift + sweep,
+   self-contained on .page-header.mode-hero). Round 8 ("the picture on
+   the whole screen for each life area") replaces that: the actual photo
+   now renders full-bleed behind the whole page via the SAME
+   .overview-hero-bg element/CSS Overview uses (see App.jsx, which
+   renders it as a sibling of the page whenever a mode is active), not a
+   header-sized box. This block is what's left -- just the text sitting
+   on top, given enough top padding to visually clear that full-bleed
+   photo's height. A mode with no photo yet still gets this class (harmless
+   -- no photo behind it just means it sits on the page's plain background,
+   never broken/empty). */
 .page-header.mode-hero {
-  overflow: hidden;
-  border-radius: calc(18px * var(--mode-radius-scale, 1));
-  padding: 40px 28px 26px;
-  min-height: 200px;
-  background-image:
-    linear-gradient(180deg, rgba(8, 12, 22, 0.18) 0%, rgba(6, 8, 16, 0.80) 100%),
-    var(--hero-photo);
-  background-size: cover, 108%;
-  background-position: center, center 55%;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
-  animation: modeHeroDrift 26s ease-in-out infinite alternate;
-}
-
-.page-header.mode-hero::after {
-  content: '';
-  position: absolute;
-  top: -20%;
-  left: -30%;
-  width: 45%;
-  height: 140%;
-  background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.14) 45%, transparent 100%);
-  transform: skewX(-18deg) translateX(-40%);
-  animation: modeHeroSweep 8s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 1;
-  mix-blend-mode: overlay;
-}
-
-@keyframes modeHeroDrift {
-  0% {
-    background-size: cover, 108%;
-    background-position: center, center 55%;
-  }
-  100% {
-    background-size: cover, 120%;
-    background-position: center, center 65%;
-  }
-}
-
-@keyframes modeHeroSweep {
-  0%, 15% {
-    transform: skewX(-18deg) translateX(-40%);
-  }
-  65%, 100% {
-    transform: skewX(-18deg) translateX(340%);
-  }
+  position: relative;
+  z-index: 2;
+  padding: 100px 4px 32px;
+  min-height: 260px;
+  align-items: flex-end;
 }
 
 .page-header.mode-hero > * {
@@ -1534,6 +1510,54 @@ footer {
 .page-header.mode-hero p {
   color: #fff;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+
+/* The one way out of a full-screen mode now that the sidebar disappears
+   entirely while one is open (App.jsx, "mode-fullscreen" -- Dylan's
+   round-4 ask: "a whole new mode pops up... still able to click back
+   button"). Floating over the top-left corner of the full-bleed photo
+   like a HUD element, not sitting in the normal document flow, so it
+   stays put regardless of which mode page's own layout is under it. */
+.mode-fullscreen-back {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(10, 12, 18, 0.42);
+  backdrop-filter: blur(14px);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.mode-fullscreen-back:hover {
+  background: rgba(10, 12, 18, 0.64);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateX(-2px);
+}
+
+.mode-fullscreen-back:active {
+  transform: translateX(-2px) scale(0.96);
+}
+
+@media (max-width: 720px) {
+  .mode-fullscreen-back {
+    top: 14px;
+    left: 14px;
+    padding: 8px 12px;
+  }
+
+  .mode-fullscreen-back span {
+    display: none;
+  }
 }
 
 /* The "+ Add photo" / "Change photo" control -- always present (even on
@@ -1610,14 +1634,6 @@ footer {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .page-header.mode-hero {
-    animation: none;
-  }
-
-  .page-header.mode-hero::after {
-    display: none;
-  }
-
   .hero-photo-btn {
     transition: none;
   }
@@ -5364,14 +5380,10 @@ footer {
   }
 
   .page-header.mode-hero {
-    padding: 30px 18px 20px;
-    min-height: 160px;
-    background-position: center, center 65%;
-    animation: none;
-  }
-
-  .page-header.mode-hero::after {
-    display: none;
+    padding: 56px 4px 24px;
+    min-height: 180px;
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .hero-photo-btn span {
