@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { Bed, Utensils, Droplets, Footprints, ChevronLeft, ChevronRight } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
+import IconPickerGrid from './IconPickerGrid.jsx'
+import { QUICK_FOODS } from '../data/healthFoods.js'
 
 const CATEGORY_META = {
   sleep: { label: 'Sleep', icon: Bed, placeholder: 'e.g. 7.5', unit: 'hours', numeric: true },
@@ -168,6 +170,19 @@ function WeekTab({ healthEntries, goals, saving, addHealthEntry }) {
       <div className="panel-heading">
         <h2>Log today</h2>
       </div>
+
+      <div className="form-card health-quick-food-card">
+        <div className="health-log-label">
+          <Utensils size={16} strokeWidth={2.25} />
+          Quick-log food
+        </div>
+        <IconPickerGrid
+          items={QUICK_FOODS}
+          momentary
+          onSelect={(item) => addHealthEntry('food', item.label, '', null, today)}
+        />
+      </div>
+
       <div className="health-log-grid">
         {Object.keys(CATEGORY_META).map((category) => (
           <CategoryInput

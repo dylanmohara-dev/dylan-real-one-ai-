@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react'
-import { Dumbbell, Trophy, Plus } from 'lucide-react'
+import { Trophy, Plus } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
 import ModeCalendarMonth, { RecurringEventsManager, formatTimeRange } from './ModeCalendarMonth.jsx'
+import IconPickerGrid from './IconPickerGrid.jsx'
+import { EQUIPMENT_TYPES, equipmentIcon } from '../data/gymEquipment.js'
 
 // Epley estimated 1-rep-max: weight * (1 + reps/30). A standard, simple
 // approximation used to compare strength across different rep ranges --
@@ -230,7 +232,10 @@ function ExerciseLogger({ exercise, gymLogs, saving, addGymLog, deleteGymLog, sh
         onClick={() => collapsible && setExpanded((v) => !v)}
       >
         <div className="gym-exercise-name">
-          <Dumbbell size={14} strokeWidth={2.25} />
+          {(() => {
+            const EquipmentIcon = equipmentIcon(exercise.equipment)
+            return <EquipmentIcon size={14} strokeWidth={2.25} />
+          })()}
           {exercise.name}
         </div>
         {lastBest && lastBest.oneRM > 0 && (
@@ -585,14 +590,16 @@ function ExercisesTab({ gymExercises, gymLogs, saving, addGymExercise, deleteGym
   const [selectedExerciseId, setSelectedExerciseId] = useState(gymExercises[0]?.id || null)
   const [newExerciseName, setNewExerciseName] = useState('')
   const [newExerciseCategory, setNewExerciseCategory] = useState('')
+  const [newExerciseEquipment, setNewExerciseEquipment] = useState('')
 
   const selectedExercise = gymExercises.find((e) => e.id === selectedExerciseId) || null
 
   function handleAddExercise() {
     if (!newExerciseName.trim()) return
-    addGymExercise(newExerciseName, newExerciseCategory)
+    addGymExercise(newExerciseName, newExerciseCategory, newExerciseEquipment)
     setNewExerciseName('')
     setNewExerciseCategory('')
+    setNewExerciseEquipment('')
   }
 
   return (
@@ -611,6 +618,12 @@ function ExercisesTab({ gymExercises, gymLogs, saving, addGymExercise, deleteGym
             placeholder="Category (optional)"
             onKeyDown={(event) => event.key === 'Enter' && handleAddExercise()}
           />
+          <span className="gym-equipment-picker-label">Equipment (optional)</span>
+          <IconPickerGrid
+            items={EQUIPMENT_TYPES}
+            selectedId={newExerciseEquipment}
+            onSelect={(item) => setNewExerciseEquipment((current) => (current === item.id ? '' : item.id))}
+          />
           <button onClick={handleAddExercise} disabled={saving || !newExerciseName.trim()}>
             <Plus size={14} strokeWidth={2.5} /> Add
           </button>
@@ -625,7 +638,10 @@ function ExercisesTab({ gymExercises, gymLogs, saving, addGymExercise, deleteGym
                 onClick={() => setSelectedExerciseId(exercise.id)}
               >
                 <div className="gym-exercise-name">
-                  <Dumbbell size={14} strokeWidth={2.25} />
+                  {(() => {
+                    const EquipmentIcon = equipmentIcon(exercise.equipment)
+                    return <EquipmentIcon size={14} strokeWidth={2.25} />
+                  })()}
                   {exercise.name}
                 </div>
                 {exercise.category && <span className="gym-exercise-category">{exercise.category}</span>}
@@ -654,6 +670,18 @@ function ExercisesTab({ gymExercises, gymLogs, saving, addGymExercise, deleteGym
       <div className="gym-log-column">
         {selectedExercise ? (
           <>
+            <div className="form-card gym-equipment-form" key={`equip-${selectedExercise.id}`}>
+              <span className="gym-equipment-picker-label">Equipment</span>
+              <IconPickerGrid
+                items={EQUIPMENT_TYPES}
+                selectedId={selectedExercise.equipment}
+                onSelect={(item) =>
+                  updateGymExercise(selectedExercise.id, {
+                    equipment: selectedExercise.equipment === item.id ? '' : item.id,
+                  })
+                }
+              />
+            </div>
             <ProgramForm key={selectedExercise.id} exercise={selectedExercise} saving={saving} updateGymExercise={updateGymExercise} />
             <ExerciseLogger
               key={selectedExercise.id}

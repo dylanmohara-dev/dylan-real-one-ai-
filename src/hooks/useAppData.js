@@ -984,13 +984,13 @@ export function useAppData() {
     return weight * (1 + reps / 30)
   }
 
-  async function addGymExercise(name, category) {
+  async function addGymExercise(name, category, equipment = '') {
     if (!name?.trim()) return
     setSaving(true)
     try {
       await request('/gym/exercises', {
         method: 'POST',
-        body: JSON.stringify({ name: name.trim(), category: category?.trim() || '' }),
+        body: JSON.stringify({ name: name.trim(), category: category?.trim() || '', equipment: equipment?.trim() || '' }),
       })
       await loadData()
       showSuccess('Exercise added.')

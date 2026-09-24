@@ -23,7 +23,7 @@ router.get('/exercises', (req, res) => {
 
 router.post('/exercises', (req, res) => {
   try {
-    const { name, category } = req.body
+    const { name, category, equipment } = req.body
     if (!name?.trim()) {
       return res.status(400).json({ error: 'Exercise name is required' })
     }
@@ -32,6 +32,7 @@ router.post('/exercises', (req, res) => {
       id: Date.now().toString(),
       name: name.trim(),
       category: category?.trim() || '',
+      equipment: equipment?.trim() || '',
       createdAt: new Date().toISOString(),
     }
     exercises.push(exercise)
