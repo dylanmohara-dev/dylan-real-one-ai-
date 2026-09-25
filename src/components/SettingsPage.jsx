@@ -6,7 +6,7 @@ import { DESIGN_SYSTEMS, COLOR_PALETTES, LIFE_MODES } from '../data/lifeModes.js
 // hardcoded localhost:3001 would silently break every backup/restore
 // call the moment this is opened through a tunnel/phone instead of
 // directly on this Mac.
-const API = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api'
+const API = '/api'
 
 // Extra keywords beyond the life area's own title to match against an
 // existing iCloud calendar's name, for the "suggested match" helper below

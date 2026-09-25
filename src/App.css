@@ -11371,6 +11371,27 @@ button:disabled:active {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
+.school-hud-tag,
+.school-quest-tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.school-quest-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.school-quest-bar-wrap .school-quest-tag {
+  margin-left: 2px;
+}
+
 .school-hud-level {
   flex-shrink: 0;
   font-size: 15px;

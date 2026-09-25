@@ -7,7 +7,7 @@ import HeroPhotoButton from './HeroPhotoButton.jsx'
 // a hardcoded localhost:3001 would silently break every skill video's
 // playback the moment this app is opened through a tunnel/phone instead
 // of directly on this Mac.
-const API = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api'
+const API = '/api'
 
 function XPBar({ xpIntoLevel, xpForNextLevel }) {
   const percent = Math.max(0, Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100)))

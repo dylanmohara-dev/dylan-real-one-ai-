@@ -9,7 +9,7 @@ import { playSound } from '../lib/soundEffects.js'
 // makes phone access through a tunnel work at all, since a free tunnel
 // forwards exactly one port. A relative /api path automatically resolves
 // to whatever host the tunnel maps that day, with zero reconfiguration.
-const API = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api'
+const API = '/api'
 
 // Same bare local-date convention used throughout this file (and the
 // backend's todayKey() in lib/studyPlan.js) -- NOT toISOString().slice(0,10),

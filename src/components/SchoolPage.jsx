@@ -230,6 +230,7 @@ function SchoolHUD({ classes, assignments, tests }) {
   }, 0)
   return (
     <div className="school-hud">
+      <span className="school-hud-tag">Overall</span>
       <span className="school-hud-level">LV {level}</span>
       <div className="school-hud-track" title={`${xpIntoLevel} / ${xpForNextLevel} XP to next level`}>
         <div className="school-hud-fill" style={{ width: `${pct}%` }} />
@@ -717,7 +718,10 @@ export default function SchoolPage({
               }).`}
           </p>
           {activeClass && (
-            <ClassQuestBar classId={selectedClassId} assignments={assignments} tests={tests} size="lg" />
+            <div className="school-quest-bar-wrap">
+              <span className="school-quest-tag">This class</span>
+              <ClassQuestBar classId={selectedClassId} assignments={assignments} tests={tests} size="lg" />
+            </div>
           )}
         </div>
         <button className="school-back-to-classes" onClick={() => setSelectedClassId(null)}>

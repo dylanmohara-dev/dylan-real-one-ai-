@@ -39,7 +39,7 @@ export default function OnboardingWizard({ onComplete }) {
   // onboarding only ever runs once, but a hardcoded localhost:3001 would
   // fail it outright for anyone opening this app for the first time
   // through a tunnel/phone instead of directly on this Mac.
-  const ONBOARDING_API = import.meta.env.DEV ? 'http://localhost:3001/api/onboarding' : '/api/onboarding'
+  const ONBOARDING_API = '/api/onboarding'
 
   async function submit() {
     setPhase('submitting')
