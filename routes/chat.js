@@ -168,7 +168,16 @@ async function runChatCompletion(buildBody, { streaming = true, preferGroq = tru
         GROQ_TIMEOUT_MS,
         'Groq'
       )
-      if (!groqResponse.ok) throw new Error(`Groq returned ${groqResponse.status}`)
+      if (!groqResponse.ok) {
+        // Session 39: the old `throw new Error('Groq returned 400')` told
+        // us THAT it failed but never WHY -- a 400 is Groq rejecting the
+        // request body itself (as opposed to a network/rate-limit/outage
+        // problem), and the actual reason lives in the response body we
+        // were discarding. Reading it here is the whole difference between
+        // guessing at the fix and knowing it.
+        const errorBody = await groqResponse.text().catch(() => '(could not read response body)')
+        throw new Error(`Groq returned ${groqResponse.status}: ${errorBody}`)
+      }
       return { response: groqResponse, usedFallback: false, backendNotice: '' }
     } catch (groqError) {
       // Deliberately swallowed here, not re-thrown -- falling through to

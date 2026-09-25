@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Flame, Swords, FileText, X, ExternalLink } from 'lucide-react'
+import { Check, Flame, Swords, FileText, X, ExternalLink, Award } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import RadialProgress from './RadialProgress.jsx'
 
@@ -256,13 +256,22 @@ function SchoolHeroSkyline() {
   )
 }
 
-function SchoolHero({ level, onJumpToClasses }) {
+// Dean's List threshold -- Dylan's design brief mockup showed this badge
+// as static example content with no real rule behind it. Rather than
+// display an honor he didn't actually earn, this gates it on his real,
+// already-computed weighted GPA. 3.5 is a common real-world Dean's List
+// cutoff, not Dylan's own school's actual policy (unknown) -- easy to
+// change here if his school uses a different number.
+const DEANS_LIST_GPA_THRESHOLD = 3.5
+
+function SchoolHero({ level, onJumpToClasses, weightedGPA }) {
+  const onDeansList = weightedGPA !== null && weightedGPA !== undefined && weightedGPA >= DEANS_LIST_GPA_THRESHOLD
   return (
     <div className="school-hero">
       <div className="school-hero-sun" aria-hidden="true" />
       <SchoolHeroSkyline />
       <div className="school-hero-content">
-        <span className="eyebrow school-hero-eyebrow">SCHOOL MODE</span>
+        <span className="eyebrow school-hero-eyebrow">Dylan AI &middot; Campus Life</span>
         <h1 className="school-hero-title">School</h1>
         <p className="school-hero-subtitle">Pick a class, or add a new one.</p>
       </div>
@@ -270,8 +279,14 @@ function SchoolHero({ level, onJumpToClasses }) {
         <span className="school-hero-lvl-label">LVL</span>
         <span className="school-hero-lvl-value">{level}</span>
       </div>
+      {onDeansList && (
+        <span className="school-hero-honor" title={`Weighted GPA ${weightedGPA.toFixed(2)} is at or above ${DEANS_LIST_GPA_THRESHOLD.toFixed(1)}`}>
+          <Award size={11} strokeWidth={2.5} />
+          Dean's List
+        </span>
+      )}
       <button type="button" className="school-hero-cta" onClick={onJumpToClasses}>
-        View your classes
+        View Full Schedule &rarr;
       </button>
     </div>
   )
@@ -287,18 +302,24 @@ function SchoolHUD({ classes, assignments, tests }) {
   }, 0)
   return (
     <div className="school-hud">
-      <span className="school-hud-tag">Overall</span>
-      <span className="school-hud-level">LV {level}</span>
+      <div className="school-hud-row">
+        <span className="school-hud-tag-icon" aria-hidden="true"><Award size={13} strokeWidth={2.5} /></span>
+        <span className="school-hud-tag">Overall Academic Progress</span>
+        <span className="school-hud-transition">LV {level} &rarr; {level + 1}</span>
+        {bestStreak > 0 && (
+          <span className="school-hud-streak" title={`Best current streak: ${bestStreak} day${bestStreak === 1 ? '' : 's'}`}>
+            <Flame size={14} strokeWidth={2.5} />
+            {bestStreak}
+          </span>
+        )}
+      </div>
       <div className="school-hud-track" title={`${xpIntoLevel} / ${xpForNextLevel} XP to next level`}>
         <div className="school-hud-fill" style={{ width: `${pct}%` }} />
       </div>
-      <span className="school-hud-xp">{xpIntoLevel} / {xpForNextLevel} XP</span>
-      {bestStreak > 0 && (
-        <span className="school-hud-streak" title={`Best current streak: ${bestStreak} day${bestStreak === 1 ? '' : 's'}`}>
-          <Flame size={14} strokeWidth={2.5} />
-          {bestStreak}
-        </span>
-      )}
+      <div className="school-hud-row school-hud-row-footer">
+        <span className="school-hud-xp">{xpIntoLevel.toLocaleString()} XP</span>
+        <span className="school-hud-xp-remaining">{(xpForNextLevel - xpIntoLevel).toLocaleString()} XP to Level {level + 1}</span>
+      </div>
     </div>
   )
 }
@@ -360,6 +381,21 @@ const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 function weekdayForDateKey(dateKey) {
   const [y, m, d] = dateKey.split('-').map(Number)
   return WEEKDAY_NAMES[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]
+}
+
+const CHIP_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+
+// Parses the app's bare "YYYY-MM-DD" convention directly (no Date/timezone
+// involved) into the two pieces the date chip needs -- same reasoning as
+// todayKey() elsewhere in this project: a bare calendar date should never
+// pass through a timezone-aware Date object, or it can silently shift a
+// day in either direction depending on where the server/browser think
+// "local" is.
+function dateChipParts(dateKey) {
+  if (!dateKey) return { month: '--', day: '--' }
+  const [, m, d] = dateKey.split('-')
+  const monthIdx = Number(m) - 1
+  return { month: CHIP_MONTHS[monthIdx] || '--', day: d || '--' }
 }
 
 function deadlineLabel(daysUntil, dateKey) {
@@ -537,6 +573,13 @@ export default function SchoolPage({
     const tone = item.completed ? 'done' : item.daysUntil < 0 ? 'overdue' : item.daysUntil <= 2 ? 'soon' : 'normal'
     const isCanvas = item.kind === 'Canvas'
     const isCelebrating = celebratingId === item.id
+    const { month, day } = dateChipParts(item.dueDate)
+    // Canvas overrides the pill regardless of Test/Assignment -- it's the
+    // one piece of Dylan's own explicit "yes" that Canvas items should
+    // read as visibly different (synced/read-only), same rule the old
+    // dashed-border treatment followed.
+    const pillKind = isCanvas ? 'canvas' : item.kind.toLowerCase()
+    const pillLabel = isCanvas ? 'Canvas' : item.kind
     return (
       <div
         className={`deadline-item deadline-${tone}${isCanvas ? '' : ' deadline-clickable'}${isCelebrating ? ' deadline-celebrating' : ''}`}
@@ -563,20 +606,34 @@ export default function SchoolPage({
             {(isCelebrating || item.completed) && <Check size={14} strokeWidth={3} />}
           </button>
         )}
-        <span className={`deadline-kind deadline-kind-${item.kind.toLowerCase()}`}>
-          {item.kind === 'Test' && <Swords size={10} strokeWidth={2.5} />}
-          {item.kind === 'Assignment' && <FileText size={10} strokeWidth={2.5} />}
-          {item.kind}
-        </span>
+        <div className="deadline-date-chip" aria-hidden="true">
+          <span className="deadline-date-month">{month}</span>
+          <span className="deadline-date-day">{day}</span>
+        </div>
         <div className="deadline-body">
           <strong>{item.title}</strong>
-          <span className="deadline-class">{item.className}</span>
+          {/* Real data only -- no invented due-time or room number here.
+              The app only ever stores a bare due DATE (see upcomingItems
+              above), never a time or room, so this stays to what's
+              actually known: the class, and for Canvas items, that it's
+              synced rather than typed in by hand. */}
+          <span className="deadline-class">
+            {item.className}
+            {isCanvas ? ' · Synced from Canvas' : ''}
+          </span>
         </div>
-        {item.completed ? (
-          <span className="deadline-when deadline-when-done">Done</span>
-        ) : (
-          <span className="deadline-when">{deadlineLabel(item.daysUntil, item.dueDate)}</span>
-        )}
+        <div className="deadline-right">
+          <span className={`deadline-pill deadline-pill-${pillKind}`}>
+            {item.kind === 'Test' && <Swords size={10} strokeWidth={2.5} />}
+            {item.kind === 'Assignment' && !isCanvas && <FileText size={10} strokeWidth={2.5} />}
+            {pillLabel}
+          </span>
+          {item.completed ? (
+            <span className="deadline-when deadline-when-done">Done</span>
+          ) : (
+            <span className="deadline-when">{deadlineLabel(item.daysUntil, item.dueDate)}</span>
+          )}
+        </div>
         {item.completed && (
           <button
             type="button"
@@ -613,6 +670,7 @@ export default function SchoolPage({
       <div className="page school-page">
         <SchoolHero
           level={heroLevel}
+          weightedGPA={weightedGPA}
           onJumpToClasses={() => {
             document.getElementById('school-classes-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }}

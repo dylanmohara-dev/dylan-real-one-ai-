@@ -2790,41 +2790,81 @@ footer {
 .deadline-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 14px;
+  padding: 12px 14px;
   border: var(--mode-border-width, 1px) solid var(--border);
   border-radius: calc(10px * var(--mode-radius-scale, 1));
   background: var(--surface-card);
 }
 
-.deadline-kind {
+/* Round 15 (Dylan's own reference mockup): a dark rounded date chip
+   replaces the old inline kind tag as the row's leading element -- month
+   abbreviation over a bold day number, same shape as the mockup's
+   "SEP / 29" chips. */
+.deadline-date-chip {
   flex-shrink: 0;
-  min-width: 64px;
-  text-align: center;
-  padding: 3px 8px;
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 6px 0;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border);
+}
+
+.deadline-date-month {
+  font-family: 'Manrope', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.deadline-date-day {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+/* The kind/source indicator moved from a leading inline tag to a
+   right-aligned pill (per the mockup) -- .deadline-pill-* replaces the
+   old .deadline-kind-* set. Colors reuse the same 3 badge tokens defined
+   in the School theme block (standard/urgent/synced) rather than
+   introducing a 4th ad-hoc palette. */
+.deadline-pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 3px 9px;
   border-radius: 999px;
+  font-family: 'Manrope', sans-serif;
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: var(--mode-tracking, 0.06em);
   text-transform: uppercase;
 }
 
-.deadline-kind-assignment {
-  background: rgba(59, 130, 246, 0.26);
-  border: 1px solid rgba(59, 130, 246, 0.5);
-  color: rgb(147, 197, 253);
+.deadline-pill-assignment {
+  background: var(--school-badge-standard-bg, rgba(59, 130, 246, 0.26));
+  color: var(--school-badge-standard-text, rgb(147, 197, 253));
 }
 
-.deadline-kind-test {
-  background: rgba(244, 63, 94, 0.26);
-  border: 1px solid rgba(244, 63, 94, 0.5);
-  color: rgb(253, 164, 175);
+.deadline-pill-test {
+  background: var(--school-badge-urgent-bg, rgba(244, 63, 94, 0.26));
+  color: var(--school-badge-urgent-text, rgb(253, 164, 175));
 }
 
-.deadline-kind-canvas {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-muted);
-  opacity: 0.75;
+.deadline-pill-canvas {
+  background: transparent;
+  border: 1px solid var(--school-badge-synced-border, rgba(255, 255, 255, 0.25));
+  color: var(--school-badge-synced-text, var(--text-muted));
 }
 
 .deadline-body {
@@ -2838,6 +2878,14 @@ footer {
 .deadline-class {
   font-size: 0.72rem;
   opacity: 0.6;
+}
+
+.deadline-right {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
 }
 
 .deadline-when {
@@ -9764,6 +9812,25 @@ button:disabled:active {
   line-height: 1.1;
 }
 
+.school-hero-honor {
+  position: absolute;
+  z-index: 3;
+  top: 92px;
+  right: 20px;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: #e3a83b;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
 .school-hero-cta {
   position: absolute;
   z-index: 3;
@@ -11743,16 +11810,37 @@ button:disabled:active {
 }
 
 /* ---- Persistent School HUD (lobby bar) ---- */
+/* Restructured round 15 to match Dylan's own reference mockup: a header
+   row (icon + label + "LV X -> Y" transition text), the bar, then a
+   footer row (XP so far / XP remaining) -- stacked, not the old single
+   inline row, because the mockup's version carries more information than
+   one line can hold without truncating on a narrower screen. */
 .school-hud {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   margin: 14px 0 4px;
-  padding: 10px 16px;
+  padding: 14px 16px;
   border: 1px solid rgba(var(--mode-accent-rgb), 0.35);
   border-radius: calc(14px * var(--mode-radius-scale, 1));
   background: linear-gradient(90deg, rgba(0, 0, 0, 0.35), rgba(var(--mode-accent-rgb), 0.1));
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.school-hud-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.school-hud-row-footer {
+  justify-content: space-between;
+}
+
+.school-hud-tag-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: rgb(var(--mode-accent-rgb));
 }
 
 .school-hud-tag,
@@ -11763,6 +11851,20 @@ button:disabled:active {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.5);
+}
+
+.school-hud-transition {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.school-hud-xp-remaining {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .school-quest-bar-wrap {
@@ -11844,9 +11946,10 @@ button:disabled:active {
 
 .school-hud-xp {
   flex-shrink: 0;
-  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--text-secondary);
+  color: #e3a83b;
   white-space: nowrap;
 }
 
@@ -11912,33 +12015,19 @@ button:disabled:active {
   );
 }
 
-/* ---- Cross-class timeline: per-class color + kind icons ---- */
-.school-page .deadline-item {
-  border-left: 4px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.75);
-}
-
-.deadline-kind-assignment,
-.deadline-kind-test {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-}
-
-/* Canvas rows read as external/read-only -- a dashed edge instead of the
-   solid class-color stripe every local item gets, per Dylan's own "yes"
-   to Canvas items looking visibly different. */
-.school-page .deadline-item:has(.deadline-kind-canvas) {
-  border-left-style: dashed;
-  border-left-color: rgba(255, 255, 255, 0.25);
-}
+/* ---- Cross-class timeline ----
+   Round 15: dropped the left-border-accent stripe (both the per-class
+   color version and the Canvas dashed version) per Dylan's own design
+   brief, which explicitly rules out left-border-accent cards/rows. The
+   date chip + right-aligned pill now carry the "what is this / where did
+   it come from" signal instead, so the border can go back to being a
+   plain, quiet row edge like every other list in this app. */
 
 /* A lingering-completed item (visible for 24h, per Dylan's own ask) reads
    as done, not urgent -- overrides whatever overdue/soon tone it would
    otherwise carry. */
 .deadline-done {
   opacity: 0.6;
-  border-left-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 .deadline-done strong {
