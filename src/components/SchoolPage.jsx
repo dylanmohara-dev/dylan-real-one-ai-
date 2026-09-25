@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Check, Flame, Swords, FileText, X, ExternalLink } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
-import HeroPhotoButton from './HeroPhotoButton.jsx'
 import RadialProgress from './RadialProgress.jsx'
 
 // Standard US 4.0 scale. No school-specific customization yet (some
@@ -183,16 +182,16 @@ function currentStreakFromTotals(totals) {
 // than stored on the class or picked in a settings UI, so every class --
 // including ones already saved before this existed -- gets a distinct,
 // legible color immediately, with no migration and no new field.
+// 4 fixed category accents (design-brief round 14) -- replaces the old
+// 9-hue hash palette. Fewer, curated hues that were chosen specifically
+// not to clash with the gold that owns the rest of the page, instead of
+// a hash spraying nine competing colors (one of which was itself
+// amber/yellow) across a page that's already gold end to end.
 const CLASS_COLOR_PALETTE = [
-  '239, 68, 68', // crimson
-  '245, 158, 11', // amber
-  '132, 204, 22', // lime
-  '16, 185, 129', // emerald
-  '6, 182, 212', // cyan
-  '59, 130, 246', // azure
-  '139, 92, 246', // violet
-  '217, 70, 239', // fuchsia
-  '244, 63, 94', // rose
+  '111, 198, 222', // teal
+  '227, 138, 155', // maroon
+  '199, 158, 224', // plum
+  '127, 216, 160', // green
 ]
 
 function classColorRgb(classId) {
@@ -220,6 +219,64 @@ function bossHp(test, tasks) {
 // bestStreak is the LONGEST current streak across any one class, not a
 // sum -- summing would reward spreading thin work across many classes
 // over actually staying consistent in any single one.
+// Flat, hand-drawn (not photographic) golden-hour campus skyline -- the
+// hero banner's whole point per the design brief is to replace the old
+// stock photo with real illustration: gothic towers, a clock tower, a
+// domed hall, silhouetted in near-black against a layered sunset sky.
+// Every shape is a plain SVG primitive (rects/polygons/circles/paths) --
+// no photo, no gradients-as-a-crutch, just a skyline reads instantly even
+// at a glance.
+function SchoolHeroSkyline() {
+  return (
+    <svg
+      className="school-hero-skyline"
+      viewBox="0 0 800 220"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <rect x="-10" y="150" width="90" height="80" />
+      <rect x="70" y="100" width="46" height="130" />
+      <polygon points="70,100 93,62 116,100" />
+      <rect x="130" y="140" width="70" height="90" />
+      <rect x="210" y="115" width="54" height="115" />
+      <circle cx="237" cy="98" r="17" fill="none" stroke="#100c08" strokeWidth="6" />
+      <rect x="234" y="80" width="6" height="14" />
+      <rect x="230" y="96" width="14" height="4" />
+      <rect x="276" y="150" width="64" height="80" />
+      <path d="M348 150 a62 62 0 0 1 124 0 z" />
+      <rect x="340" y="150" width="140" height="80" />
+      <rect x="492" y="120" width="50" height="110" />
+      <polygon points="492,120 517,86 542,120" />
+      <rect x="556" y="145" width="80" height="85" />
+      <rect x="646" y="105" width="44" height="125" />
+      <rect x="700" y="135" width="68" height="95" />
+      <polygon points="700,135 734,100 768,135" />
+      <rect x="780" y="155" width="40" height="75" />
+    </svg>
+  )
+}
+
+function SchoolHero({ level, onJumpToClasses }) {
+  return (
+    <div className="school-hero">
+      <div className="school-hero-sun" aria-hidden="true" />
+      <SchoolHeroSkyline />
+      <div className="school-hero-content">
+        <span className="eyebrow school-hero-eyebrow">SCHOOL MODE</span>
+        <h1 className="school-hero-title">School</h1>
+        <p className="school-hero-subtitle">Pick a class, or add a new one.</p>
+      </div>
+      <div className="school-hero-lvl" title={`Level ${level}`}>
+        <span className="school-hero-lvl-label">LVL</span>
+        <span className="school-hero-lvl-value">{level}</span>
+      </div>
+      <button type="button" className="school-hero-cta" onClick={onJumpToClasses}>
+        View your classes
+      </button>
+    </div>
+  )
+}
+
 function SchoolHUD({ classes, assignments, tests }) {
   const totalXp = schoolTotalXP(classes, assignments, tests)
   const { level, xpIntoLevel, xpForNextLevel } = computeClassLevel(totalXp)
@@ -551,24 +608,15 @@ export default function SchoolPage({
   }
 
   if (!selectedClassId) {
+    const heroLevel = computeClassLevel(schoolTotalXP(classes, assignments, tests)).level
     return (
       <div className="page school-page">
-        <div
-          className={`page-header${heroImages?.school ? ' mode-hero' : ''}`}
-          style={heroImages?.school ? { '--hero-photo': `url(${heroImages.school})` } : undefined}
-        >
-          <HeroPhotoButton
-            modeKey="school"
-            heroUrl={heroImages?.school}
-            onChange={updateHeroImage}
-            onReset={resetHeroImage}
-          />
-          <div>
-            <span className="eyebrow">SCHOOL MODE</span>
-            <h1 className="serif">School</h1>
-            <p>Pick a class, or add a new one.</p>
-          </div>
-        </div>
+        <SchoolHero
+          level={heroLevel}
+          onJumpToClasses={() => {
+            document.getElementById('school-classes-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
+        />
 
         <SchoolHUD classes={classes} assignments={assignments} tests={tests} />
 
@@ -631,7 +679,11 @@ export default function SchoolPage({
           </button>
         </div>
 
-        <div className="items-list school-classes-grid">
+        <div className="school-section-header">
+          <h2>Your Classes</h2>
+        </div>
+
+        <div className="items-list school-classes-grid" id="school-classes-grid">
           {classes.length ? (
             classes.map((schoolClass) => {
               const avg = classAverage(schoolClass.id, assignments, tests)

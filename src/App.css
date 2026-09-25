@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Lora:wght@500;600;700&family=Bebas+Neue&family=Anton&family=Quicksand:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&family=Poppins:wght@500;600;700&family=Crimson+Pro:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Fredoka:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Oswald:wght@400;500;600&family=Orbitron:wght@500;600;700;800&family=Bitter:wght@500;600;700&family=Comfortaa:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Caveat:wght@600;700&family=Audiowide&family=Rajdhani:wght@500;600;700&family=Press+Start+2P&family=Baloo+2:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700;800&family=Lora:wght@500;600;700&family=Bebas+Neue&family=Anton&family=Quicksand:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&family=Poppins:wght@500;600;700&family=Crimson+Pro:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Fredoka:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Oswald:wght@400;500;600&family=Orbitron:wght@500;600;700;800&family=Bitter:wght@500;600;700&family=Comfortaa:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Caveat:wght@600;700&family=Audiowide&family=Rajdhani:wght@500;600;700&family=Press+Start+2P&family=Baloo+2:wght@500;600;700&display=swap');
 
 * {
   box-sizing: border-box;
@@ -411,7 +411,47 @@ select option {
    the top bar (and anything else outside .app-shell) picks up mode color
    too, instead of always falling back to the :root defaults. */
 
-.app-root.theme-school {  --mode-accent-rgb: 244, 196, 48;  --mode-accent2-rgb: 255, 157, 58;  --mode-heading-font: 'Anton', sans-serif;  --mode-radius-scale: 0.3;  --mode-border-width: 1px;  --bg-glow-1: rgba(244, 196, 48, 0.42);  --bg-glow-2: rgba(255, 157, 58, 0.3);  --bg: #1c1608;  --mode-tracking: -0.01em;  --mode-body-font: 'Barlow Condensed', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(57, 48, 23, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
+/* School's full palette, replaced per Dylan's design brief (round 14) --
+   the old theme used gold/orange for nearly everything (background glow,
+   borders, badges, headers), which is exactly why headers disappeared
+   and the page read as "too yellow." Gold is now reserved to four jobs
+   only: primary CTA, progress-bar fills, and the hero LVL badge -- never
+   headers, borders, or backgrounds. Four category colors (teal / maroon
+   / plum / green) carry class-card identity instead of gold. */
+.app-root.theme-school {
+  --mode-accent-rgb: 227, 168, 59;       /* #E3A83B gold core -- CTA/progress/LVL badge ONLY */
+  --mode-accent2-rgb: 240, 195, 104;     /* #F0C368 gold hover/light, for gold gradients only */
+  --mode-gold-deep-rgb: 138, 90, 29;     /* #8A5A1D gold deep, gradient shadows only */
+  --mode-heading-font: 'Playfair Display', serif;
+  --mode-body-font: 'Manrope', sans-serif;
+  --mode-mono-font: 'IBM Plex Mono', monospace;
+  --mode-radius-scale: 0.55;
+  --mode-border-width: 1px;
+  --bg-glow-1: rgba(227, 168, 59, 0.16);
+  --bg-glow-2: rgba(138, 90, 29, 0.14);
+  --bg: #16130f;                         /* espresso charcoal page background */
+  --mode-tracking: -0.01em;
+  --surface: #221c15;                    /* panel / card surface */
+  --surface-hover: #2a2219;              /* elevated / hover surface */
+  --surface-input: #221c15;
+  --surface-strong: #2a2219;
+  --border: #3d3226;                     /* hairline borders / dividers */
+  --border-strong: rgba(227, 168, 59, 0.4);
+  --text-primary: #f3e9d2;               /* headers, primary text (parchment) */
+  --text-secondary: #c9bba0;             /* body text */
+  --text-muted: #a69a85;                 /* labels, meta, timestamps */
+
+  /* Category accent pairs -- each class/item gets one of these, never
+     gold. classColorRgb() in SchoolPage.jsx cycles through these four. */
+  --school-cat-1-bg: 28, 58, 68;      --school-cat-1-bright: 111, 198, 222;  /* teal */
+  --school-cat-2-bg: 58, 22, 32;      --school-cat-2-bright: 227, 138, 155;  /* maroon */
+  --school-cat-3-bg: 51, 34, 59;      --school-cat-3-bright: 199, 158, 224;  /* plum */
+  --school-cat-4-bg: 30, 59, 42;      --school-cat-4-bright: 127, 216, 160;  /* green */
+
+  /* Status/type badge colors -- exact per spec, used nowhere else. */
+  --school-badge-standard-bg: #1f4552;    --school-badge-standard-text: #9fe0ef;
+  --school-badge-urgent-bg: #5c1e2a;      --school-badge-urgent-text: #f2b8c2;
+  --school-badge-synced-border: #4a4032;  --school-badge-synced-text: #a69a85;
 }
 
 .app-root.theme-sports {  --mode-accent-rgb: 34, 197, 94;  --mode-accent2-rgb: 163, 230, 53;  --mode-heading-font: 'Space Grotesk', sans-serif;  --mode-radius-scale: 0.5;  --mode-border-width: 1px;  --bg-glow-1: rgba(34, 197, 94, 0.42);  --bg-glow-2: rgba(163, 230, 53, 0.3);  --bg: #06190f;  --mode-tracking: -0.005em;  --mode-body-font: 'Manrope', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(19, 49, 32, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
@@ -9555,6 +9595,209 @@ button:disabled:active {
   flex-shrink: 0;
 }
 
+/* ============ SCHOOL SECTION HEADERS (round 14) ============
+   Scoped to .school-page only -- .panel-heading h2 is shared by every
+   other mode and stays untouched there. This is the fix for "section
+   headers aren't visible": Playfair Display at real size, paired with a
+   gold vertical rule per the design brief -- the rule is what stops it
+   blending into the background, not just bumping the font size. */
+.school-page .panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.school-page .panel-heading::before {
+  content: '';
+  flex-shrink: 0;
+  width: 4px;
+  align-self: stretch;
+  min-height: 28px;
+  border-radius: 2px;
+  background: #e3a83b;
+  box-shadow: 0 0 10px rgba(227, 168, 59, 0.5);
+}
+
+.school-page .panel-heading h2 {
+  margin: 0;
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--text-primary);
+}
+
+.school-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 14px;
+}
+
+.school-section-header::before {
+  content: '';
+  flex-shrink: 0;
+  width: 4px;
+  align-self: stretch;
+  min-height: 28px;
+  border-radius: 2px;
+  background: #e3a83b;
+  box-shadow: 0 0 10px rgba(227, 168, 59, 0.5);
+}
+
+.school-section-header h2 {
+  margin: 0;
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--text-primary);
+}
+
+/* ============ SCHOOL HERO (round 14, design-brief rebuild) ============
+   Flat illustrated skyline replacing the old stock photo, per the brief's
+   explicit "no fake photos" rule. Self-contained -- doesn't touch the
+   shared .mode-hero/.page-header photo system other modes still use. */
+.school-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: calc(18px * var(--mode-radius-scale, 1));
+  min-height: 300px;
+  display: flex;
+  align-items: flex-end;
+  padding: 28px 28px 32px;
+  margin-bottom: 4px;
+  background: linear-gradient(180deg, #1a1330 0%, #3b2a2e 32%, #7a4b2e 60%, #c98a3e 82%, #e3a83b 100%);
+}
+
+.school-hero-sun {
+  position: absolute;
+  right: 12%;
+  top: 18%;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(243, 233, 210, 0.9), rgba(227, 168, 59, 0.55) 40%, transparent 72%);
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+.school-hero-skyline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 46%;
+  fill: #100c08;
+  pointer-events: none;
+}
+
+.school-hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* Room for the absolutely-positioned CTA pill sitting at the same
+     bottom edge -- without this the subtitle text and the pill overlap. */
+  padding-bottom: 46px;
+  max-width: 60%;
+}
+
+.school-hero-eyebrow {
+  color: var(--text-muted);
+  text-shadow: none;
+}
+
+.school-hero-title {
+  margin: 0;
+  font-family: 'Playfair Display', serif;
+  font-weight: 800;
+  font-size: clamp(36px, 6vw, 64px);
+  line-height: 1.05;
+  color: var(--text-primary);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+}
+
+.school-hero-subtitle {
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+}
+
+.school-hero-lvl {
+  position: absolute;
+  z-index: 3;
+  top: 20px;
+  right: 20px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid #e3a83b;
+  background: rgba(16, 12, 8, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(227, 168, 59, 0.5);
+}
+
+.school-hero-lvl-label {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #f3e9d2;
+}
+
+.school-hero-lvl-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 20px;
+  color: #f3e9d2;
+  line-height: 1.1;
+}
+
+.school-hero-cta {
+  position: absolute;
+  z-index: 3;
+  left: 28px;
+  bottom: 32px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #f0c368, #e3a83b);
+  color: #100c08;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(227, 168, 59, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.school-hero-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(227, 168, 59, 0.5);
+}
+
+@media (max-width: 640px) {
+  .school-hero {
+    min-height: 240px;
+    padding: 20px 18px 24px;
+  }
+  .school-hero-lvl {
+    width: 52px;
+    height: 52px;
+  }
+}
+
 /* ============ AI FEVER-DREAM VISUAL LANGUAGE ============
    Shared by every AI entry point in the app: the home "Ask Dylan AI"
    launcher, each mode's own launcher (Ask The Professor, etc.), the
@@ -11549,11 +11792,30 @@ button:disabled:active {
   position: relative;
   flex: 1;
   max-width: 320px;
-  height: 12px;
+  height: 18px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
+}
+
+/* Quarter-mark ticks -- the Overall strip is the one bar that spans a
+   whole level, so it's the one that gets ticks; per-class bars stay
+   plain. Makes it read as "thick + calibrated" next to the thin flat
+   per-class bars, per Dylan's own ask that the two not look the same. */
+.school-hud-track::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent calc(25% - 1px),
+    rgba(0, 0, 0, 0.35) calc(25% - 1px),
+    rgba(0, 0, 0, 0.35) 25%
+  );
 }
 
 .school-hud-fill {
@@ -11561,7 +11823,7 @@ button:disabled:active {
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, rgb(var(--mode-accent-rgb)), rgba(var(--mode-accent-rgb), 0.7));
-  box-shadow: 0 0 10px rgba(var(--mode-accent-rgb), 0.7);
+  box-shadow: 0 0 14px rgba(var(--mode-accent-rgb), 0.8);
   transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
 }
@@ -11771,7 +12033,7 @@ button:disabled:active {
   position: relative;
   flex: 1;
   min-width: 60px;
-  height: 10px;
+  height: 8px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -11779,18 +12041,17 @@ button:disabled:active {
 }
 
 .school-quest-bar.lg .school-quest-track {
-  height: 14px;
+  height: 10px;
 }
 
+/* Flat gold, no glow, no shine animation -- deliberately the quieter of
+   the app's two progress bars. The Overall strip (thick, glowing,
+   ticked) is the one that reads as "big status"; this is a small
+   per-class readout and stays flat so the two never look interchangeable. */
 .school-quest-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgb(var(--class-color-rgb, var(--mode-accent-rgb))),
-    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.65)
-  );
-  box-shadow: 0 0 8px rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.8);
+  background: #e3a83b;
   transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
