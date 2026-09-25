@@ -646,6 +646,64 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
     const notes = loadData('notes').slice(-50)
     const liveContext = await getLiveContextBlock()
 
+    // Session 40: this system prompt used to cover ONLY tasks/goals/notes/
+    // memories, so any question about a specific life area -- "how many
+    // classes do I have," anything about workouts, reading, habits, family,
+    // accounts -- had zero real data behind it. The model didn't refuse or
+    // hedge, it just guessed and stated the guess as fact (a real, confirmed
+    // case: asked "how many classes," told 2, actual answer 9). This block
+    // gives it real counts and names for every area covered elsewhere in
+    // the app, so a gap becomes an honest "I don't have that specific
+    // detail" instead of an invented number. Kept to counts/names, not full
+    // records, to avoid ballooning every single message's prompt size on
+    // top of an already-real speed problem.
+    const snapshotClasses = loadData('classes')
+    const snapshotAssignments = loadData('assignments')
+    const snapshotTests = loadData('tests')
+    const snapshotOpenAssignments = snapshotAssignments.filter((a) => !a.completed).length
+    const snapshotOpenTests = snapshotTests.filter((t) => !t.completed).length
+    const snapshotSportsSessions = loadData('sports_sessions')
+    const snapshotGymSessions = loadData('gym_sessions')
+    const snapshotGymRoutines = loadData('gym_routines')
+    const snapshotToday = todayKey()
+    // health.json is inconsistent -- older rows never got a `date` field at
+    // all, only `createdAt` (an ISO timestamp). Filtering on `.date` alone
+    // silently dropped every entry that predates when `date` was added,
+    // which would have made this snapshot say "0 entries today" even on a
+    // day with real entries logged -- a false negative that's just as much
+    // a lie as the hallucinated numbers this whole feature exists to stop.
+    // Falling back to createdAt's LOCAL calendar date (same y/m/d approach
+    // todayKey() itself uses, not a UTC string slice) covers both shapes.
+    const localDateKeyFromISO = (iso) => {
+      const d = new Date(iso)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    const snapshotHealthToday = loadData('health').filter(
+      (e) => (e.date || (e.createdAt && localDateKeyFromISO(e.createdAt))) === snapshotToday
+    )
+    const snapshotFinanceAccounts = loadData('finance_accounts')
+    const snapshotNetWorth = snapshotFinanceAccounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0)
+    const snapshotSkills = loadData('skills').filter((s) => s.active !== false)
+    const snapshotBooks = loadData('reading_books').filter((b) => b.status !== 'finished' && b.status !== 'dropped')
+    const snapshotHabits = loadData('mind_habits').filter((h) => h.active !== false)
+    const snapshotFamily = loadData('family_members')
+
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+    const pluralY = (n, singular, pluralForm) => `${n} ${n === 1 ? singular : pluralForm}`
+
+    const lifeAreasSnapshot = `
+LIFE AREAS SNAPSHOT (real counts and names, not estimates -- if Dylan asks about a life area and the detail he wants isn't listed here, say plainly that you don't have that specific detail rather than guessing a number):
+- School: ${pluralY(snapshotClasses.length, 'class', 'classes')}${snapshotClasses.length ? ` (${snapshotClasses.map((c) => c.name).join('; ')})` : ''}, ${plural(snapshotOpenAssignments, 'open assignment')} and ${plural(snapshotOpenTests, 'open test')} tracked locally (this does NOT include Canvas-synced assignments/tests -- say you don't have live access to that list if Dylan asks specifically about Canvas items)
+- Sports: ${plural(snapshotSportsSessions.length, 'session')} logged
+- Gym: ${plural(snapshotGymSessions.length, 'session')} logged, ${plural(snapshotGymRoutines.length, 'routine')} saved
+- Health: ${pluralY(snapshotHealthToday.length, 'entry', 'entries')} logged today
+- Finance: ${plural(snapshotFinanceAccounts.length, 'account')}${snapshotFinanceAccounts.length ? `, net worth $${snapshotNetWorth.toLocaleString()}` : ''}
+- Skills: ${plural(snapshotSkills.length, 'active skill')}${snapshotSkills.length ? ` (${snapshotSkills.map((s) => s.name).join(', ')})` : ''}
+- Reading: ${plural(snapshotBooks.length, 'book')} in progress${snapshotBooks.length ? ` (${snapshotBooks.map((b) => `${b.title}: ${b.currentPage}/${b.totalPages || '?'} pages`).join(', ')})` : ''}
+- Mind: ${plural(snapshotHabits.length, 'active habit')}${snapshotHabits.length ? ` (${snapshotHabits.map((h) => h.name).join(', ')})` : ''}
+- Family: ${plural(snapshotFamily.length, 'member')}${snapshotFamily.length ? ` (${snapshotFamily.map((m) => m.name).join(', ')})` : ''}
+`
+
     // Only pulled in Finance mode -- keeps the prompt short everywhere else,
     // same reasoning as GMAIL/SLACK sections only appearing when connected.
     // Real holdings and screened ideas, not just style rules, are what let
@@ -678,6 +736,7 @@ ${goals.map((g) => `- ${g.title} | ${g.progress}% complete`).join('\n') || '- No
 
 NOTES:
 ${notes.map((n) => `- ${n.content}`).join('\n') || '- None'}
+${lifeAreasSnapshot}
 ${tradingContext}
 ${liveContext}
 `
