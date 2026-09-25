@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Flame, Swords } from 'lucide-react'
+import { Check, Flame, Swords, FileText, X } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
 import RadialProgress from './RadialProgress.jsx'
@@ -125,17 +125,11 @@ function computeClassLevel(xp) {
   return { level, xpIntoLevel: remaining, xpForNextLevel: required }
 }
 
-function toRoman(num) {
-  const table = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
-  let n = Math.max(1, num)
-  let out = ''
-  for (const [value, symbol] of table) {
-    while (n >= value) {
-      out += symbol
-      n -= value
-    }
-  }
-  return out || 'I'
+// Aggregate across every class -- School's own overall level, distinct
+// from any single class's level and from the app-wide player level
+// (TopSettingsBar/lib/playerXP.js).
+function schoolTotalXP(classes, assignments, tests) {
+  return classes.reduce((sum, c) => sum + classXP(c.id, assignments, tests), 0)
 }
 
 function classXP(classId, assignments, tests) {
@@ -221,6 +215,36 @@ function bossHp(test, tasks) {
   return Math.round(100 - (done / planTasks.length) * 100)
 }
 
+// Persistent School-mode HUD -- Dylan's explicit ask for a lobby-style bar
+// pinned at the top, separate from the page content scrolling below it.
+// bestStreak is the LONGEST current streak across any one class, not a
+// sum -- summing would reward spreading thin work across many classes
+// over actually staying consistent in any single one.
+function SchoolHUD({ classes, assignments, tests }) {
+  const totalXp = schoolTotalXP(classes, assignments, tests)
+  const { level, xpIntoLevel, xpForNextLevel } = computeClassLevel(totalXp)
+  const pct = Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100))
+  const bestStreak = classes.reduce((max, c) => {
+    const streak = currentStreakFromTotals(classCompletionDayTotals(c.id, assignments, tests))
+    return Math.max(max, streak)
+  }, 0)
+  return (
+    <div className="school-hud">
+      <span className="school-hud-level">LV {level}</span>
+      <div className="school-hud-track" title={`${xpIntoLevel} / ${xpForNextLevel} XP to next level`}>
+        <div className="school-hud-fill" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="school-hud-xp">{xpIntoLevel} / {xpForNextLevel} XP</span>
+      {bestStreak > 0 && (
+        <span className="school-hud-streak" title={`Best current streak: ${bestStreak} day${bestStreak === 1 ? '' : 's'}`}>
+          <Flame size={14} strokeWidth={2.5} />
+          {bestStreak}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function ClassQuestBar({ classId, assignments, tests, size }) {
   const xp = classXP(classId, assignments, tests)
   const { level, xpIntoLevel, xpForNextLevel } = computeClassLevel(xp)
@@ -229,7 +253,7 @@ function ClassQuestBar({ classId, assignments, tests, size }) {
   return (
     <div className={`school-quest-bar${size === 'lg' ? ' lg' : ''}`}>
       <span className="school-quest-level" title={`Level ${level} in this class`}>
-        {toRoman(level)}
+        LV {level}
       </span>
       <div className="school-quest-track" title={`${xpIntoLevel} / ${xpForNextLevel} XP to next level`}>
         <div className="school-quest-fill" style={{ width: `${pct}%` }} />
@@ -288,6 +312,13 @@ function deadlineLabel(daysUntil, dateKey) {
   return `Due in ${daysUntil} days${weekday}`
 }
 
+const LINGER_MS = 24 * 60 * 60 * 1000
+
+function stillLingering(item) {
+  if (!item.completed || !item.completedAt) return false
+  return Date.now() - new Date(item.completedAt).getTime() < LINGER_MS
+}
+
 function upcomingItems(classes, assignments, tests, canvasAssignments) {
   const today = todayKey()
   const classNameById = Object.fromEntries(classes.map((c) => [c.id, c.name]))
@@ -301,7 +332,7 @@ function upcomingItems(classes, assignments, tests, canvasAssignments) {
   )
 
   const fromAssignments = assignments
-    .filter((a) => !a.completed && a.dueDate)
+    .filter((a) => a.dueDate && (!a.completed || stillLingering(a)))
     .map((a) => ({
       id: `assignment-${a.id}`,
       kind: 'Assignment',
@@ -309,11 +340,12 @@ function upcomingItems(classes, assignments, tests, canvasAssignments) {
       className: classNameById[a.classId] || 'Unknown class',
       classId: a.classId,
       dueDate: a.dueDate,
+      completed: Boolean(a.completed),
       raw: a,
     }))
 
   const fromTests = tests
-    .filter((t) => !t.completed && t.date)
+    .filter((t) => t.date && (!t.completed || stillLingering(t)))
     .map((t) => ({
       id: `test-${t.id}`,
       kind: 'Test',
@@ -321,6 +353,7 @@ function upcomingItems(classes, assignments, tests, canvasAssignments) {
       className: classNameById[t.classId] || 'Unknown class',
       classId: t.classId,
       dueDate: t.date,
+      completed: Boolean(t.completed),
       raw: t,
     }))
 
@@ -410,7 +443,6 @@ export default function SchoolPage({
     )
   }
   const { weighted: weightedGPA, unweighted: unweightedGPA, gradedCount } = computeGPAs(classes, assignments, tests)
-  const deadlines = upcomingItems(classes, assignments, tests, canvas?.assignments)
 
   // Decluttering fix: Dylan's own complaint was that "Coming up" felt
   // cluttered -- it used to be one flat list, unlimited length, with no
@@ -424,6 +456,14 @@ export default function SchoolPage({
   // (driven by the real completed flag) drops it from the list on the
   // next data refresh.
   const [celebratingId, setCelebratingId] = useState(null)
+  // Manual "remove now" for a lingering-completed item (see deadline-
+  // dismiss below) -- declared before `deadlines` uses it; a const
+  // referenced above its own declaration would throw at runtime (temporal
+  // dead zone), not just read as undefined.
+  const [dismissedIds, setDismissedIds] = useState(() => new Set())
+  const deadlines = upcomingItems(classes, assignments, tests, canvas?.assignments).filter(
+    (item) => !dismissedIds.has(item.id)
+  )
   function completeWithCelebration(item) {
     setCelebratingId(item.id)
     window.setTimeout(() => {
@@ -436,7 +476,7 @@ export default function SchoolPage({
   const laterDeadlines = deadlines.filter((item) => item.daysUntil > 7)
 
   function renderDeadlineItem(item) {
-    const tone = item.daysUntil < 0 ? 'overdue' : item.daysUntil <= 2 ? 'soon' : 'normal'
+    const tone = item.completed ? 'done' : item.daysUntil < 0 ? 'overdue' : item.daysUntil <= 2 ? 'soon' : 'normal'
     const isCanvas = item.kind === 'Canvas'
     const isCelebrating = celebratingId === item.id
     return (
@@ -453,25 +493,43 @@ export default function SchoolPage({
           <span className="check-button check-button-canvas" title="From Canvas -- mark done in Canvas itself"></span>
         ) : (
           <button
-            className={`check-button${isCelebrating ? ' check-button-done' : ''}`}
+            className={`check-button${isCelebrating || item.completed ? ' check-button-done' : ''}`}
             onClick={(event) => {
               event.stopPropagation()
-              if (!isCelebrating) completeWithCelebration(item)
+              if (!isCelebrating && !item.completed) completeWithCelebration(item)
             }}
-            title="Mark done"
+            title={item.completed ? 'Done' : 'Mark done'}
           >
-            {isCelebrating && <Check size={14} strokeWidth={3} />}
+            {(isCelebrating || item.completed) && <Check size={14} strokeWidth={3} />}
           </button>
         )}
         <span className={`deadline-kind deadline-kind-${item.kind.toLowerCase()}`}>
           {item.kind === 'Test' && <Swords size={10} strokeWidth={2.5} />}
+          {item.kind === 'Assignment' && <FileText size={10} strokeWidth={2.5} />}
           {item.kind}
         </span>
         <div className="deadline-body">
           <strong>{item.title}</strong>
           <span className="deadline-class">{item.className}</span>
         </div>
-        <span className="deadline-when">{deadlineLabel(item.daysUntil, item.dueDate)}</span>
+        {item.completed ? (
+          <span className="deadline-when deadline-when-done">Done</span>
+        ) : (
+          <span className="deadline-when">{deadlineLabel(item.daysUntil, item.dueDate)}</span>
+        )}
+        {item.completed && (
+          <button
+            type="button"
+            className="deadline-dismiss"
+            title="Remove now"
+            onClick={(event) => {
+              event.stopPropagation()
+              setDismissedIds((prev) => new Set(prev).add(item.id))
+            }}
+          >
+            <X size={12} strokeWidth={2.5} />
+          </button>
+        )}
       </div>
     )
   }
@@ -496,7 +554,9 @@ export default function SchoolPage({
           </div>
         </div>
 
-        <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />
+        <SchoolHUD classes={classes} assignments={assignments} tests={tests} />
+
+      <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />
 
         {weightedGPA !== null && (
           <div className="school-gpa-banner">
@@ -555,7 +615,7 @@ export default function SchoolPage({
           </button>
         </div>
 
-        <div className="items-list">
+        <div className="items-list school-classes-grid">
           {classes.length ? (
             classes.map((schoolClass) => {
               const avg = classAverage(schoolClass.id, assignments, tests)
@@ -649,6 +709,8 @@ export default function SchoolPage({
           ← Back to Classes
         </button>
       </div>
+
+      <SchoolHUD classes={classes} assignments={assignments} tests={tests} />
 
       <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />
 
@@ -849,12 +911,17 @@ export default function SchoolPage({
                     </div>
 
                     {!test.completed && (
-                      <div className="school-boss-bar" title="Boss HP -- drops as you complete this test's study plan">
-                        <Swords size={13} strokeWidth={2.5} />
+                      <div
+                        className={`school-boss-bar${bossHp(test, tasks) <= 30 ? ' school-boss-low' : ''}`}
+                        title="Boss HP -- drops as you complete this test's study plan. A 90%+ grade is what actually defeats it."
+                      >
+                        <Swords size={14} strokeWidth={2.5} />
+                        <span className="school-boss-label-text">Boss</span>
                         <div className="school-boss-track">
                           <div className="school-boss-fill" style={{ width: `${bossHp(test, tasks)}%` }} />
                         </div>
                         <span className="school-boss-label">{bossHp(test, tasks)}% HP</span>
+                        <Swords size={14} strokeWidth={2.5} />
                       </div>
                     )}
 

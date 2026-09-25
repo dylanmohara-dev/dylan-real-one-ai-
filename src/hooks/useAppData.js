@@ -2557,11 +2557,28 @@ export function useAppData() {
 
   async function setTestGrade(test, grade) {
     try {
+      const numericGrade = grade === '' ? null : Number(grade)
       await request(`/tests/${test.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ grade: grade === '' ? null : Number(grade) }),
+        body: JSON.stringify({ grade: numericGrade }),
       })
       await loadData()
+
+      // Boss Battle payoff (SchoolPage.jsx): Dylan's own rule is a genuine
+      // 90%+ to count as beating the boss, not just logging any grade.
+      // Guarded on the OLD grade so re-saving an already-90+ grade (fixing
+      // a typo, say) doesn't refire the celebration every time.
+      const previousGrade = test.grade === null || test.grade === undefined ? null : Number(test.grade)
+      if (numericGrade !== null && numericGrade >= 90 && (previousGrade === null || previousGrade < 90)) {
+        pushAchievement({
+          kind: 'levelup',
+          title: 'BOSS DEFEATED',
+          subtitle: `${test.title} -- ${numericGrade}%`,
+          duration: 3600,
+        })
+        maybePlaySound('levelup')
+        awardXP('boss-defeated')
+      }
     } catch (error) {
       showError(error.message)
     }

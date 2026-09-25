@@ -2744,13 +2744,15 @@ footer {
 }
 
 .deadline-kind-assignment {
-  background: rgba(59, 130, 246, 0.16);
-  color: rgb(96, 165, 250);
+  background: rgba(59, 130, 246, 0.26);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  color: rgb(147, 197, 253);
 }
 
 .deadline-kind-test {
-  background: rgba(244, 63, 94, 0.16);
-  color: rgb(251, 113, 133);
+  background: rgba(244, 63, 94, 0.26);
+  border: 1px solid rgba(244, 63, 94, 0.5);
+  color: rgb(253, 164, 175);
 }
 
 .deadline-kind-canvas {
@@ -11319,25 +11321,179 @@ button:disabled:active {
 }
 
 /* ============ SCHOOL: game dashboard -- per-class quest system + boss
-   battles (round 12) ============
-   Dylan's own diagnosis of School mode: "everything is the same color,
-   hard to distinguish," wants "the whole picture ahead," and wants it to
-   feel like a game-like dashboard (XP bars, levels, streaks, boss-battle
-   framing for tests) -- built with real CSS/SVG/JS, not the photorealistic
-   3D-engine spec he also proposed, which this stack cannot produce (see
-   the conversation this round: that's a separate, unscoped initiative).
-   Every number here reads off real data (SchoolPage.jsx's classXP,
-   computeClassLevel, currentStreakFromTotals, bossHp) -- nothing here is
-   decorative. */
+   battles (round 13, full rebuild) ============
+   Round 12 shipped and Dylan rejected it point by point: colors too thin
+   to see against a page that's entirely gold already, XP bar felt small,
+   boss bar too subtle, list should be a grid, and the whole thing needed
+   to feel like a real game lobby (his reference: Fortnite's lobby/HUD,
+   GTA, a cozy Winterfest-cabin warmth) rather than a spreadsheet with a
+   sliver of color on the edge. This round: full-color-coded class tiles
+   (not hairline borders), a much bigger persistent level/XP HUD, a
+   dramatically redesigned Boss Battle bar, and a warm ambient glow layer
+   for the "cozy, feels like home" request -- built as real 2D CSS, not
+   the photorealistic 3D he also asked for, which this stack genuinely
+   cannot produce (flagged directly with him before this was built). */
 
+/* Cozy ambient warmth -- a slow, soft glow behind the whole page rather
+   than a flat background. This is the honest 2D translation of "cozy
+   cabin lobby feel": warm, alive, softly lit -- not a literal 3D room. */
+.school-page {
+  position: relative;
+}
+
+.school-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 900px 500px at 15% 0%, rgba(255, 180, 80, 0.10), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 40%, rgba(255, 140, 60, 0.07), transparent 65%);
+  animation: schoolCozyGlow 10s ease-in-out infinite;
+}
+
+@keyframes schoolCozyGlow {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+/* ---- Persistent School HUD (lobby bar) ---- */
+.school-hud {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 4px;
+  padding: 10px 16px;
+  border: 1px solid rgba(var(--mode-accent-rgb), 0.35);
+  border-radius: calc(14px * var(--mode-radius-scale, 1));
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.35), rgba(var(--mode-accent-rgb), 0.1));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.school-hud-level {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: #0a0a0a;
+  background: linear-gradient(180deg, rgb(var(--mode-accent-rgb)), rgba(var(--mode-accent-rgb), 0.75));
+  border-radius: 8px;
+  padding: 4px 10px;
+  box-shadow: 0 0 16px rgba(var(--mode-accent-rgb), 0.55);
+}
+
+.school-hud-track {
+  position: relative;
+  flex: 1;
+  max-width: 320px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.school-hud-fill {
+  position: relative;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(var(--mode-accent-rgb)), rgba(var(--mode-accent-rgb), 0.7));
+  box-shadow: 0 0 10px rgba(var(--mode-accent-rgb), 0.7);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+
+.school-hud-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.45) 40%, transparent 60%);
+  background-size: 200% 100%;
+  animation: schoolHudShine 3s linear infinite;
+}
+
+@keyframes schoolHudShine {
+  0% { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
+}
+
+.school-hud-xp {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.school-hud-streak {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  font-weight: 800;
+  color: rgb(251, 146, 60);
+}
+
+/* ---- Class grid tiles ---- */
+.school-classes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+/* Tiles are much narrower than the old full-width rows -- .item-meta's
+   several inline spans (assignment count, test count, average) need to
+   wrap here or they'd overflow the tile and get visually cut off, the
+   exact bug class Dylan keeps flagging app-wide. Scoped to these cards
+   only, not a global change to every mode's .item-meta. */
+.school-page .school-class-card .item-meta {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+/* Full color-coded card -- Dylan's own words: "the color is so small cant
+   really see it also everything is yellow ... so everything blends
+   together." A hairline border was never going to read against a page
+   that's gold end to end -- the class color now owns the whole card. */
 .school-page .item-card.school-class-card {
-  border-left: 3px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.7);
+  border: 2px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.55);
+  background: linear-gradient(
+    145deg,
+    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.32),
+    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.08)
+  );
+  /* Same internal row layout as any other .item-card (ring, content,
+     delete button, side by side) -- only the GRID CONTAINER around these
+     cards changed to arrange multiple per row; the card itself didn't
+     need a different internal shape to become a "tile." */
+  align-items: center;
 }
 
+/* The base .item-card::before is a faint wash of the MODE's hero photo
+   (gold-tinted) -- left on, it muddies the class's own color right back
+   into yellow. Switched off only on these tiles. */
+.school-page .item-card.school-class-card::before,
+.school-page .item-card.school-class-card:hover::before {
+  opacity: 0;
+}
+
+.school-page .item-card.school-class-card:hover {
+  border-color: rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.85);
+  background: linear-gradient(
+    145deg,
+    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.4),
+    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.12)
+  );
+}
+
+/* ---- Cross-class timeline: per-class color + kind icons ---- */
 .school-page .deadline-item {
-  border-left: 3px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.45);
+  border-left: 4px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.75);
 }
 
+.deadline-kind-assignment,
 .deadline-kind-test {
   display: inline-flex;
   align-items: center;
@@ -11345,50 +11501,98 @@ button:disabled:active {
   gap: 3px;
 }
 
+/* Canvas rows read as external/read-only -- a dashed edge instead of the
+   solid class-color stripe every local item gets, per Dylan's own "yes"
+   to Canvas items looking visibly different. */
+.school-page .deadline-item:has(.deadline-kind-canvas) {
+  border-left-style: dashed;
+  border-left-color: rgba(255, 255, 255, 0.25);
+}
+
+/* A lingering-completed item (visible for 24h, per Dylan's own ask) reads
+   as done, not urgent -- overrides whatever overdue/soon tone it would
+   otherwise carry. */
+.deadline-done {
+  opacity: 0.6;
+  border-left-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.deadline-done strong {
+  text-decoration: line-through;
+}
+
+.deadline-when-done {
+  color: var(--text-muted) !important;
+  font-style: italic;
+}
+
+.deadline-dismiss {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.deadline-dismiss:hover {
+  border-color: rgba(244, 63, 94, 0.5);
+  color: rgb(251, 113, 133);
+  background: rgba(244, 63, 94, 0.1);
+}
+
+/* ---- Per-class quest bar (bigger, game-lobby weight) ---- */
 .school-quest-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 3px;
+  gap: 8px;
+  margin-top: 6px;
+  width: 100%;
 }
 
 .school-quest-bar.lg {
-  gap: 10px;
-  margin-top: 8px;
+  gap: 12px;
+  margin-top: 10px;
 }
 
 .school-quest-level {
   flex-shrink: 0;
-  min-width: 18px;
-  text-align: center;
-  font-size: 9.5px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  color: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
-  border: 1px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.5);
-  border-radius: 5px;
-  padding: 1px 4px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  color: #0a0a0a;
+  background: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
+  border-radius: 6px;
+  padding: 3px 7px;
+  box-shadow: 0 0 10px rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.6);
 }
 
 .school-quest-bar.lg .school-quest-level {
-  font-size: 14px;
-  padding: 3px 8px;
-  border-radius: 7px;
+  font-size: 15px;
+  padding: 4px 10px;
+  border-radius: 8px;
 }
 
 .school-quest-track {
+  position: relative;
   flex: 1;
-  min-width: 40px;
-  max-width: 120px;
-  height: 5px;
+  min-width: 60px;
+  height: 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
 }
 
 .school-quest-bar.lg .school-quest-track {
-  height: 8px;
-  max-width: 220px;
+  height: 14px;
 }
 
 .school-quest-fill {
@@ -11396,9 +11600,10 @@ button:disabled:active {
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.95),
-    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.55)
+    rgb(var(--class-color-rgb, var(--mode-accent-rgb))),
+    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.65)
   );
+  box-shadow: 0 0 8px rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.8);
   transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -11407,51 +11612,85 @@ button:disabled:active {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
   color: rgb(251, 146, 60);
 }
 
 .school-quest-bar.lg .school-quest-streak {
-  font-size: 13px;
+  font-size: 14px;
 }
 
-/* Boss Battle HP bar: full health until real prep chips away at it (each
-   completed study-plan session in Tasks mode lands a hit). Deliberately
-   styled apart from the class's own accent color -- a boss fight reads as
-   danger (red/orange) no matter which class it belongs to. */
+/* ---- Boss Battle HP bar: dramatic, unmistakable ---- */
 .school-boss-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 8px 0 0;
-  padding: 6px 10px;
-  border: 1px solid rgba(244, 63, 94, 0.3);
-  border-radius: calc(8px * var(--mode-radius-scale, 1));
-  background: rgba(244, 63, 94, 0.07);
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 9px 12px;
+  border: 2px solid rgba(244, 63, 94, 0.5);
+  border-radius: calc(10px * var(--mode-radius-scale, 1));
+  background: linear-gradient(90deg, rgba(120, 10, 25, 0.35), rgba(244, 63, 94, 0.08));
+  color: rgb(255, 150, 160);
+  box-shadow: 0 0 18px rgba(244, 63, 94, 0.25);
+}
+
+.school-boss-label-text {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: rgb(251, 113, 133);
 }
 
 .school-boss-track {
+  position: relative;
   flex: 1;
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  height: 14px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
   overflow: hidden;
-  border: 1px solid rgba(244, 63, 94, 0.25);
+  border: 1px solid rgba(244, 63, 94, 0.4);
 }
 
 .school-boss-fill {
+  position: relative;
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgb(244, 63, 94), rgb(251, 146, 60));
+  background: linear-gradient(90deg, rgb(190, 20, 40), rgb(244, 63, 94), rgb(251, 146, 60));
+  background-size: 200% 100%;
   transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Segmented health-bar ticks, like a real HUD -- purely visual, laid over
+   the fill. */
+.school-boss-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent calc(10% - 2px),
+    rgba(0, 0, 0, 0.45) calc(10% - 2px),
+    rgba(0, 0, 0, 0.45) 10%
+  );
+  pointer-events: none;
+}
+
+.school-boss-bar.school-boss-low {
+  animation: schoolBossPulse 1s ease-in-out infinite;
+}
+
+@keyframes schoolBossPulse {
+  0%, 100% { box-shadow: 0 0 18px rgba(244, 63, 94, 0.25); }
+  50% { box-shadow: 0 0 28px rgba(244, 63, 94, 0.6); }
 }
 
 .school-boss-label {
   flex-shrink: 0;
-  font-size: 10.5px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 900;
   letter-spacing: 0.03em;
   min-width: 54px;
   text-align: right;
@@ -11459,7 +11698,12 @@ button:disabled:active {
 
 @media (prefers-reduced-motion: reduce) {
   .school-quest-fill,
-  .school-boss-fill {
+  .school-boss-fill,
+  .school-hud-fill,
+  .school-page::before,
+  .school-hud-fill::after,
+  .school-boss-bar.school-boss-low {
     transition: none;
+    animation: none;
   }
 }
