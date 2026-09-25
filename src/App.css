@@ -1936,6 +1936,7 @@ footer {
 }
 
 .overview-ask-ai {
+  position: relative;
   width: 100%;
   display: flex;
   align-items: center;
@@ -1944,22 +1945,45 @@ footer {
   padding: 16px 18px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 16px;
-  background: linear-gradient(90deg, rgba(var(--chrome-rgb), 0.18), rgba(16, 16, 22, 0.6) 70%), rgba(16, 16, 22, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(90deg, rgba(var(--chrome-rgb), 0.22), rgba(16, 16, 22, 0.68) 70%), rgba(16, 16, 22, 0.68);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(var(--chrome-rgb), 0.08) inset;
   text-align: left;
-  transition: all 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease;
   animation: fadeUp 0.3s ease;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  perspective: 800px;
+}
+
+/* Animated shimmering border -- a conic gradient spinning behind the card,
+   masked down to a 1.5px ring, so the edge itself feels alive instead of
+   the whole card. This is the "flashy" cue that reads instantly, cheaply
+   (one element, no JS), and works in any mode's color via --chrome-rgb. */
+.overview-ask-ai::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from 0deg, rgb(var(--chrome-rgb)), #a855f7, #06b6d4, rgb(var(--chrome-rgb)));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: feverDrift 6s linear infinite;
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 .overview-ask-ai:hover {
   border-color: rgba(var(--chrome-rgb), 0.4);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+  transform: translateY(-3px) rotateX(2deg) scale(1.01);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32), 0 0 24px rgba(var(--chrome-rgb), 0.25);
 }
 
 .overview-ask-ai-icon {
+  position: relative;
   width: 34px;
   height: 34px;
   flex-shrink: 0;
@@ -1969,6 +1993,8 @@ footer {
   border-radius: 10px;
   background: linear-gradient(135deg, rgb(var(--chrome-rgb)), rgb(var(--chrome-rgb-2)));
   color: #fff;
+  box-shadow: 0 0 18px rgba(var(--chrome-rgb), 0.6);
+  animation: floatBob 4s ease-in-out infinite;
 }
 
 .overview-ask-ai-text {
@@ -3316,6 +3342,8 @@ footer {
   border: 1px solid rgba(var(--mode-accent-rgb), 0.25);
   color: rgb(var(--mode-accent-rgb));
   font-size: 22px;
+  box-shadow: 0 0 0 6px rgba(var(--mode-accent-rgb), 0.08), 0 0 24px rgba(var(--mode-accent-rgb), 0.4);
+  animation: auraPulse 3s ease-in-out infinite;
 }
 
 .chat-welcome h2 {
@@ -3358,7 +3386,7 @@ footer {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  animation: fadeUp 0.2s ease;
+  animation: bubbleRise 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .chat-message.user {
@@ -3377,7 +3405,15 @@ footer {
   font-weight: 700;
   color: var(--text-on-accent);
   background: linear-gradient(135deg, rgb(var(--mode-accent-rgb)), rgb(var(--mode-accent2-rgb)));
-  transition: background 0.4s ease;
+  box-shadow: 0 0 12px rgba(var(--mode-accent-rgb), 0.55);
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* Applied only to the assistant's avatar on the live, still-streaming
+   reply (see ChatPage.jsx) -- a soft breathing glow so the AI visibly
+   feels "alive" while it's actually thinking, not just a static icon. */
+.message-avatar.assistant-live {
+  animation: auraPulse 1.6s ease-in-out infinite;
 }
 
 .chat-message.user .message-avatar {
@@ -3396,6 +3432,7 @@ footer {
   line-height: 1.55;
   font-size: 13.5px;
   white-space: pre-wrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 
 .chat-message.user .message-bubble {
@@ -4640,14 +4677,33 @@ footer {
   display: flex;
   background: var(--bg);
   animation: fadeUp 0.18s ease;
+  overflow: hidden;
+}
+
+/* Full-bleed drifting aura behind the whole overlay -- the "new app,
+   fever dream" moment: this is the first thing that changes when Dylan
+   opens any AI chat anywhere in the app. Rendered as its own element
+   (ChatOverlay.jsx) rather than a pseudo-element so it can carry the
+   shared .ai-fever-aura gradient/animation class, and sits behind
+   everything else (z-index below the panel) so it never intercepts
+   clicks. */
+.chat-overlay-backdrop .chat-overlay-glow {
+  position: absolute;
+  inset: -10%;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .chat-overlay-panel {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: rgba(var(--mode-accent-rgb, 20 20 26), 0.04);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   animation: chatFadeIn 0.2s ease;
 }
 
@@ -9415,6 +9471,7 @@ button:disabled:active {
 
 /* ============ MODE CHAT LAUNCHER (dedicated per-mode chat entry point) ============ */
 .mode-chat-launcher {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -9423,15 +9480,38 @@ button:disabled:active {
   padding: 14px 18px;
   border-radius: calc(14px * var(--mode-radius-scale, 1));
   border: var(--mode-border-width, 1px) solid var(--border);
-  background: linear-gradient(135deg, rgba(var(--mode-accent-rgb), 0.12), rgba(var(--mode-accent2-rgb), 0.06));
+  background: linear-gradient(135deg, rgba(var(--mode-accent-rgb), 0.14), rgba(var(--mode-accent2-rgb), 0.07));
   cursor: pointer;
   text-align: left;
   font-family: inherit;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
+  box-shadow: 0 0 0 1px rgba(var(--mode-accent-rgb), 0.06) inset;
+}
+
+/* Same spinning-ring trick as the home launcher (.overview-ask-ai::before)
+   so every mode's own assistant reads as the same living AI surface, just
+   recolored by that mode's own --mode-accent-rgb/--mode-accent2-rgb. */
+.mode-chat-launcher::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from 90deg, rgb(var(--mode-accent-rgb)), rgb(var(--mode-accent2-rgb)), #a855f7, rgb(var(--mode-accent-rgb)));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: feverDrift 7s linear infinite;
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .mode-chat-launcher:hover {
   border-color: rgba(var(--mode-accent-rgb), 0.45);
-  background: linear-gradient(135deg, rgba(var(--mode-accent-rgb), 0.18), rgba(var(--mode-accent2-rgb), 0.09));
+  background: linear-gradient(135deg, rgba(var(--mode-accent-rgb), 0.2), rgba(var(--mode-accent2-rgb), 0.1));
+  transform: translateY(-2px) scale(1.008);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22), 0 0 20px rgba(var(--mode-accent-rgb), 0.22);
 }
 
 .mode-chat-launcher-icon {
@@ -9444,6 +9524,8 @@ button:disabled:active {
   flex-shrink: 0;
   color: rgb(var(--mode-accent-rgb));
   background: rgba(var(--mode-accent-rgb), 0.15);
+  box-shadow: 0 0 16px rgba(var(--mode-accent-rgb), 0.45);
+  animation: floatBob 4.5s ease-in-out infinite;
 }
 
 .mode-chat-launcher-copy {
@@ -9471,6 +9553,65 @@ button:disabled:active {
   justify-content: center;
   color: rgb(var(--mode-accent-rgb));
   flex-shrink: 0;
+}
+
+/* ============ AI FEVER-DREAM VISUAL LANGUAGE ============
+   Shared by every AI entry point in the app: the home "Ask Dylan AI"
+   launcher, each mode's own launcher (Ask The Professor, etc.), the
+   full-screen chat overlay, and the message bubbles inside it. One
+   language so opening AI anywhere in the app feels like the same living
+   thing, not three separate reskins. Every animation here is paused
+   under prefers-reduced-motion (see the block at the end of this
+   section) -- flashy is the point, motion-sickness is not. */
+
+@keyframes feverDrift {
+  0% { background-position: 0% 50%, 100% 50%, 50% 0%; }
+  50% { background-position: 100% 50%, 0% 50%, 50% 100%; }
+  100% { background-position: 0% 50%, 100% 50%, 50% 0%; }
+}
+
+@keyframes auraPulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+@keyframes glowSweep {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes floatBob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(-2deg); }
+}
+
+@keyframes bubbleRise {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* A drifting three-blob gradient, tinted by whatever mode it's in via
+   --mode-accent-rgb/--mode-accent2-rgb, plus a fixed violet/cyan pair so
+   it always reads as "fever dream" even in a mode with a narrow palette.
+   Used as a full-bleed background layer, never as text background. */
+.ai-fever-aura {
+  background-image:
+    radial-gradient(ellipse at 20% 30%, rgba(var(--mode-accent-rgb), 0.35), transparent 55%),
+    radial-gradient(ellipse at 80% 70%, rgba(var(--mode-accent2-rgb, var(--mode-accent-rgb)), 0.3), transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(168, 85, 247, 0.22), transparent 60%);
+  background-size: 180% 180%, 180% 180%, 160% 160%;
+  animation: feverDrift 18s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-fever-aura,
+  .overview-ask-ai::before,
+  .mode-chat-launcher::before,
+  .mode-chat-launcher-icon,
+  .message-avatar.assistant-live,
+  .chat-overlay-glow {
+    animation: none !important;
+  }
 }
 
 /* ============ ICON PICKER GRID (tactile tap-to-select, round 11) ============

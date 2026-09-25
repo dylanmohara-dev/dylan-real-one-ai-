@@ -6,6 +6,10 @@ export default function ChatOverlay({ open, onClose, contextTitle, ...chatProps 
 
   return (
     <div className="chat-overlay-backdrop" onClick={onClose}>
+      {/* Drifting "fever dream" aura behind the panel -- shared visual
+          language with .overview-ask-ai and .mode-chat-launcher, see
+          App.css's AI FEVER-DREAM VISUAL LANGUAGE section. */}
+      <div className="chat-overlay-glow ai-fever-aura" />
       <div className="chat-overlay-panel" onClick={(event) => event.stopPropagation()}>
         <div className="chat-overlay-topbar">
           <span className="chat-overlay-context">{contextTitle}</span>

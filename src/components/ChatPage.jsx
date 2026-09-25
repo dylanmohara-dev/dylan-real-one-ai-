@@ -337,7 +337,7 @@ export default function ChatPage({
 
         {loading && (
           <div className="chat-message assistant">
-            <div className="message-avatar">
+            <div className="message-avatar assistant-live">
               <AssistantIcon size={14} strokeWidth={2.25} />
             </div>
 
