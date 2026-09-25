@@ -813,7 +813,17 @@ export default function SchoolPage({
 
   return (
     <div className="page school-page">
-      <div className="page-header">
+      {/* This sub-view's header was missing the mode-hero class every other
+          mode page applies (Sports, Gym, Health, etc. -- see their own
+          page-header divs), which is what gives room for the full-bleed
+          photo behind it. Without it, the class-name title had no top
+          clearance and rendered clipped against the page edge -- the "text
+          is still cut off" Dylan flagged, and a real layout bug, not a
+          font-size guess. */}
+      <div
+        className={`page-header${heroImages?.school ? ' mode-hero' : ''}`}
+        style={heroImages?.school ? { '--hero-photo': `url(${heroImages.school})` } : undefined}
+      >
         {classAvg !== null && (
           <RadialProgress percent={classAvg} size={56} strokeWidth={5} label={`${Math.round(classAvg)}%`} />
         )}
