@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Flame, Swords, FileText, X } from 'lucide-react'
+import { Check, Flame, Swords, FileText, X, ExternalLink } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
 import RadialProgress from './RadialProgress.jsx'
@@ -481,16 +481,18 @@ export default function SchoolPage({
     const isCelebrating = celebratingId === item.id
     return (
       <div
-        className={`deadline-item deadline-${tone} deadline-clickable${isCelebrating ? ' deadline-celebrating' : ''}`}
+        className={`deadline-item deadline-${tone}${isCanvas ? '' : ' deadline-clickable'}${isCelebrating ? ' deadline-celebrating' : ''}`}
         key={item.id}
         style={item.classId ? { '--class-color-rgb': classColorRgb(item.classId) } : undefined}
         onClick={() => {
-          if (isCanvas) window.open(item.raw.url, '_blank', 'noopener')
-          else setSelectedClassId(item.classId)
+          // Canvas rows no longer navigate away on a plain click -- Dylan's
+          // own complaint. Opening Canvas is now the small explicit
+          // ExternalLink button below, a separate deliberate action.
+          if (!isCanvas) setSelectedClassId(item.classId)
         }}
       >
         {isCanvas ? (
-          <span className="check-button check-button-canvas" title="From Canvas -- mark done in Canvas itself"></span>
+          <span className="check-button check-button-canvas" title="From Canvas -- read-only here"></span>
         ) : (
           <button
             className={`check-button${isCelebrating || item.completed ? ' check-button-done' : ''}`}
@@ -528,6 +530,19 @@ export default function SchoolPage({
             }}
           >
             <X size={12} strokeWidth={2.5} />
+          </button>
+        )}
+        {isCanvas && (
+          <button
+            type="button"
+            className="deadline-canvas-open"
+            title="Open in Canvas"
+            onClick={(event) => {
+              event.stopPropagation()
+              window.open(item.raw.url, '_blank', 'noopener')
+            }}
+          >
+            <ExternalLink size={12} strokeWidth={2.5} />
           </button>
         )}
       </div>
@@ -811,14 +826,10 @@ export default function SchoolPage({
                   </div>
                 ))}
                 {canvasClassAssignments(selectedClassId).map((c) => (
-                  <div
-                    className="item-card deadline-clickable"
-                    key={c.id}
-                    onClick={() => window.open(c.url, '_blank', 'noopener')}
-                  >
+                  <div className="item-card" key={c.id}>
                     <span
                       className="check-button check-button-canvas"
-                      title="From Canvas -- mark done in Canvas itself"
+                      title="From Canvas -- read-only here"
                     ></span>
                     <div className="item-content">
                       <strong>{c.title}</strong>
@@ -828,6 +839,14 @@ export default function SchoolPage({
                         </span>
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      className="deadline-canvas-open"
+                      title="Open in Canvas"
+                      onClick={() => window.open(c.url, '_blank', 'noopener')}
+                    >
+                      <ExternalLink size={12} strokeWidth={2.5} />
+                    </button>
                   </div>
                 ))}
               </>

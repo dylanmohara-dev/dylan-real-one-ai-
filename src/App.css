@@ -11548,6 +11548,31 @@ button:disabled:active {
   background: rgba(244, 63, 94, 0.1);
 }
 
+/* Explicit "open in Canvas" action -- Dylan's own complaint was that
+   tapping a Canvas row left the app unexpectedly. Leaving is now only
+   ever this deliberate small button, never the row itself. */
+.deadline-canvas-open {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.deadline-canvas-open:hover {
+  border-color: rgb(var(--mode-accent-rgb));
+  color: rgb(var(--mode-accent-rgb));
+  background: rgba(var(--mode-accent-rgb), 0.12);
+}
+
 /* ---- Per-class quest bar (bigger, game-lobby weight) ---- */
 .school-quest-bar {
   display: flex;
