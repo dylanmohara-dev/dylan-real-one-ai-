@@ -203,6 +203,29 @@ function classColorRgb(classId) {
   return CLASS_COLOR_PALETTE[hash % CLASS_COLOR_PALETTE.length]
 }
 
+// Canvas hands us class names as "Subject - Teacher - Term" (confirmed
+// against the real data: 8 of Dylan's 9 synced classes follow this exactly,
+// e.g. "AP Physics - Bray - YR"). Dumping that whole string as the card
+// title is what made cards look like raw data exports instead of a
+// designed UI. There's no separate "room" field anywhere in the data
+// model, so a room/teacher meta line can only ever be a teacher line --
+// showing a room here would mean inventing one, which is exactly the kind
+// of fabricated-numbers problem the LIFE AREAS SNAPSHOT work above exists
+// to eliminate. Manually-added classes (typed into the "+ Add Class" box)
+// and the one Canvas class that doesn't follow the pattern ("School
+// Counselors (Class of 2028)") don't split into exactly 3 parts, so they
+// fall back to showing the name exactly as stored -- never a guessed split.
+const TERM_LABELS = { YR: 'Full Year', S1: 'Semester 1', S2: 'Semester 2' }
+
+function parseClassName(name) {
+  const parts = String(name || '').split(' - ')
+  if (parts.length !== 3) {
+    return { subject: name, teacher: null, term: null }
+  }
+  const [subject, teacher, termCode] = parts
+  return { subject, teacher, term: TERM_LABELS[termCode] || termCode }
+}
+
 // Boss Battle HP: a test's own health bar, drained by real prep -- each
 // completed study-plan session (a real Task, toggled in Tasks mode same
 // as any other task) is one hit landed. No plan generated yet reads as
@@ -746,6 +769,7 @@ export default function SchoolPage({
             classes.map((schoolClass) => {
               const avg = classAverage(schoolClass.id, assignments, tests)
               const level = classLevel(schoolClass)
+              const { subject, teacher, term } = parseClassName(schoolClass.name)
               return (
                 <div
                   className="item-card school-class-card"
@@ -766,9 +790,15 @@ export default function SchoolPage({
                     onClick={() => setSelectedClassId(schoolClass.id)}
                   >
                     <strong>
-                      {schoolClass.name}
+                      {subject}
                       {level !== 'regular' && <span className="school-level-badge">{LEVEL_LABELS[level]}</span>}
                     </strong>
+                    {teacher && (
+                      <div className="school-class-teacher">
+                        {teacher}
+                        {term && ` · ${term}`}
+                      </div>
+                    )}
                     <div className="item-meta">
                       <span>
                         {classAssignments(schoolClass.id).length + canvasClassAssignments(schoolClass.id).length} assignments
@@ -829,7 +859,13 @@ export default function SchoolPage({
         )}
         <div>
           <span className="eyebrow">SCHOOL MODE</span>
-          <h1 className="serif">{activeClass ? activeClass.name : 'Class'}</h1>
+          <h1 className="serif">{activeClass ? parseClassName(activeClass.name).subject : 'Class'}</h1>
+          {activeClass && parseClassName(activeClass.name).teacher && (
+            <p className="school-class-teacher school-class-teacher-detail">
+              {parseClassName(activeClass.name).teacher}
+              {parseClassName(activeClass.name).term && ` · ${parseClassName(activeClass.name).term}`}
+            </p>
+          )}
           <p>
             Assignments and tests for this class.
             {classAvg !== null &&

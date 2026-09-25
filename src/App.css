@@ -11980,6 +11980,24 @@ button:disabled:active {
   row-gap: 2px;
 }
 
+/* Canvas class names come in as "Subject - Teacher - Term" -- SchoolPage's
+   parseClassName() splits that so the card title is just the subject and
+   the teacher/term move down here as their own small line, instead of the
+   whole raw string getting dumped into the card title. Sized like
+   .item-meta (10.5px, muted) since it's the same kind of secondary detail,
+   just needs its own line rather than sharing .item-meta's wrapped row of
+   pill-like spans. */
+.school-class-teacher {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  margin-top: -2px;
+}
+
+.school-class-teacher-detail {
+  font-size: 12px;
+  margin: 2px 0 0;
+}
+
 /* Full color-coded card -- Dylan's own words: "the color is so small cant
    really see it also everything is yellow ... so everything blends
    together." A hairline border was never going to read against a page
