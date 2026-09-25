@@ -1421,6 +1421,17 @@ select option {
   min-height: 0;
   overflow-y: auto;
   padding: 34px 40px 50px;
+}
+
+/* The fullscreen prev/next arrows (top:50%, 52px circles, 24px from each
+   edge -- see .mode-fullscreen-nav) never move with scroll, so any list
+   long enough to scroll WILL park some row directly behind one of them.
+   This gutter keeps every row's text clear of both arrows regardless of
+   scroll position, instead of the clipping being scroll-position-
+   dependent and only sometimes visible. */
+.app-shell.mode-fullscreen .content {
+  padding-left: 88px;
+  padding-right: 88px;
   /* Needed as the containing block for .overview-hero-bg when it's used
      as a direct child here (mode-fullscreen pages, App.jsx) rather than
      nested inside .overview-page -- same negative-margin breakout math
@@ -1638,6 +1649,11 @@ footer {
 
   .mode-fullscreen-prev {
     left: 10px;
+  }
+
+  .app-shell.mode-fullscreen .content {
+    padding-left: 62px;
+    padding-right: 62px;
   }
 
   .mode-fullscreen-next {
@@ -2717,11 +2733,30 @@ footer {
 
 .deadline-kind {
   flex-shrink: 0;
-  width: 76px;
-  font-size: 0.65rem;
-  letter-spacing: var(--mode-tracking, 0.08em);
+  min-width: 64px;
+  text-align: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: var(--mode-tracking, 0.06em);
   text-transform: uppercase;
-  opacity: 0.6;
+}
+
+.deadline-kind-assignment {
+  background: rgba(59, 130, 246, 0.16);
+  color: rgb(96, 165, 250);
+}
+
+.deadline-kind-test {
+  background: rgba(244, 63, 94, 0.16);
+  color: rgb(251, 113, 133);
+}
+
+.deadline-kind-canvas {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  opacity: 0.75;
 }
 
 .deadline-body {

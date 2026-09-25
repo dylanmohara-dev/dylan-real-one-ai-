@@ -316,7 +316,7 @@ export default function SchoolPage({
             {isCelebrating && <Check size={14} strokeWidth={3} />}
           </button>
         )}
-        <span className="deadline-kind">{item.kind}</span>
+        <span className={`deadline-kind deadline-kind-${item.kind.toLowerCase()}`}>{item.kind}</span>
         <div className="deadline-body">
           <strong>{item.title}</strong>
           <span className="deadline-class">{item.className}</span>
