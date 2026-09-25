@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Flame, Swords } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
 import RadialProgress from './RadialProgress.jsx'
@@ -96,6 +96,152 @@ function computeGPAs(classes, assignments, tests) {
     unweighted: unweightedPoints.reduce((a, b) => a + b, 0) / unweightedPoints.length,
     gradedCount: graded.length,
   }
+}
+
+// Per-class "quest" progression -- separate from the app-wide player
+// level (TopSettingsBar, lib/playerXP.js) and from Skills mode's own
+// per-skill leveling (routes/skills.js), but deliberately built on the
+// exact same accelerating curve (50*N xp per level) and the exact same
+// consecutive-day streak walk Skills mode already uses -- so "Level III"
+// or a "5-day streak" means the same amount of real effort everywhere in
+// the app, not a third, School-only formula. XP is earned only from real
+// completed work, weighted like CATEGORY_WEIGHTS above so a test is worth
+// more than a worksheet -- never a decorative number with nothing behind it.
+const QUEST_XP = { homework: 10, quiz: 15, test: 30, project: 20 }
+
+function xpForCategory(item, fallback) {
+  return QUEST_XP[itemCategory(item, fallback)] ?? QUEST_XP.homework
+}
+
+function computeClassLevel(xp) {
+  let level = 1
+  let required = 50
+  let remaining = Number(xp) || 0
+  while (remaining >= required) {
+    remaining -= required
+    level += 1
+    required = 50 * level
+  }
+  return { level, xpIntoLevel: remaining, xpForNextLevel: required }
+}
+
+function toRoman(num) {
+  const table = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
+  let n = Math.max(1, num)
+  let out = ''
+  for (const [value, symbol] of table) {
+    while (n >= value) {
+      out += symbol
+      n -= value
+    }
+  }
+  return out || 'I'
+}
+
+function classXP(classId, assignments, tests) {
+  const homeworkXp = assignments
+    .filter((a) => a.classId === classId && a.completed)
+    .map((a) => xpForCategory(a, 'homework'))
+  const testXp = tests
+    .filter((t) => t.classId === classId && t.completed)
+    .map((t) => xpForCategory(t, 'test'))
+  return [...homeworkXp, ...testXp].reduce((sum, xp) => sum + xp, 0)
+}
+
+// Every completed item with a real completedAt timestamp (stamped by
+// useAppData.js's toggleAssignment/toggleTest) becomes one "day this
+// class got worked on." A class created, or with items completed, before
+// completedAt existed simply has no streak yet -- it starts counting from
+// here forward rather than guessing at history that was never recorded.
+function classCompletionDayTotals(classId, assignments, tests) {
+  const totals = {}
+  for (const item of [...assignments, ...tests]) {
+    if (item.classId !== classId || !item.completed || !item.completedAt) continue
+    const day = item.completedAt.slice(0, 10)
+    totals[day] = (totals[day] || 0) + 1
+  }
+  return totals
+}
+
+// Same day-walk as routes/skills.js's computeCurrentStreak: today counts
+// if it already has a completion, otherwise the walk starts from
+// yesterday so a streak isn't reported broken before the day is even over.
+function currentStreakFromTotals(totals) {
+  const today = todayKey()
+  const cursor = new Date()
+  if (!totals[today]) cursor.setDate(cursor.getDate() - 1)
+  let streak = 0
+  while (true) {
+    const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`
+    if (totals[key] > 0) {
+      streak += 1
+      cursor.setDate(cursor.getDate() - 1)
+    } else {
+      break
+    }
+  }
+  return streak
+}
+
+// Deterministic per-class accent color -- "everything is the same color,
+// hard to distinguish" was Dylan's own diagnosis of School mode. Derived
+// from the class id (a stable hash into a small curated hue set) rather
+// than stored on the class or picked in a settings UI, so every class --
+// including ones already saved before this existed -- gets a distinct,
+// legible color immediately, with no migration and no new field.
+const CLASS_COLOR_PALETTE = [
+  '239, 68, 68', // crimson
+  '245, 158, 11', // amber
+  '132, 204, 22', // lime
+  '16, 185, 129', // emerald
+  '6, 182, 212', // cyan
+  '59, 130, 246', // azure
+  '139, 92, 246', // violet
+  '217, 70, 239', // fuchsia
+  '244, 63, 94', // rose
+]
+
+function classColorRgb(classId) {
+  const key = String(classId || '')
+  let hash = 0
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0
+  }
+  return CLASS_COLOR_PALETTE[hash % CLASS_COLOR_PALETTE.length]
+}
+
+// Boss Battle HP: a test's own health bar, drained by real prep -- each
+// completed study-plan session (a real Task, toggled in Tasks mode same
+// as any other task) is one hit landed. No plan generated yet reads as
+// full HP (the fight hasn't started), not zero and not hidden.
+function bossHp(test, tasks) {
+  const planTasks = (tasks || []).filter((t) => t.studyPlanFor === test.id)
+  if (!planTasks.length) return 100
+  const done = planTasks.filter((t) => t.completed).length
+  return Math.round(100 - (done / planTasks.length) * 100)
+}
+
+function ClassQuestBar({ classId, assignments, tests, size }) {
+  const xp = classXP(classId, assignments, tests)
+  const { level, xpIntoLevel, xpForNextLevel } = computeClassLevel(xp)
+  const streak = currentStreakFromTotals(classCompletionDayTotals(classId, assignments, tests))
+  const pct = Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100))
+  return (
+    <div className={`school-quest-bar${size === 'lg' ? ' lg' : ''}`}>
+      <span className="school-quest-level" title={`Level ${level} in this class`}>
+        {toRoman(level)}
+      </span>
+      <div className="school-quest-track" title={`${xpIntoLevel} / ${xpForNextLevel} XP to next level`}>
+        <div className="school-quest-fill" style={{ width: `${pct}%` }} />
+      </div>
+      {streak > 0 && (
+        <span className="school-quest-streak" title={`${streak}-day streak in this class`}>
+          <Flame size={12} strokeWidth={2.5} />
+          {streak}
+        </span>
+      )}
+    </div>
+  )
 }
 
 // Deadline dashboard: every incomplete assignment/test with a date,
@@ -297,6 +443,7 @@ export default function SchoolPage({
       <div
         className={`deadline-item deadline-${tone} deadline-clickable${isCelebrating ? ' deadline-celebrating' : ''}`}
         key={item.id}
+        style={item.classId ? { '--class-color-rgb': classColorRgb(item.classId) } : undefined}
         onClick={() => {
           if (isCanvas) window.open(item.raw.url, '_blank', 'noopener')
           else setSelectedClassId(item.classId)
@@ -316,7 +463,10 @@ export default function SchoolPage({
             {isCelebrating && <Check size={14} strokeWidth={3} />}
           </button>
         )}
-        <span className={`deadline-kind deadline-kind-${item.kind.toLowerCase()}`}>{item.kind}</span>
+        <span className={`deadline-kind deadline-kind-${item.kind.toLowerCase()}`}>
+          {item.kind === 'Test' && <Swords size={10} strokeWidth={2.5} />}
+          {item.kind}
+        </span>
         <div className="deadline-body">
           <strong>{item.title}</strong>
           <span className="deadline-class">{item.className}</span>
@@ -411,7 +561,11 @@ export default function SchoolPage({
               const avg = classAverage(schoolClass.id, assignments, tests)
               const level = classLevel(schoolClass)
               return (
-                <div className="item-card" key={schoolClass.id}>
+                <div
+                  className="item-card school-class-card"
+                  key={schoolClass.id}
+                  style={{ '--class-color-rgb': classColorRgb(schoolClass.id) }}
+                >
                   <button
                     type="button"
                     className="school-grade-ring-button"
@@ -446,6 +600,7 @@ export default function SchoolPage({
                       )}
                       {schoolClass.excludeFromGpa && <span> · not counted in GPA</span>}
                     </div>
+                    <ClassQuestBar classId={schoolClass.id} assignments={assignments} tests={tests} />
                   </div>
                   <button className="delete-button" onClick={() => deleteClass(schoolClass.id)}>
                     ×
@@ -486,6 +641,9 @@ export default function SchoolPage({
                 classLevel(activeClass) !== 'regular' ? ', weighted' : ''
               }).`}
           </p>
+          {activeClass && (
+            <ClassQuestBar classId={selectedClassId} assignments={assignments} tests={tests} size="lg" />
+          )}
         </div>
         <button className="school-back-to-classes" onClick={() => setSelectedClassId(null)}>
           ← Back to Classes
@@ -689,6 +847,16 @@ export default function SchoolPage({
                         ×
                       </button>
                     </div>
+
+                    {!test.completed && (
+                      <div className="school-boss-bar" title="Boss HP -- drops as you complete this test's study plan">
+                        <Swords size={13} strokeWidth={2.5} />
+                        <div className="school-boss-track">
+                          <div className="school-boss-fill" style={{ width: `${bossHp(test, tasks)}%` }} />
+                        </div>
+                        <span className="school-boss-label">{bossHp(test, tasks)}% HP</span>
+                      </div>
+                    )}
 
                     {test.date && (
                       <>

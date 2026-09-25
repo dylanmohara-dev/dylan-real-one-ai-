@@ -2399,7 +2399,12 @@ export function useAppData() {
       const completing = !assignment.completed
       await request(`/assignments/${assignment.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ completed: completing }),
+        // completedAt stamps the calendar day this was actually finished --
+        // School's per-class quest streak (SchoolPage.jsx) walks these
+        // timestamps the same way Skills mode's per-skill streak walks its
+        // own session log. Cleared back to null on uncomplete so an
+        // undone item can't keep counting toward a streak.
+        body: JSON.stringify({ completed: completing, completedAt: completing ? new Date().toISOString() : null }),
       })
       await loadData()
 
@@ -2499,7 +2504,9 @@ export function useAppData() {
       const completing = !test.completed
       await request(`/tests/${test.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ completed: completing }),
+        // Same completedAt convention as toggleAssignment above -- feeds
+        // the same per-class quest streak in SchoolPage.jsx.
+        body: JSON.stringify({ completed: completing, completedAt: completing ? new Date().toISOString() : null }),
       })
       await loadData()
 

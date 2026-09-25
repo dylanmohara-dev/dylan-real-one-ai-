@@ -11317,3 +11317,149 @@ button:disabled:active {
     animation: none;
   }
 }
+
+/* ============ SCHOOL: game dashboard -- per-class quest system + boss
+   battles (round 12) ============
+   Dylan's own diagnosis of School mode: "everything is the same color,
+   hard to distinguish," wants "the whole picture ahead," and wants it to
+   feel like a game-like dashboard (XP bars, levels, streaks, boss-battle
+   framing for tests) -- built with real CSS/SVG/JS, not the photorealistic
+   3D-engine spec he also proposed, which this stack cannot produce (see
+   the conversation this round: that's a separate, unscoped initiative).
+   Every number here reads off real data (SchoolPage.jsx's classXP,
+   computeClassLevel, currentStreakFromTotals, bossHp) -- nothing here is
+   decorative. */
+
+.school-page .item-card.school-class-card {
+  border-left: 3px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.7);
+}
+
+.school-page .deadline-item {
+  border-left: 3px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.45);
+}
+
+.deadline-kind-test {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.school-quest-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.school-quest-bar.lg {
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.school-quest-level {
+  flex-shrink: 0;
+  min-width: 18px;
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
+  border: 1px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.5);
+  border-radius: 5px;
+  padding: 1px 4px;
+}
+
+.school-quest-bar.lg .school-quest-level {
+  font-size: 14px;
+  padding: 3px 8px;
+  border-radius: 7px;
+}
+
+.school-quest-track {
+  flex: 1;
+  min-width: 40px;
+  max-width: 120px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.school-quest-bar.lg .school-quest-track {
+  height: 8px;
+  max-width: 220px;
+}
+
+.school-quest-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.95),
+    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.55)
+  );
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.school-quest-streak {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgb(251, 146, 60);
+}
+
+.school-quest-bar.lg .school-quest-streak {
+  font-size: 13px;
+}
+
+/* Boss Battle HP bar: full health until real prep chips away at it (each
+   completed study-plan session in Tasks mode lands a hit). Deliberately
+   styled apart from the class's own accent color -- a boss fight reads as
+   danger (red/orange) no matter which class it belongs to. */
+.school-boss-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: rgba(244, 63, 94, 0.07);
+  color: rgb(251, 113, 133);
+}
+
+.school-boss-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+.school-boss-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(244, 63, 94), rgb(251, 146, 60));
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.school-boss-label {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  min-width: 54px;
+  text-align: right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .school-quest-fill,
+  .school-boss-fill {
+    transition: none;
+  }
+}
