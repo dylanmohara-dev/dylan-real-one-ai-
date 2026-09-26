@@ -11928,6 +11928,12 @@ button:disabled:active {
   color: rgba(255, 255, 255, 0.5);
 }
 
+.school-hud-rank-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #e3a83b;
+}
+
 .school-hud-transition {
   margin-left: auto;
   flex-shrink: 0;
@@ -11938,6 +11944,62 @@ button:disabled:active {
 }
 
 .school-hud-xp-remaining {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Trophy Case -- the actual "unlock things" reward system. Locked tiers
+   stay visible (desaturated, dimmed) rather than hidden, so there's
+   something concrete to see working toward instead of a surprise that
+   only appears once already earned. */
+.school-trophy-case {
+  margin-top: 18px;
+}
+
+.school-trophy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.school-trophy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: all 0.2s ease;
+}
+
+.school-trophy-unlocked {
+  border-color: rgba(227, 168, 59, 0.55);
+  background: linear-gradient(135deg, rgba(227, 168, 59, 0.16), rgba(227, 168, 59, 0.04));
+  color: var(--text-primary);
+}
+
+.school-trophy-unlocked svg {
+  color: #e3a83b;
+}
+
+.school-trophy-locked {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+
+.school-trophy-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.school-trophy-text strong {
+  font-size: 13px;
+}
+
+.school-trophy-text span {
   font-size: 11px;
   color: var(--text-muted);
 }

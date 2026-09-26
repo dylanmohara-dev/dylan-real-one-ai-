@@ -33,6 +33,7 @@ import familyRouter from './routes/family.js'
 import bootstrapRouter from './routes/bootstrap.js'
 import notificationsRouter from './routes/notifications.js'
 import playerRouter from './routes/player.js'
+import schoolProgressRouter from './routes/schoolProgress.js'
 import tradingRouter from './routes/trading.js'
 import searchRouter from './routes/search.js'
 import heroImagesRouter from './routes/heroImages.js'
@@ -83,6 +84,7 @@ app.use('/api/family', familyRouter)
 app.use('/api', bootstrapRouter)
 app.use('/api/notifications', notificationsRouter)
 app.use('/api/player', playerRouter)
+app.use('/api/school-progress', schoolProgressRouter)
 app.use('/api/trading', tradingRouter)
 app.use('/api', searchRouter)
 app.use('/api', heroImagesRouter)

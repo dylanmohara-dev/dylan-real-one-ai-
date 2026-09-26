@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { DEFAULT_SETTINGS, LIFE_MODES } from '../data/lifeModes.js'
 import { playSound } from '../lib/soundEffects.js'
+import { computeClassLevel, schoolTotalXP, unlockedTiersForLevel } from '../lib/schoolProgress.js'
 
 // In dev (npm run dev), Vite and Express run as two separate servers on
 // this Mac, so the dev server always talks to localhost:3001 directly.
@@ -178,6 +179,10 @@ export function useAppData() {
   // 'current' state to keep in sync with it.
   const [achievementQueue, setAchievementQueue] = useState([])
   const [playerStats, setPlayerStats] = useState({ xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
+  // Persisted set of School rank tiers (src/lib/schoolProgress.js) that
+  // have already had their one-time unlock celebration -- see
+  // detectSchoolLevelUp below.
+  const [schoolProgress, setSchoolProgress] = useState({ unlockedTierKeys: [] })
   // Per-life-area hero photo overrides -- keyed by mode ('overview',
   // 'finance', etc), value is a URL (the built-in default) or a data:
   // URL (a photo Dylan uploaded himself, see updateHeroImage below). A
@@ -505,6 +510,7 @@ export function useAppData() {
       setFamilyLog(data.family?.log || [])
       setFamilyGoals(data.family?.goals || { weeklyMinutesGoal: 360 })
       setPlayerStats(data.player || { xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
+      setSchoolProgress(data.schoolProgress || { unlockedTierKeys: [] })
       setHeroImages(data.heroImages || {})
 
       // Fire-and-forget: never blocks loadData's own return, and a
@@ -534,6 +540,10 @@ export function useAppData() {
           logs: data.gym?.logs || [],
           exercises: data.gym?.exercises || [],
         },
+        classes: data.classes || [],
+        assignments: data.assignments || [],
+        tests: data.tests || [],
+        schoolProgress: data.schoolProgress || { unlockedTierKeys: [] },
       }
     } catch (error) {
       setErrorMessage(error.message)
@@ -790,6 +800,50 @@ export function useAppData() {
       }
     } catch (error) {
       console.error('XP award failed:', error)
+    }
+  }
+
+  // Dylan's "get good at school like a videogame, with rewards to unlock
+  // more things" ask. School's own overall level (src/lib/schoolProgress.js)
+  // is already real -- computed purely from completed assignments/tests --
+  // this is what turns crossing a new rank threshold into an actual event:
+  // a full-screen unlock celebration (the same pushAchievement used for
+  // app-wide level-ups and Boss Battle wins) plus a permanent, persisted
+  // trophy in School's Trophy Case, instead of the number just quietly
+  // going up with nothing marking the moment.
+  //
+  // `fresh` is loadData()'s return value, read in the SAME tick a caller
+  // just awaited it -- see loadData's own comment on why this can't read
+  // classes/assignments/tests/schoolProgress off React state here instead.
+  async function detectSchoolLevelUp(fresh) {
+    if (!fresh) return
+    const level = computeClassLevel(
+      schoolTotalXP(fresh.classes || [], fresh.assignments || [], fresh.tests || [])
+    ).level
+    const dueTiers = unlockedTiersForLevel(level)
+    const alreadyUnlocked = new Set(fresh.schoolProgress?.unlockedTierKeys || [])
+    const newlyUnlocked = dueTiers.filter((tier) => !alreadyUnlocked.has(tier.key))
+
+    for (const tier of newlyUnlocked) {
+      pushAchievement({
+        kind: 'levelup',
+        title: 'RANK UNLOCKED',
+        subtitle: tier.title,
+        duration: 3600,
+      })
+      maybePlaySound('levelup')
+      try {
+        const result = await request('/school-progress/unlock', {
+          method: 'POST',
+          body: JSON.stringify({ tierKey: tier.key }),
+        })
+        setSchoolProgress(result)
+      } catch (error) {
+        // Not fatal -- worst case this same tier's celebration fires again
+        // next time a threshold check runs, which is a minor annoyance,
+        // not data loss (nothing about the underlying level was lost).
+        console.error('Failed to persist School rank unlock:', error)
+      }
     }
   }
 
@@ -2415,11 +2469,12 @@ export function useAppData() {
         // undone item can't keep counting toward a streak.
         body: JSON.stringify({ completed: completing, completedAt: completing ? new Date().toISOString() : null }),
       })
-      await loadData()
+      const fresh = await loadData()
 
       if (completing) {
         pushToast({ kind: 'task', title: 'ASSIGNMENT DONE', message: assignment.title })
         awardXP('assignment-done')
+        await detectSchoolLevelUp(fresh)
       }
     } catch (error) {
       showError(error.message)
@@ -2517,11 +2572,12 @@ export function useAppData() {
         // the same per-class quest streak in SchoolPage.jsx.
         body: JSON.stringify({ completed: completing, completedAt: completing ? new Date().toISOString() : null }),
       })
-      await loadData()
+      const fresh = await loadData()
 
       if (completing) {
         pushToast({ kind: 'task', title: 'TEST LOGGED', message: test.title })
         awardXP('test-logged')
+        await detectSchoolLevelUp(fresh)
       }
     } catch (error) {
       showError(error.message)
@@ -2571,7 +2627,8 @@ export function useAppData() {
         method: 'PUT',
         body: JSON.stringify({ grade: numericGrade }),
       })
-      await loadData()
+      const fresh = await loadData()
+      await detectSchoolLevelUp(fresh)
 
       // Boss Battle payoff (SchoolPage.jsx): Dylan's own rule is a genuine
       // 90%+ to count as beating the boss, not just logging any grade.

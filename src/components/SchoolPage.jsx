@@ -7,6 +7,10 @@ import {
 } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import RadialProgress from './RadialProgress.jsx'
+import {
+  CATEGORY_WEIGHTS, itemCategory, computeClassLevel, classXP, schoolTotalXP,
+  RANK_TIERS, rankForLevel, unlockedTiersForLevel,
+} from '../lib/schoolProgress.js'
 
 // Standard US 4.0 scale. No school-specific customization yet (some
 // schools weight AP/honors classes, use +/- differently, etc.) — this is
@@ -37,12 +41,6 @@ function gradeToGPA(percent) {
 // 'homework' (assignments) / 'test' (tests) for any item saved before
 // this field existed, matching the backend's own POST default.
 const CATEGORY_LABELS = { homework: 'Homework', quiz: 'Quiz', test: 'Test', project: 'Project' }
-const CATEGORY_WEIGHTS = { homework: 15, quiz: 25, test: 50, project: 10 }
-
-function itemCategory(item, fallback) {
-  return CATEGORY_WEIGHTS[item.category] ? item.category : fallback
-}
-
 function classAverage(classId, assignments, tests) {
   const graded = [
     ...assignments
@@ -100,50 +98,6 @@ function computeGPAs(classes, assignments, tests) {
     unweighted: unweightedPoints.reduce((a, b) => a + b, 0) / unweightedPoints.length,
     gradedCount: graded.length,
   }
-}
-
-// Per-class "quest" progression -- separate from the app-wide player
-// level (TopSettingsBar, lib/playerXP.js) and from Skills mode's own
-// per-skill leveling (routes/skills.js), but deliberately built on the
-// exact same accelerating curve (50*N xp per level) and the exact same
-// consecutive-day streak walk Skills mode already uses -- so "Level III"
-// or a "5-day streak" means the same amount of real effort everywhere in
-// the app, not a third, School-only formula. XP is earned only from real
-// completed work, weighted like CATEGORY_WEIGHTS above so a test is worth
-// more than a worksheet -- never a decorative number with nothing behind it.
-const QUEST_XP = { homework: 10, quiz: 15, test: 30, project: 20 }
-
-function xpForCategory(item, fallback) {
-  return QUEST_XP[itemCategory(item, fallback)] ?? QUEST_XP.homework
-}
-
-function computeClassLevel(xp) {
-  let level = 1
-  let required = 50
-  let remaining = Number(xp) || 0
-  while (remaining >= required) {
-    remaining -= required
-    level += 1
-    required = 50 * level
-  }
-  return { level, xpIntoLevel: remaining, xpForNextLevel: required }
-}
-
-// Aggregate across every class -- School's own overall level, distinct
-// from any single class's level and from the app-wide player level
-// (TopSettingsBar/lib/playerXP.js).
-function schoolTotalXP(classes, assignments, tests) {
-  return classes.reduce((sum, c) => sum + classXP(c.id, assignments, tests), 0)
-}
-
-function classXP(classId, assignments, tests) {
-  const homeworkXp = assignments
-    .filter((a) => a.classId === classId && a.completed)
-    .map((a) => xpForCategory(a, 'homework'))
-  const testXp = tests
-    .filter((t) => t.classId === classId && t.completed)
-    .map((t) => xpForCategory(t, 'test'))
-  return [...homeworkXp, ...testXp].reduce((sum, xp) => sum + xp, 0)
 }
 
 // Every completed item with a real completedAt timestamp (stamped by
@@ -367,11 +321,16 @@ function SchoolHUD({ classes, assignments, tests }) {
     const streak = currentStreakFromTotals(classCompletionDayTotals(c.id, assignments, tests))
     return Math.max(max, streak)
   }, 0)
+  // Dylan's videogame-rewards ask: this rank title is the one already-real
+  // number (School's own level, computed above from actual completed
+  // work) mapped to a title -- see src/lib/schoolProgress.js RANK_TIERS.
+  const rank = rankForLevel(level)
   return (
     <div className="school-hud">
       <div className="school-hud-row">
         <span className="school-hud-tag-icon" aria-hidden="true"><Award size={13} strokeWidth={2.5} /></span>
         <span className="school-hud-tag">Overall Academic Progress</span>
+        <span className="school-hud-rank-title">{rank.title}</span>
         <span className="school-hud-transition">LV {level} &rarr; {level + 1}</span>
         {bestStreak > 0 && (
           <span className="school-hud-streak" title={`Best current streak: ${bestStreak} day${bestStreak === 1 ? '' : 's'}`}>
@@ -386,6 +345,36 @@ function SchoolHUD({ classes, assignments, tests }) {
       <div className="school-hud-row school-hud-row-footer">
         <span className="school-hud-xp">{xpIntoLevel.toLocaleString()} XP</span>
         <span className="school-hud-xp-remaining">{(xpForNextLevel - xpIntoLevel).toLocaleString()} XP to Level {level + 1}</span>
+      </div>
+    </div>
+  )
+}
+
+// The actual "unlock more things" reward Dylan asked for: a permanent
+// trophy shelf of rank titles, unlocked as School's real level climbs.
+// Every tier always renders (locked ones too, greyed out with the level
+// needed) so there's something to see working toward, not just a blank
+// space until it's earned.
+function TrophyCase({ level }) {
+  const unlockedKeys = new Set(unlockedTiersForLevel(level).map((tier) => tier.key))
+  return (
+    <div className="school-trophy-case">
+      <div className="school-section-header">
+        <h2>Trophy Case</h2>
+      </div>
+      <div className="school-trophy-grid">
+        {RANK_TIERS.map((tier) => {
+          const isUnlocked = unlockedKeys.has(tier.key)
+          return (
+            <div key={tier.key} className={`school-trophy ${isUnlocked ? 'school-trophy-unlocked' : 'school-trophy-locked'}`}>
+              <Award size={22} strokeWidth={2} />
+              <div className="school-trophy-text">
+                <strong>{tier.title}</strong>
+                <span>{isUnlocked ? tier.subtitle : `Unlocks at Level ${tier.minLevel}`}</span>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -744,6 +733,8 @@ export default function SchoolPage({
         />
 
         <SchoolHUD classes={classes} assignments={assignments} tests={tests} />
+
+        <TrophyCase level={computeClassLevel(schoolTotalXP(classes, assignments, tests)).level} />
 
       <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />
 
