@@ -288,6 +288,10 @@ export function useAppData() {
     // Read by App.css to scale celebration-animation duration/intensity
     // without prop-drilling settings into every component that animates.
     document.documentElement.dataset.animationIntensity = settings.animationIntensity || 'normal'
+    // Read by App.css to control the hero-photo ambient drift speed --
+    // see lifeModes.js's heroMotion default for why this is separate from
+    // animationIntensity above.
+    document.documentElement.dataset.heroMotion = settings.heroMotion || 'normal'
   }, [settings])
 
   useEffect(() => {

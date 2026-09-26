@@ -144,6 +144,24 @@ export default function TopSettingsBar({ settings, setSettings, playerStats, onO
           </div>
 
           <div className="top-settings-group">
+            <label>Hero Photo Motion</label>
+            <select
+              value={settings.heroMotion || 'normal'}
+              onChange={(event) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  heroMotion: event.target.value,
+                }))
+              }
+            >
+              <option value="off">Off (static photo)</option>
+              <option value="slow">Slow</option>
+              <option value="normal">Normal</option>
+              <option value="fast">Fast</option>
+            </select>
+          </div>
+
+          <div className="top-settings-group">
             <label>Sound</label>
             <button
               className={`toggle ${settings.soundEffects ? 'on' : ''}`}

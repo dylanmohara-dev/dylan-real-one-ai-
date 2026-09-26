@@ -1848,7 +1848,7 @@ footer {
     var(--hero-photo, url('/hero-office-view.jpg'));
   background-size: cover, 112%;
   background-position: center, center 55%;
-  animation: overviewHeroDrift 26s ease-in-out infinite alternate;
+  animation: overviewHeroDrift var(--hero-drift-duration, 26s) ease-in-out infinite alternate;
 }
 
 /* Round 11: the full-screen hero was eating ~80% of the screen inside a
@@ -4353,12 +4353,14 @@ footer {
    the full viewport (round 4), not just .main-content -- everything that
    actually animates is transform + opacity/filter, driven by
    --zoom-scale-x0/y0 (also set inline) so it's pure compositor work, not
-   layout. Base duration is 1.7s (was 0.95s) -- Dylan's explicit pick when
-   asked directly: longer/more cinematic now that it's a full-screen
-   takeover, not the quicker content-pane-only version. Every one of the 7
-   keyframe animations below shares this same base via
-   `calc(1.7s * var(--celebrate-speed))`, so they always stay in sync with
-   each other and with Settings -> Display -> Animation Intensity. */
+   layout. Base duration is 3s (was 1.7s, before that 0.95s) -- Dylan's
+   explicit ask ("last 3 whole seconds"), plus a gentler shake amplitude
+   in zoomPanelPlay's 36/38% arrival jolt so a longer hold doesn't just
+   mean a longer-lasting shake -- the point was smoother, not slower AND
+   still jarring. Every one of the 7 keyframe animations below shares this
+   same base via `calc(3s * var(--celebrate-speed))`, so they always stay
+   in sync with each other and with Settings -> Display -> Animation
+   Intensity. */
 
 .zoom-transition {
   position: fixed;
@@ -4383,7 +4385,7 @@ footer {
   position: absolute;
   inset: 0;
   background: linear-gradient(135deg, rgb(var(--mode-accent-rgb)), rgb(var(--mode-accent2-rgb)));
-  animation: zoomPanelPlay calc(1.7s * var(--celebrate-speed)) cubic-bezier(0.65, 0, 0.2, 1) forwards;
+  animation: zoomPanelPlay calc(3s * var(--celebrate-speed)) cubic-bezier(0.65, 0, 0.2, 1) forwards;
   will-change: transform, opacity, filter;
   backface-visibility: hidden;
 }
@@ -4416,7 +4418,7 @@ footer {
   inset: 0;
   z-index: 2;
   background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.6) 100%);
-  animation: zoomVignettePlay calc(1.7s * var(--celebrate-speed)) ease forwards;
+  animation: zoomVignettePlay calc(3s * var(--celebrate-speed)) ease forwards;
   pointer-events: none;
 }
 
@@ -4429,7 +4431,7 @@ footer {
   justify-content: center;
   color: var(--text-on-accent, #171004);
   opacity: 0;
-  animation: zoomIconPlay calc(1.7s * var(--celebrate-speed)) ease forwards;
+  animation: zoomIconPlay calc(3s * var(--celebrate-speed)) ease forwards;
 }
 
 /* The core 3D "fly-through": starts tipped forward and pushed back in Z
@@ -4457,12 +4459,12 @@ footer {
     filter: blur(3px) brightness(0.8) saturate(1.2);
   }
   36% {
-    transform: translate(-7px, 4px) translateZ(0) rotateX(0deg) scale(1.015, 1.015);
+    transform: translate(-3px, 2px) translateZ(0) rotateX(0deg) scale(1.008, 1.008);
     opacity: 1;
     filter: blur(0) brightness(1.35) saturate(1.1);
   }
   38% {
-    transform: translate(6px, -3px) translateZ(0) rotateX(0deg) scale(0.99, 0.99);
+    transform: translate(3px, -1.5px) translateZ(0) rotateX(0deg) scale(0.995, 0.995);
     opacity: 1;
     filter: blur(0) brightness(1.1) saturate(1.02);
   }
@@ -4502,7 +4504,7 @@ footer {
   mix-blend-mode: screen;
   opacity: 0;
   transform: scale(0.1) rotate(0deg);
-  animation: zoomStreaksPlay calc(1.7s * var(--celebrate-speed)) cubic-bezier(0.5, 0, 0.25, 1) forwards;
+  animation: zoomStreaksPlay calc(3s * var(--celebrate-speed)) cubic-bezier(0.5, 0, 0.25, 1) forwards;
   pointer-events: none;
 }
 
@@ -4554,7 +4556,7 @@ footer {
   );
   mix-blend-mode: overlay;
   opacity: 0.5;
-  animation: zoomScanlinesPlay calc(1.7s * var(--celebrate-speed)) ease forwards;
+  animation: zoomScanlinesPlay calc(3s * var(--celebrate-speed)) ease forwards;
   pointer-events: none;
 }
 
@@ -4583,7 +4585,7 @@ footer {
   gap: 12px;
   opacity: 0;
   text-align: center;
-  animation: zoomTitlePlay calc(1.7s * var(--celebrate-speed)) ease forwards;
+  animation: zoomTitlePlay calc(3s * var(--celebrate-speed)) ease forwards;
   pointer-events: none;
 }
 
@@ -4626,7 +4628,7 @@ footer {
   background: #fff;
   transform: scaleX(0);
   transform-origin: left;
-  animation: zoomBarPlay calc(1.7s * var(--celebrate-speed)) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: zoomBarPlay calc(3s * var(--celebrate-speed)) cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes zoomBarPlay {
@@ -5131,6 +5133,34 @@ footer {
 [data-animation-intensity='flashy'] {
   --celebrate-speed: 0.7;
   --celebrate-scale: 1.3;
+}
+
+/* ============ HERO PHOTO MOTION (Settings -> Display -> Hero Photo
+   Motion) ============ Dylan's ask: customize the ambient Ken Burns drift
+   speed on each life area's hero photo himself instead of the one fixed
+   26s speed everyone got before. 'off' stops the animation outright
+   (a genuinely static photo, not just a very slow drift) -- handled as a
+   separate selector rather than an extreme duration since an infinite
+   animation technically never truly stops drifting no matter how slow. */
+:root {
+  --hero-drift-duration: 26s;
+}
+
+[data-hero-motion='slow'] {
+  --hero-drift-duration: 42s;
+}
+
+[data-hero-motion='fast'] {
+  --hero-drift-duration: 14s;
+}
+
+[data-hero-motion='off'] .overview-hero-bg {
+  animation: none;
+}
+
+[data-hero-motion='off'] .overview-hero-bg::after {
+  animation: none;
+  opacity: 0;
 }
 
 /* ============ GAME TOAST: ALERT KIND (net worth down) ============ */

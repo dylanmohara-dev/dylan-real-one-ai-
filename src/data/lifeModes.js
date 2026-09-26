@@ -43,6 +43,14 @@ export const DEFAULT_SETTINGS = {
   // (was 'normal') -- bigger/longer toasts, achievement pop-ups, and
   // celebration effects app-wide.
   animationIntensity: 'flashy',
+  // 'off' | 'slow' | 'normal' | 'fast' -- speed of the ambient Ken Burns
+  // drift on each life area's full-bleed hero photo (App.css's
+  // overviewHeroDrift). Dylan's ask: let him customize "the animation of
+  // the photo for each life area" himself instead of one fixed speed for
+  // everyone. Separate from animationIntensity above, which only scales
+  // the celebration layer (toasts/achievements/mode-switch flash), not
+  // this continuous background loop.
+  heroMotion: 'normal',
   soundEffects: true,
 }
 
