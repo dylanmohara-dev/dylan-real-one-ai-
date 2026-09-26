@@ -1,5 +1,10 @@
 import { useState } from 'react'
-import { Check, Flame, Swords, FileText, X, ExternalLink, Award } from 'lucide-react'
+import {
+  Check, Flame, Swords, FileText, X, ExternalLink, Award,
+  Calculator, Plus, Divide, FlaskConical, Atom, BookOpen, Landmark, Globe,
+  Languages, DollarSign, Briefcase, Palette, Music, Dumbbell, Compass,
+  GraduationCap,
+} from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import RadialProgress from './RadialProgress.jsx'
 
@@ -224,6 +229,45 @@ function parseClassName(name) {
   }
   const [subject, teacher, termCode] = parts
   return { subject, teacher, term: TERM_LABELS[termCode] || termCode }
+}
+
+// Dylan's ask: every class should feel visually distinct based on what it
+// actually IS -- math gets math motifs, science gets science motifs, not
+// just an arbitrary color. Keyword-matched against the parsed subject
+// (see parseClassName above), not the class ID, so it's based on what the
+// class actually is rather than an arbitrary hash.
+//
+// Colors deliberately still come from the same 4-hue CLASS_COLOR_PALETTE
+// from round 14, not a new color per category -- that round's whole fix
+// was "everything is a different clashing color, cut it down to 4 curated
+// hues." Reusing those 4 across 9 categories and leaning on the icon +
+// motif symbols to tell classes apart avoids re-breaking that.
+const SUBJECT_THEMES = [
+  { key: 'math', match: /\b(calc(ulus)?|algebra|geometry|trig(onometry)?|statistics|stats|math)\b/i, paletteIndex: 0, Icon: Calculator, motifIcons: [Plus, Divide] },
+  { key: 'science', match: /\b(physics|chem(istry)?|bio(logy)?|science|anatomy|environmental)\b/i, paletteIndex: 3, Icon: FlaskConical, motifIcons: [FlaskConical, Atom] },
+  { key: 'english', match: /\b(english|literature|lit|language arts|writing|composition)\b/i, paletteIndex: 2, Icon: BookOpen, motifIcons: [BookOpen] },
+  { key: 'history', match: /\b(history|social studies|government|civics|world)\b/i, paletteIndex: 1, Icon: Landmark, motifIcons: [Landmark, Globe] },
+  { key: 'language', match: /\b(spanish|french|german|latin|mandarin|chinese|italian|language)\b/i, paletteIndex: 2, Icon: Languages, motifIcons: [Languages] },
+  { key: 'business', match: /\b(business|finance|marketing|career|accounting|economics)\b/i, paletteIndex: 0, Icon: DollarSign, motifIcons: [DollarSign, Briefcase] },
+  { key: 'arts', match: /\b(art|music|band|choir|theate?r|drama|design)\b/i, paletteIndex: 1, Icon: Palette, motifIcons: [Palette, Music] },
+  { key: 'pe', match: /\b(gym|p\.?e\.?|physical education|health|fitness)\b/i, paletteIndex: 3, Icon: Dumbbell, motifIcons: [Dumbbell] },
+  { key: 'advisory', match: /\b(advisory|counsel(or|ing)?|homeroom)\b/i, paletteIndex: 0, Icon: Compass, motifIcons: [Compass] },
+]
+
+function classTheme(schoolClass) {
+  const { subject } = parseClassName(schoolClass?.name)
+  const matched = SUBJECT_THEMES.find((theme) => theme.match.test(subject || ''))
+  if (matched) {
+    return {
+      colorRgb: CLASS_COLOR_PALETTE[matched.paletteIndex],
+      Icon: matched.Icon,
+      motifIcons: matched.motifIcons,
+    }
+  }
+  // No subject keyword matched -- keep classes visually distinct (old
+  // hash-based color) rather than dumping every unrecognized class into
+  // one identical fallback look.
+  return { colorRgb: classColorRgb(schoolClass?.id), Icon: GraduationCap, motifIcons: [GraduationCap] }
 }
 
 // Boss Battle HP: a test's own health bar, drained by real prep -- each
@@ -770,12 +814,23 @@ export default function SchoolPage({
               const avg = classAverage(schoolClass.id, assignments, tests)
               const level = classLevel(schoolClass)
               const { subject, teacher, term } = parseClassName(schoolClass.name)
+              const theme = classTheme(schoolClass)
               return (
                 <div
                   className="item-card school-class-card"
                   key={schoolClass.id}
-                  style={{ '--class-color-rgb': classColorRgb(schoolClass.id) }}
+                  style={{ '--class-color-rgb': theme.colorRgb }}
                 >
+                  {/* Purely decorative, aria-hidden -- a couple of the
+                      subject's own icons faded into the card background so
+                      a math class visibly reads as math (plus/divide) and a
+                      science class as science (flask/atom) at a glance,
+                      instead of every card only differing by a color swatch. */}
+                  <div className="school-class-motif" aria-hidden="true">
+                    {theme.motifIcons.map((MotifIcon, i) => (
+                      <MotifIcon key={i} size={i === 0 ? 64 : 40} strokeWidth={1.5} />
+                    ))}
+                  </div>
                   <button
                     type="button"
                     className="school-grade-ring-button"
@@ -790,6 +845,7 @@ export default function SchoolPage({
                     onClick={() => setSelectedClassId(schoolClass.id)}
                   >
                     <strong>
+                      <theme.Icon className="school-class-subject-icon" size={14} strokeWidth={2.25} />
                       {subject}
                       {level !== 'regular' && <span className="school-level-badge">{LEVEL_LABELS[level]}</span>}
                     </strong>
@@ -840,6 +896,10 @@ export default function SchoolPage({
   const currentAssignments = classAssignments(selectedClassId)
   const currentTests = classTests(selectedClassId)
   const classAvg = classAverage(selectedClassId, assignments, tests)
+  // Same subject theme as the class card it was opened from -- the whole
+  // point Dylan asked for is that a class feels consistently "itself"
+  // across the app, not just on the grid tile.
+  const activeTheme = activeClass ? classTheme(activeClass) : null
 
   return (
     <div className="page school-page">
@@ -851,15 +911,28 @@ export default function SchoolPage({
           is still cut off" Dylan flagged, and a real layout bug, not a
           font-size guess. */}
       <div
-        className={`page-header${heroImages?.school ? ' mode-hero' : ''}`}
-        style={heroImages?.school ? { '--hero-photo': `url(${heroImages.school})` } : undefined}
+        className={`page-header school-class-detail-header${heroImages?.school ? ' mode-hero' : ''}`}
+        style={{
+          ...(heroImages?.school ? { '--hero-photo': `url(${heroImages.school})` } : undefined),
+          ...(activeTheme ? { '--class-color-rgb': activeTheme.colorRgb } : undefined),
+        }}
       >
+        {activeTheme && (
+          <div className="school-class-motif school-class-motif-header" aria-hidden="true">
+            {activeTheme.motifIcons.map((MotifIcon, i) => (
+              <MotifIcon key={i} size={i === 0 ? 120 : 80} strokeWidth={1} />
+            ))}
+          </div>
+        )}
         {classAvg !== null && (
           <RadialProgress percent={classAvg} size={56} strokeWidth={5} label={`${Math.round(classAvg)}%`} />
         )}
         <div>
           <span className="eyebrow">SCHOOL MODE</span>
-          <h1 className="serif">{activeClass ? parseClassName(activeClass.name).subject : 'Class'}</h1>
+          <h1 className="serif">
+            {activeTheme && <activeTheme.Icon className="school-class-subject-icon school-class-subject-icon-lg" size={28} strokeWidth={2} />}
+            {activeClass ? parseClassName(activeClass.name).subject : 'Class'}
+          </h1>
           {activeClass && parseClassName(activeClass.name).teacher && (
             <p className="school-class-teacher school-class-teacher-detail">
               {parseClassName(activeClass.name).teacher}

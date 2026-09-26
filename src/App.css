@@ -11788,22 +11788,35 @@ button:disabled:active {
   transform: scale(1.08);
 }
 
-.school-back-to-classes {
+/* Dylan's call: this was too small/quiet for how often it gets clicked --
+   it's the one way back from every class-detail page. Bumped up to a real
+   gold-accented pill that matches the weight of the rest of School's
+   chunky, game-like buttons (View Full Schedule, the deadline pills)
+   instead of reading as a minor secondary link.
+   Selector is `.page-header .school-back-to-classes`, not just the bare
+   class -- confirmed via computed styles that the generic
+   `.page-header > button` rule (min-height 38px, 11.5px font, 1px border,
+   meant for the plain "back to overview" button every mode has) has
+   HIGHER specificity than a single class selector and was winning,
+   silently shrinking this button back down no matter what values were set
+   here. Two classes beats one class + one type selector. */
+.page-header .school-back-to-classes {
   flex-shrink: 0;
-  padding: 9px 16px;
-  border: 1px solid var(--border-strong);
+  padding: 14px 28px;
+  border: 2px solid rgba(var(--mode-accent-rgb), 0.6);
   border-radius: 999px;
-  background: var(--surface);
+  background: rgba(var(--mode-accent-rgb), 0.14);
   color: var(--text-primary);
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: 700;
+  font-size: 15px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.school-back-to-classes:hover {
+.page-header .school-back-to-classes:hover {
   border-color: rgb(var(--mode-accent-rgb));
-  background: rgba(var(--mode-accent-rgb), 0.12);
+  background: rgba(var(--mode-accent-rgb), 0.26);
+  transform: scale(1.03);
 }
 
 @keyframes deadlinePulse {
@@ -12094,6 +12107,82 @@ button:disabled:active {
     rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.12)
   );
 }
+
+/* Per-class subject motif: 1-2 of the subject's own icons, faded and
+   oversized, tucked in the corner. z-index -1 (not the default stacking
+   for a positioned element, which would paint ABOVE normal in-flow
+   content) keeps it strictly behind the ring/name/meta text -- .item-card
+   already establishes the containing stacking context via position:
+   relative, so this stays scoped to the card instead of escaping behind
+   the whole page. */
+.school-class-motif {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  color: rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.4);
+  overflow: hidden;
+}
+
+.school-class-motif svg:nth-child(1) {
+  position: absolute;
+  top: -14px;
+  right: -10px;
+  transform: rotate(-14deg);
+}
+
+.school-class-motif svg:nth-child(2) {
+  position: absolute;
+  bottom: -10px;
+  right: 46px;
+  transform: rotate(10deg);
+}
+
+.school-class-subject-icon {
+  vertical-align: -2px;
+  margin-right: 6px;
+  color: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
+}
+
+/* Class-detail header: same subject color/motif as the card it was opened
+   from, applied to the page-header itself so the theme carries through
+   past the class grid instead of resetting to plain gold. */
+/* Subtle wash only -- no padding/border-radius/box here, since every
+   other mode's page-header renders as plain text floating over the
+   full-bleed hero photo (see .overview-hero-bg above), and boxing this one
+   in would make School's class-detail view look like a different kind of
+   page instead of a themed version of the same one. */
+.school-class-detail-header {
+  background: linear-gradient(
+    120deg,
+    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.14),
+    transparent 55%
+  );
+}
+
+.school-class-motif-header {
+  color: rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.22);
+}
+
+.school-class-motif-header svg:nth-child(1) {
+  position: absolute;
+  top: -30px;
+  right: 10px;
+  transform: rotate(-10deg);
+}
+
+.school-class-motif-header svg:nth-child(2) {
+  position: absolute;
+  bottom: -20px;
+  right: 140px;
+  transform: rotate(8deg);
+}
+
+.school-class-subject-icon-lg {
+  margin-right: 10px;
+  vertical-align: -4px;
+}
+
 
 /* ---- Cross-class timeline ----
    Round 15: dropped the left-border-accent stripe (both the per-class
