@@ -1594,9 +1594,18 @@ export function useAppData() {
     if ((!trimmed && !imageDataUrl) || loading) return
 
     const threadKey = activeMode ? activeMode.key : 'general'
+    // Bug Dylan caught: this object is what actually renders in the chat
+    // transcript (see ChatPage's chatMessages.map), and it never carried the
+    // image forward at all -- only a text placeholder. The image data made
+    // it to the SERVER fine (passed separately below as `image` to
+    // streamChat), so the AI call itself wasn't the whole problem; the sent
+    // image just had nowhere to go on screen. Storing it on the message
+    // object is also what would be needed for it to reappear if chatThreads
+    // is ever persisted/reloaded later.
     const userMessage = {
       role: 'user',
       content: trimmed || (imageDataUrl ? '[Sent an image]' : ''),
+      image: imageDataUrl || null,
     }
     const priorMessages = chatThreads[threadKey] || []
 

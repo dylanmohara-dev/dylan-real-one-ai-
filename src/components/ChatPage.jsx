@@ -276,6 +276,14 @@ export default function ChatPage({
             </div>
 
             <div className="message-content-wrap">
+              {/* chat.image was always being sent to the server -- it just
+                  never got rendered here, so a sent picture silently
+                  vanished from the transcript. */}
+              {chat.image && (
+                <div className="message-image">
+                  <img src={chat.image} alt="Attached" />
+                </div>
+              )}
               <div className="message-bubble">{chat.content}</div>
               {chat.role === 'assistant' && formatDuration(chat.thinkingMs) && (
                 <span className="message-thinking-time">
@@ -420,7 +428,20 @@ export default function ChatPage({
           type="button"
           disabled={!SpeechRecognitionAPI}
         >
-          {isListening ? <MicOff size={16} strokeWidth={2.25} /> : <Mic size={16} strokeWidth={2.25} />}
+          {/* Bug Dylan caught: this used to show MicOff (a crossed-out mic --
+              universally read as "muted/off") WHILE isListening was true, and
+              the plain Mic icon while idle -- backwards from what either icon
+              conventionally means, so it looked broken even though the
+              recognition itself worked. MicOff is now reserved for the one
+              state it actually describes: voice input unavailable in this
+              browser. Listening is signaled by keeping the Mic icon and
+              switching the button itself to an active (red, glowing) state
+              via .is-listening below -- unambiguous either way. */}
+          {!SpeechRecognitionAPI ? (
+            <MicOff size={16} strokeWidth={2.25} />
+          ) : (
+            <Mic size={16} strokeWidth={2.25} />
+          )}
         </button>
 
         <textarea
