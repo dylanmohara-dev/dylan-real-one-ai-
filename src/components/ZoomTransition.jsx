@@ -85,6 +85,12 @@ export default function ZoomTransition({ zoomKey, origin, coverRect, mode, heroU
           ...(heroUrl ? { '--zoom-hero': `url(${heroUrl})` } : {}),
         }}
       />
+      <div className="zoom-transition-loader">
+        <div className="zoom-transition-spinner" />
+        <span className="zoom-transition-loader-label">
+          Loading{mode?.title ? ` ${mode.title}` : ''}...
+        </span>
+      </div>
     </div>
   )
 }

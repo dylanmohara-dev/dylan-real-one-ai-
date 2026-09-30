@@ -4828,7 +4828,7 @@ footer {
   position: absolute;
   inset: 0;
   background: linear-gradient(135deg, rgb(var(--mode-accent-rgb)), rgb(var(--mode-accent2-rgb)));
-  animation: zoomPanelPlay calc(0.4s * var(--celebrate-speed)) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: zoomPanelPlay calc(5s * var(--celebrate-speed)) cubic-bezier(0.4, 0, 0.2, 1) forwards;
   will-change: transform, opacity, filter;
   backface-visibility: hidden;
 }
@@ -4850,8 +4850,60 @@ footer {
   inset: 0;
   z-index: 2;
   background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.45) 100%);
-  animation: zoomVignettePlay calc(0.4s * var(--celebrate-speed)) ease forwards;
+  animation: zoomVignettePlay calc(5s * var(--celebrate-speed)) ease forwards;
   pointer-events: none;
+}
+
+/* Loading indicator -- Dylan's ask: now that the transition runs long
+   enough to actually notice (5s, up from the 0.4s "smooth/minimal" pass
+   two sessions back), it needs to read as deliberate loading rather than
+   an app that's just slow. A spinner + "Loading <Mode>..." label, faded
+   in only once the panel has finished its approach (matches the panel's
+   own 45% hold-point) and faded back out before it flies back out --
+   never present during the actual motion, so it never smears or jitters. */
+.zoom-transition-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  opacity: 0;
+  animation: zoomLoaderPlay calc(5s * var(--celebrate-speed)) ease forwards;
+  pointer-events: none;
+}
+
+.zoom-transition-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  animation: zoomSpinnerSpin 0.9s linear infinite;
+}
+
+.zoom-transition-loader-label {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+@keyframes zoomSpinnerSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes zoomLoaderPlay {
+  0% { opacity: 0; }
+  12% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  88% { opacity: 0; }
+  100% { opacity: 0; }
 }
 
 /* One clean pass: starts small (icon-size, at the clicked icon's exact
@@ -4955,6 +5007,8 @@ footer {
   .mode-flash.anim-wipe .mode-flash-content,
   .zoom-transition-panel,
   .zoom-transition-panel::before,
+  .zoom-transition-loader,
+  .zoom-transition-spinner,
   .mode-card-photo,
   .icon-nav-button.active,
   .mind-orb,
