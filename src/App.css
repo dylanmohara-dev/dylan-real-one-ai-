@@ -3628,6 +3628,43 @@ footer {
   color: rgb(var(--mode-accent2-rgb));
 }
 
+/* Dylan's ask: "when I do an assignment an animation shows it complete
+   and it takes me to this bar and I see it leveling up." The item pops
+   with the class's own accent color the instant it's checked (before the
+   real toggle/XP-award lands, via completeQuestItem's short delay in
+   SchoolPage.jsx), and the XP bar it scrolls to flashes right as the XP
+   actually updates -- the bar's own width already animates via
+   .school-stat-xp-fill's transition, this is just what makes that moment
+   land instead of quietly happening off-screen. */
+@keyframes questItemPop {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.55); }
+  45% { transform: scale(1.012); box-shadow: 0 0 0 3px rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.4); }
+  100% { transform: scale(1); box-shadow: 0 0 0 20px rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0); }
+}
+
+.app-shell.theme-school .school-quest-item.quest-celebrating {
+  animation: questItemPop 0.42s ease-out;
+}
+
+@keyframes xpBarFlash {
+  0% { box-shadow: 0 0 0 0 rgba(var(--mode-accent-rgb), 0); }
+  30% { box-shadow: 0 0 24px 5px rgba(var(--mode-accent-rgb), 0.9); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--mode-accent-rgb), 0); }
+}
+
+.school-stat-strip.xp-bar-flash .school-stat-xp-track {
+  animation: xpBarFlash 0.9s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.theme-school .school-quest-item.quest-celebrating {
+    animation: none;
+  }
+  .school-stat-strip.xp-bar-flash .school-stat-xp-track {
+    animation: none;
+  }
+}
+
 
 
 /* ============ CHAT PAGE (Classic Tools) ============ */
@@ -4602,12 +4639,13 @@ footer {
    the full viewport (round 4), not just .main-content -- everything that
    actually animates is transform + opacity/filter, driven by
    --zoom-scale-x0/y0 (also set inline) so it's pure compositor work, not
-   layout. Base duration is 3s (was 1.7s, before that 0.95s) -- Dylan's
-   explicit ask ("last 3 whole seconds"), plus a gentler shake amplitude
+   layout. Base duration is 5s (was 3s, before that 1.7s, before that 0.95s) --
+   Dylan's explicit ask (a full ~5-second cinematic hold), plus a gentler
+   shake amplitude
    in zoomPanelPlay's 36/38% arrival jolt so a longer hold doesn't just
    mean a longer-lasting shake -- the point was smoother, not slower AND
    still jarring. Every one of the 7 keyframe animations below shares this
-   same base via `calc(3s * var(--celebrate-speed))`, so they always stay
+   same base via `calc(5s * var(--celebrate-speed))`, so they always stay
    in sync with each other and with Settings -> Display -> Animation
    Intensity. */
 
@@ -4634,7 +4672,7 @@ footer {
   position: absolute;
   inset: 0;
   background: linear-gradient(135deg, rgb(var(--mode-accent-rgb)), rgb(var(--mode-accent2-rgb)));
-  animation: zoomPanelPlay calc(3s * var(--celebrate-speed)) cubic-bezier(0.65, 0, 0.2, 1) forwards;
+  animation: zoomPanelPlay calc(5s * var(--celebrate-speed)) cubic-bezier(0.65, 0, 0.2, 1) forwards;
   will-change: transform, opacity, filter;
   backface-visibility: hidden;
 }
@@ -4667,7 +4705,7 @@ footer {
   inset: 0;
   z-index: 2;
   background: radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.6) 100%);
-  animation: zoomVignettePlay calc(3s * var(--celebrate-speed)) ease forwards;
+  animation: zoomVignettePlay calc(5s * var(--celebrate-speed)) ease forwards;
   pointer-events: none;
 }
 
@@ -4680,7 +4718,7 @@ footer {
   justify-content: center;
   color: var(--text-on-accent, #171004);
   opacity: 0;
-  animation: zoomIconPlay calc(3s * var(--celebrate-speed)) ease forwards;
+  animation: zoomIconPlay calc(5s * var(--celebrate-speed)) ease forwards;
 }
 
 /* The core 3D "fly-through": starts tipped forward and pushed back in Z
@@ -4700,7 +4738,7 @@ footer {
   0% {
     transform: translate(0, 0) translateZ(-460px) rotateX(16deg) scale(var(--zoom-scale-x0), var(--zoom-scale-y0));
     opacity: 1;
-    filter: blur(14px) brightness(0.5) saturate(1.4);
+    filter: blur(6px) brightness(0.5) saturate(1.4);
   }
   30% {
     transform: translate(0, 0) translateZ(-60px) rotateX(4deg) scale(0.99, 0.99);
@@ -4730,7 +4768,7 @@ footer {
   100% {
     transform: translate(0, 0) translateZ(-460px) rotateX(-16deg) scale(var(--zoom-scale-x0), var(--zoom-scale-y0));
     opacity: 0;
-    filter: blur(14px) brightness(0.5) saturate(1.4);
+    filter: blur(6px) brightness(0.5) saturate(1.4);
   }
 }
 
@@ -4743,7 +4781,7 @@ footer {
    sprite. */
 .zoom-transition-streaks {
   position: absolute;
-  inset: -60%;
+  inset: -20%;
   z-index: 3;
   background: repeating-conic-gradient(
     from 0deg,
@@ -4753,7 +4791,7 @@ footer {
   mix-blend-mode: screen;
   opacity: 0;
   transform: scale(0.1) rotate(0deg);
-  animation: zoomStreaksPlay calc(3s * var(--celebrate-speed)) cubic-bezier(0.5, 0, 0.25, 1) forwards;
+  animation: zoomStreaksPlay calc(5s * var(--celebrate-speed)) cubic-bezier(0.5, 0, 0.25, 1) forwards;
   pointer-events: none;
 }
 
@@ -4805,7 +4843,7 @@ footer {
   );
   mix-blend-mode: overlay;
   opacity: 0.5;
-  animation: zoomScanlinesPlay calc(3s * var(--celebrate-speed)) ease forwards;
+  animation: zoomScanlinesPlay calc(5s * var(--celebrate-speed)) ease forwards;
   pointer-events: none;
 }
 
@@ -4834,7 +4872,7 @@ footer {
   gap: 12px;
   opacity: 0;
   text-align: center;
-  animation: zoomTitlePlay calc(3s * var(--celebrate-speed)) ease forwards;
+  animation: zoomTitlePlay calc(5s * var(--celebrate-speed)) ease forwards;
   pointer-events: none;
 }
 
@@ -4877,7 +4915,7 @@ footer {
   background: #fff;
   transform: scaleX(0);
   transform-origin: left;
-  animation: zoomBarPlay calc(3s * var(--celebrate-speed)) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: zoomBarPlay calc(5s * var(--celebrate-speed)) cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes zoomBarPlay {

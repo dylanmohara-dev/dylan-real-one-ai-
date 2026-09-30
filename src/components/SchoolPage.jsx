@@ -101,7 +101,14 @@ function weightedClassGPA(percent, level) {
 // Study Hall or Lunch — real entries in Dylan's own class list) is
 // skipped from both entirely, same as an ungraded class: neither counts
 // as a phantom 0.0, and neither should drag down or pad the average.
-function computeGPAs(classes, assignments, tests) {
+// `gradeLevel` ('high-school' | 'college', Dylan's own Settings choice):
+// the Honors/AP +0.5/+1.0 weighted-GPA bonus above is specifically a US
+// HIGH SCHOOL convention -- college transcripts don't add bonus points
+// for a harder course, they're flat 4.0-scale. So in college mode,
+// "weighted" is just the same flat GPA as "unweighted" (no invented
+// bonus), rather than silently applying a high-school-only rule to a
+// college transcript.
+function computeGPAs(classes, assignments, tests, gradeLevel = 'high-school') {
   const graded = classes
     .filter((c) => !c.excludeFromGpa)
     .map((c) => ({ avg: classAverage(c.id, assignments, tests), level: classLevel(c) }))
@@ -110,7 +117,9 @@ function computeGPAs(classes, assignments, tests) {
   if (!graded.length) return { weighted: null, unweighted: null, gradedCount: 0 }
 
   const unweightedPoints = graded.map((entry) => gradeToGPA(entry.avg))
-  const weightedPoints = graded.map((entry) => weightedClassGPA(entry.avg, entry.level))
+  const weightedPoints = gradeLevel === 'college'
+    ? unweightedPoints
+    : graded.map((entry) => weightedClassGPA(entry.avg, entry.level))
 
   return {
     weighted: weightedPoints.reduce((a, b) => a + b, 0) / weightedPoints.length,
@@ -304,8 +313,14 @@ function SchoolHeroSkyline() {
 // change here if his school uses a different number.
 const DEANS_LIST_GPA_THRESHOLD = 3.5
 
-function SchoolHero({ level, onJumpToClasses, weightedGPA }) {
+function SchoolHero({ level, onJumpToClasses, weightedGPA, gradeLevel = 'high-school' }) {
   const onDeansList = weightedGPA !== null && weightedGPA !== undefined && weightedGPA >= DEANS_LIST_GPA_THRESHOLD
+  // "Dean's List" is specifically a COLLEGE/university honor -- the high
+  // school equivalent is "Honor Roll." Showing the college term to a high
+  // schooler (or vice versa) is a small but real factual mismatch, so this
+  // now follows Dylan's own Settings -> School Grade Level choice instead
+  // of hardcoding the college term for everyone.
+  const honorLabel = gradeLevel === 'college' ? "Dean's List" : 'Honor Roll'
   return (
     <div className="school-hero">
       <div className="school-hero-sun" aria-hidden="true" />
@@ -322,7 +337,7 @@ function SchoolHero({ level, onJumpToClasses, weightedGPA }) {
       {onDeansList && (
         <span className="school-hero-honor" title={`Weighted GPA ${weightedGPA.toFixed(2)} is at or above ${DEANS_LIST_GPA_THRESHOLD.toFixed(1)}`}>
           <Award size={11} strokeWidth={2.5} />
-          Dean's List
+          {honorLabel}
         </span>
       )}
       <button type="button" className="school-hero-cta" onClick={onJumpToClasses}>
@@ -332,8 +347,8 @@ function SchoolHero({ level, onJumpToClasses, weightedGPA }) {
   )
 }
 
-function SchoolHUD({ classes, assignments, tests }) {
-  const totalXp = schoolTotalXP(classes, assignments, tests)
+function SchoolHUD({ classes, assignments, tests, canvasCompletions }) {
+  const totalXp = schoolTotalXP(classes, assignments, tests, canvasCompletions)
   const { level, xpIntoLevel, xpForNextLevel } = computeClassLevel(totalXp)
   const pct = Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100))
   const bestStreak = classes.reduce((max, c) => {
@@ -399,8 +414,8 @@ function TrophyCase({ level }) {
   )
 }
 
-function ClassQuestBar({ classId, assignments, tests, size }) {
-  const xp = classXP(classId, assignments, tests)
+function ClassQuestBar({ classId, assignments, tests, size, canvasCompletions }) {
+  const xp = classXP(classId, assignments, tests, canvasCompletions)
   const { level, xpIntoLevel, xpForNextLevel } = computeClassLevel(xp)
   const streak = currentStreakFromTotals(classCompletionDayTotals(classId, assignments, tests))
   const pct = Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100))
@@ -427,8 +442,8 @@ function ClassQuestBar({ classId, assignments, tests, size }) {
 // laid out as Dylan's reference mockup: a "LEVEL" pill plus a labeled bar
 // with "XP to Level N" and the exact "1,234 / 2,500" readout on screen,
 // not tucked into a hover title.
-function ClassLevelStatBlock({ classId, assignments, tests }) {
-  const xp = classXP(classId, assignments, tests)
+function ClassLevelStatBlock({ classId, assignments, tests, canvasCompletions }) {
+  const xp = classXP(classId, assignments, tests, canvasCompletions)
   const { level, xpIntoLevel, xpForNextLevel } = computeClassLevel(xp)
   const pct = Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100))
   return (
@@ -589,6 +604,10 @@ export default function SchoolPage({
   assignments,
   tests,
   canvas,
+  canvasCompletions,
+  toggleCanvasAssignment,
+  setCanvasAssignmentCategory,
+  schoolGradeLevel,
   selectedClassId,
   setSelectedClassId,
   classNameInput,
@@ -639,7 +658,7 @@ export default function SchoolPage({
       (c) => !c.submitted && c.dueAt && c.courseId === activeClassForId.canvasCourseId
     )
   }
-  const { weighted: weightedGPA, unweighted: unweightedGPA, gradedCount } = computeGPAs(classes, assignments, tests)
+  const { weighted: weightedGPA, unweighted: unweightedGPA, gradedCount } = computeGPAs(classes, assignments, tests, schoolGradeLevel)
 
   // Decluttering fix: Dylan's own complaint was that "Coming up" felt
   // cluttered -- it used to be one flat list, unlimited length, with no
@@ -653,6 +672,32 @@ export default function SchoolPage({
   // (driven by the real completed flag) drops it from the list on the
   // next data refresh.
   const [celebratingId, setCelebratingId] = useState(null)
+  // Dylan's ask: "when I do an assignment an animation shows it complete
+  // and it takes me to this bar and I see it leveling up." Separate from
+  // celebratingId above (that one's scoped to the "Coming up" deadline
+  // dashboard) -- this one's for the Quest Log's own checkbox, native
+  // AND Canvas items alike, since checking either should feel identical.
+  const [questCelebratingId, setQuestCelebratingId] = useState(null)
+  // Briefly true right as a Quest Log completion lands, so the XP
+  // bar/track can flash to draw the eye to the number that just moved --
+  // the bar's own width already animates (school-stat-xp-fill's CSS
+  // transition), this just makes the moment impossible to miss.
+  const [xpBarFlash, setXpBarFlash] = useState(false)
+  // Shared by both the native-assignment and Canvas-assignment checkboxes
+  // below: play the check-pop animation, scroll the class's XP bar into
+  // view, THEN fire the real toggle (which awards XP / detects a level-up)
+  // after a short beat -- same "let the animation read before the item's
+  // state actually flips" timing as completeWithCelebration below.
+  function completeQuestItem(id, doToggle) {
+    setQuestCelebratingId(id)
+    document.getElementById('school-stat-strip')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    window.setTimeout(() => {
+      doToggle()
+      setQuestCelebratingId(null)
+      setXpBarFlash(true)
+      window.setTimeout(() => setXpBarFlash(false), 900)
+    }, 420)
+  }
   // Manual "remove now" for a lingering-completed item (see deadline-
   // dismiss below) -- declared before `deadlines` uses it; a const
   // referenced above its own declaration would throw at runtime (temporal
@@ -768,20 +813,21 @@ export default function SchoolPage({
   }
 
   if (!selectedClassId) {
-    const heroLevel = computeClassLevel(schoolTotalXP(classes, assignments, tests)).level
+    const heroLevel = computeClassLevel(schoolTotalXP(classes, assignments, tests, canvasCompletions)).level
     return (
       <div className="page school-page">
         <SchoolHero
           level={heroLevel}
           weightedGPA={weightedGPA}
+          gradeLevel={schoolGradeLevel}
           onJumpToClasses={() => {
             document.getElementById('school-classes-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }}
         />
 
-        <SchoolHUD classes={classes} assignments={assignments} tests={tests} />
+        <SchoolHUD classes={classes} assignments={assignments} tests={tests} canvasCompletions={canvasCompletions} />
 
-        <TrophyCase level={computeClassLevel(schoolTotalXP(classes, assignments, tests)).level} />
+        <TrophyCase level={computeClassLevel(schoolTotalXP(classes, assignments, tests, canvasCompletions)).level} />
 
       <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />
 
@@ -910,7 +956,7 @@ export default function SchoolPage({
                       )}
                       {schoolClass.excludeFromGpa && <span> · not counted in GPA</span>}
                     </div>
-                    <ClassQuestBar classId={schoolClass.id} assignments={assignments} tests={tests} />
+                    <ClassQuestBar classId={schoolClass.id} assignments={assignments} tests={tests} canvasCompletions={canvasCompletions} />
                   </div>
                   <button className="delete-button" onClick={() => deleteClass(schoolClass.id)}>
                     ×
@@ -984,7 +1030,7 @@ export default function SchoolPage({
           grade ring, letter grade, Level pill, and labeled XP bar out of
           the header band into their own raised strip right below it. */}
       {activeClass && (
-        <div className="school-stat-strip" style={activeTheme ? { '--class-color-rgb': activeTheme.colorRgb } : undefined}>
+        <div id="school-stat-strip" className={`school-stat-strip${xpBarFlash ? ' xp-bar-flash' : ''}`} style={activeTheme ? { '--class-color-rgb': activeTheme.colorRgb } : undefined}>
           {classAvg !== null && (
             <div className="school-stat-grade">
               <RadialProgress percent={classAvg} size={84} strokeWidth={7} label={`${Math.round(classAvg)}%`} />
@@ -992,7 +1038,7 @@ export default function SchoolPage({
               <span className="school-stat-grade-caption">Current Grade</span>
             </div>
           )}
-          <ClassLevelStatBlock classId={selectedClassId} assignments={assignments} tests={tests} />
+          <ClassLevelStatBlock classId={selectedClassId} assignments={assignments} tests={tests} canvasCompletions={canvasCompletions} />
         </div>
       )}
       {activeClass && (
@@ -1005,7 +1051,7 @@ export default function SchoolPage({
         </p>
       )}
 
-      <SchoolHUD classes={classes} assignments={assignments} tests={tests} />
+      <SchoolHUD classes={classes} assignments={assignments} tests={tests} canvasCompletions={canvasCompletions} />
 
       <ModeChatLauncher assistantContext={assistantContext} modeKey="school" openChat={openChat} />
 
@@ -1040,7 +1086,8 @@ export default function SchoolPage({
           <div className="panel-heading school-panel-heading-quest">
             <h2>Quest Log</h2>
             <span className="school-quest-counter">
-              {currentAssignments.filter((a) => !a.completed).length + canvasClassAssignments(selectedClassId).length} of{' '}
+              {currentAssignments.filter((a) => !a.completed).length +
+                canvasClassAssignments(selectedClassId).filter((c) => !canvasCompletions[c.id]?.completed).length} of{' '}
               {currentAssignments.length + canvasClassAssignments(selectedClassId).length} open
             </span>
           </div>
@@ -1062,13 +1109,24 @@ export default function SchoolPage({
           <div className="items-list">
             {currentAssignments.length || canvasClassAssignments(selectedClassId).length ? (
               <>
-                {currentAssignments.map((assignment) => (
+                {currentAssignments.map((assignment) => {
+                  const isCelebratingQuest = questCelebratingId === assignment.id
+                  return (
                   <div
-                    className={`item-card school-quest-item ${assignment.completed ? 'completed' : ''}`}
+                    className={`item-card school-quest-item ${assignment.completed ? 'completed' : ''}${isCelebratingQuest ? ' quest-celebrating' : ''}`}
                     key={assignment.id}
                   >
-                    <button className="check-button" onClick={() => toggleAssignment(assignment)}>
-                      {assignment.completed ? '✓' : ''}
+                    <button
+                      className={`check-button${isCelebratingQuest || assignment.completed ? ' check-button-done' : ''}`}
+                      onClick={() => {
+                        if (assignment.completed) {
+                          toggleAssignment(assignment)
+                        } else if (!isCelebratingQuest) {
+                          completeQuestItem(assignment.id, () => toggleAssignment(assignment))
+                        }
+                      }}
+                    >
+                      {(assignment.completed || isCelebratingQuest) && <Check size={14} strokeWidth={3} />}
                     </button>
                     <div className="item-content">
                       <strong>{assignment.title}</strong>
@@ -1111,31 +1169,68 @@ export default function SchoolPage({
                       ×
                     </button>
                   </div>
-                ))}
-                {canvasClassAssignments(selectedClassId).map((c) => (
-                  <div className="item-card" key={c.id}>
-                    <span
-                      className="check-button check-button-canvas"
-                      title="From Canvas -- read-only here"
-                    ></span>
-                    <div className="item-content">
-                      <strong>{c.title}</strong>
-                      <div className="item-meta">
-                        <span>
-                          Due {c.dueAt.slice(0, 10)} ({weekdayForDateKey(c.dueAt.slice(0, 10))}) &middot; Canvas
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="deadline-canvas-open"
-                      title="Open in Canvas"
-                      onClick={() => window.open(c.url, '_blank', 'noopener')}
+                  )
+                })}
+                {canvasClassAssignments(selectedClassId).map((c) => {
+                  const completionRecord = canvasCompletions[c.id]
+                  const isDone = !!completionRecord?.completed
+                  const category = itemCategory(completionRecord || {}, 'homework')
+                  const isCelebratingQuest = questCelebratingId === c.id
+                  return (
+                    <div
+                      className={`item-card school-quest-item ${isDone ? 'completed' : ''}${isCelebratingQuest ? ' quest-celebrating' : ''}`}
+                      key={c.id}
                     >
-                      <ExternalLink size={12} strokeWidth={2.5} />
-                    </button>
-                  </div>
-                ))}
+                      <button
+                        className={`check-button${isCelebratingQuest || isDone ? ' check-button-done' : ''}`}
+                        onClick={() => {
+                          if (isDone) {
+                            toggleCanvasAssignment(c, selectedClassId)
+                          } else if (!isCelebratingQuest) {
+                            completeQuestItem(c.id, () => toggleCanvasAssignment(c, selectedClassId))
+                          }
+                        }}
+                        title={
+                          isDone
+                            ? 'Mark not done (local only -- never touches Canvas)'
+                            : 'Mark done (local only -- never touches Canvas or your real grade there)'
+                        }
+                      >
+                        {(isDone || isCelebratingQuest) && <Check size={14} strokeWidth={3} />}
+                      </button>
+                      <div className="item-content">
+                        <strong>{c.title}</strong>
+                        <div className="item-meta">
+                          <span className="school-item-tag">{CATEGORY_LABELS[category]}</span>
+                          <span>
+                            Due {c.dueAt.slice(0, 10)} ({weekdayForDateKey(c.dueAt.slice(0, 10))}) &middot; Canvas
+                          </span>
+                        </div>
+                      </div>
+                      <span className="school-item-xp">+{xpForCategory(completionRecord || {}, 'homework')} XP</span>
+                      <select
+                        className="category-select"
+                        value={category}
+                        title="Grade weight category (local only, doesn't touch Canvas)"
+                        onChange={(event) => setCanvasAssignmentCategory(c, selectedClassId, event.target.value)}
+                      >
+                        {Object.keys(CATEGORY_LABELS).map((key) => (
+                          <option key={key} value={key}>
+                            {CATEGORY_LABELS[key]} ({CATEGORY_WEIGHTS[key]}%)
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className="deadline-canvas-open"
+                        title="Open in Canvas"
+                        onClick={() => window.open(c.url, '_blank', 'noopener')}
+                      >
+                        <ExternalLink size={12} strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  )
+                })}
               </>
             ) : (
               <div className="mini-empty">No assignments yet.</div>

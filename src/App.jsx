@@ -259,6 +259,10 @@ function App() {
           assignments={data.assignments}
           tests={data.tests}
           canvas={canvas}
+          canvasCompletions={data.canvasCompletions}
+          toggleCanvasAssignment={data.toggleCanvasAssignment}
+          setCanvasAssignmentCategory={data.setCanvasAssignmentCategory}
+          schoolGradeLevel={data.settings.schoolGradeLevel}
           tasks={data.tasks}
           selectedClassId={data.selectedClassId}
           setSelectedClassId={data.setSelectedClassId}

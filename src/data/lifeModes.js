@@ -52,6 +52,12 @@ export const DEFAULT_SETTINGS = {
   // this continuous background loop.
   heroMotion: 'normal',
   soundEffects: true,
+  // 'high-school' | 'college' -- Dylan's own ask: School's copy/GPA
+  // framing (Dean's List threshold, "Class of ___" style references,
+  // rank-tier subtitle tone) should match which one he's actually in
+  // instead of assuming high school. Defaults to high school since
+  // that's what his real class data (Class of 2028) shows today.
+  schoolGradeLevel: 'high-school',
 }
 
 // Global "skin" layer, independent of the 9 per-mode color themes above.

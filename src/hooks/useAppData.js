@@ -183,6 +183,12 @@ export function useAppData() {
   // have already had their one-time unlock celebration -- see
   // detectSchoolLevelUp below.
   const [schoolProgress, setSchoolProgress] = useState({ unlockedTierKeys: [] })
+  // Local-only "mark done" layer for Canvas-synced assignments -- see
+  // routes/canvasCompletions.js. Keyed by the Canvas assignment's own id.
+  // Never written back to Canvas; exists purely so School's Quest Log/XP
+  // system has something real to react to for Dylan's actual (Canvas-
+  // synced) work.
+  const [canvasCompletions, setCanvasCompletions] = useState({})
   // Per-life-area hero photo overrides -- keyed by mode ('overview',
   // 'finance', etc), value is a URL (the built-in default) or a data:
   // URL (a photo Dylan uploaded himself, see updateHeroImage below). A
@@ -515,6 +521,7 @@ export function useAppData() {
       setFamilyGoals(data.family?.goals || { weeklyMinutesGoal: 360 })
       setPlayerStats(data.player || { xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
       setSchoolProgress(data.schoolProgress || { unlockedTierKeys: [] })
+      setCanvasCompletions(data.canvasCompletions || {})
       setHeroImages(data.heroImages || {})
 
       // Fire-and-forget: never blocks loadData's own return, and a
@@ -548,6 +555,7 @@ export function useAppData() {
         assignments: data.assignments || [],
         tests: data.tests || [],
         schoolProgress: data.schoolProgress || { unlockedTierKeys: [] },
+        canvasCompletions: data.canvasCompletions || {},
       }
     } catch (error) {
       setErrorMessage(error.message)
@@ -822,7 +830,7 @@ export function useAppData() {
   async function detectSchoolLevelUp(fresh) {
     if (!fresh) return
     const level = computeClassLevel(
-      schoolTotalXP(fresh.classes || [], fresh.assignments || [], fresh.tests || [])
+      schoolTotalXP(fresh.classes || [], fresh.assignments || [], fresh.tests || [], fresh.canvasCompletions || {})
     ).level
     const dueTiers = unlockedTiersForLevel(level)
     const alreadyUnlocked = new Set(fresh.schoolProgress?.unlockedTierKeys || [])
@@ -2526,6 +2534,51 @@ export function useAppData() {
     }
   }
 
+  // Canvas's own "submitted" state stays completely untouched by this --
+  // this PUTs to the SEPARATE local-only routes/canvasCompletions.js
+  // layer, never to /api/canvas. Mirrors toggleAssignment's own
+  // award-XP/detect-level-up/celebrate pattern so a Canvas item completing
+  // feels identical to a native one, since for Dylan's real data Canvas
+  // items ARE virtually all of "an assignment."
+  async function toggleCanvasAssignment(canvasAssignment, classId) {
+    try {
+      const existing = canvasCompletions[canvasAssignment.id]
+      const completing = !existing?.completed
+      await request(`/canvas-completions/${canvasAssignment.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          completed: completing,
+          classId,
+          category: existing?.category,
+          title: canvasAssignment.title,
+        }),
+      })
+      const fresh = await loadData()
+
+      if (completing) {
+        pushToast({ kind: 'task', title: 'ASSIGNMENT DONE', message: canvasAssignment.title })
+        awardXP('assignment-done')
+        await detectSchoolLevelUp(fresh)
+      }
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // Same "editable after the fact" rationale as setAssignmentCategory,
+  // for the local-only Canvas completion record.
+  async function setCanvasAssignmentCategory(canvasAssignment, classId, category) {
+    try {
+      await request(`/canvas-completions/${canvasAssignment.id}/category`, {
+        method: 'PUT',
+        body: JSON.stringify({ category, classId, title: canvasAssignment.title }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
   async function addTest() {
     if (!testInput.trim() || !selectedClassId) return
     setSaving(true)
@@ -3215,6 +3268,9 @@ export function useAppData() {
     classes,
     assignments,
     tests,
+    // Local-only Canvas "mark done" layer (routes/canvasCompletions.js) --
+    // never touches real Canvas submission state.
+    canvasCompletions,
     selectedClassId,
     setSelectedClassId,
     classNameInput,
@@ -3238,6 +3294,8 @@ export function useAppData() {
     setAssignmentGrade,
     setAssignmentCategory,
     deleteAssignment,
+    toggleCanvasAssignment,
+    setCanvasAssignmentCategory,
     addTest,
     toggleTest,
     setTestGrade,

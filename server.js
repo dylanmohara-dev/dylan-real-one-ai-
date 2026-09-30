@@ -23,6 +23,7 @@ import gmailRouter from './routes/gmail.js'
 import driveRouter from './routes/drive.js'
 import googleCalendarRouter from './routes/googleCalendar.js'
 import canvasRouter from './routes/canvas.js'
+import canvasCompletionsRouter from './routes/canvasCompletions.js'
 import slackRouter from './routes/slack.js'
 import backupRouter from './routes/backup.js'
 import gymRouter from './routes/gym.js'
@@ -74,6 +75,7 @@ app.use('/api/gmail', gmailRouter)
 app.use('/api/drive', driveRouter)
 app.use('/api/google-calendar', googleCalendarRouter)
 app.use('/api/canvas', canvasRouter)
+app.use('/api/canvas-completions', canvasCompletionsRouter)
 app.use('/api/slack', slackRouter)
 app.use('/api/backup', backupRouter)
 app.use('/api/gym', gymRouter)

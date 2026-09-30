@@ -497,6 +497,30 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
           </button>
         </div>
 
+        <div className="settings-card">
+          <div>
+            <strong>School Grade Level</strong>
+
+            <p>
+              High school or college -- controls School's grading/GPA
+              framing and copy.
+            </p>
+          </div>
+
+          <select
+            value={settings.schoolGradeLevel || 'high-school'}
+            onChange={(e) =>
+              setSettings((prev) => ({
+                ...prev,
+                schoolGradeLevel: e.target.value,
+              }))
+            }
+          >
+            <option value="high-school">High School</option>
+            <option value="college">College</option>
+          </select>
+        </div>
+
         <div className="settings-note">
           <strong>Your data stays local.</strong>
 

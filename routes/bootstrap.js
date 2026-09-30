@@ -104,6 +104,7 @@ router.get('/bootstrap', (req, res) => {
       })(),
       player: loadPlayerStats(),
       schoolProgress: loadData('school_progress', { unlockedTierKeys: [] }),
+      canvasCompletions: loadData('canvas_completions', {}),
     })
   } catch (error) {
     console.error(error)
