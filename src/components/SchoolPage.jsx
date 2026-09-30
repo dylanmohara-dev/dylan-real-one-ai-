@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Check, Flame, Swords, FileText, X, ExternalLink, Award,
+  Check, Flame, Swords, Shield, FileText, X, ExternalLink, Award,
   Calculator, Plus, Divide, FlaskConical, Atom, BookOpen, Landmark, Globe,
   Languages, DollarSign, Briefcase, Palette, Music, Dumbbell, Compass,
   GraduationCap,
@@ -8,7 +8,7 @@ import {
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import RadialProgress from './RadialProgress.jsx'
 import {
-  CATEGORY_WEIGHTS, itemCategory, computeClassLevel, classXP, schoolTotalXP,
+  CATEGORY_WEIGHTS, itemCategory, xpForCategory, computeClassLevel, classXP, schoolTotalXP,
   RANK_TIERS, rankForLevel, unlockedTiersForLevel,
 } from '../lib/schoolProgress.js'
 
@@ -29,6 +29,25 @@ function gradeToGPA(percent) {
   if (percent >= 63) return 1.0
   if (percent >= 60) return 0.7
   return 0.0
+}
+
+// Same breakpoints as gradeToGPA above, as letters instead of GPA points --
+// deliberately built from the exact same thresholds rather than a second,
+// independently-tuned scale, so a 91% always reads as "A-" AND 3.7 in the
+// same breath, never one without the other.
+function letterGrade(percent) {
+  if (percent >= 93) return 'A'
+  if (percent >= 90) return 'A-'
+  if (percent >= 87) return 'B+'
+  if (percent >= 83) return 'B'
+  if (percent >= 80) return 'B-'
+  if (percent >= 77) return 'C+'
+  if (percent >= 73) return 'C'
+  if (percent >= 70) return 'C-'
+  if (percent >= 67) return 'D+'
+  if (percent >= 63) return 'D'
+  if (percent >= 60) return 'D-'
+  return 'F'
 }
 
 // A class's average is weighted by category, not a flat mean of every
@@ -400,6 +419,34 @@ function ClassQuestBar({ classId, assignments, tests, size }) {
         </span>
       )}
     </div>
+  )
+}
+
+// The class-detail page's stat strip needs the SAME level/XP numbers as
+// ClassQuestBar above (never a second, drifting copy of the math) but
+// laid out as Dylan's reference mockup: a "LEVEL" pill plus a labeled bar
+// with "XP to Level N" and the exact "1,234 / 2,500" readout on screen,
+// not tucked into a hover title.
+function ClassLevelStatBlock({ classId, assignments, tests }) {
+  const xp = classXP(classId, assignments, tests)
+  const { level, xpIntoLevel, xpForNextLevel } = computeClassLevel(xp)
+  const pct = Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100))
+  return (
+    <>
+      <div className="school-stat-level" title={`Level ${level} in this class`}>
+        <span className="school-stat-level-label">LEVEL</span>
+        <span className="school-stat-level-value">{level}</span>
+      </div>
+      <div className="school-stat-xp">
+        <span className="school-stat-xp-label">XP to Level {level + 1}</span>
+        <div className="school-stat-xp-track">
+          <div className="school-stat-xp-fill" style={{ width: `${pct}%` }} />
+        </div>
+        <span className="school-stat-xp-numbers">
+          {xpIntoLevel.toLocaleString()} / {xpForNextLevel.toLocaleString()}
+        </span>
+      </div>
+    </>
   )
 }
 
@@ -915,9 +962,6 @@ export default function SchoolPage({
             ))}
           </div>
         )}
-        {classAvg !== null && (
-          <RadialProgress percent={classAvg} size={56} strokeWidth={5} label={`${Math.round(classAvg)}%`} />
-        )}
         <div>
           <span className="eyebrow">SCHOOL MODE</span>
           <h1 className="serif">
@@ -930,24 +974,36 @@ export default function SchoolPage({
               {parseClassName(activeClass.name).term && ` · ${parseClassName(activeClass.name).term}`}
             </p>
           )}
-          <p>
-            Assignments and tests for this class.
-            {classAvg !== null &&
-              ` Current average: ${classAvg.toFixed(1)}% (${weightedClassGPA(classAvg, classLevel(activeClass)).toFixed(1)} GPA${
-                classLevel(activeClass) !== 'regular' ? ', weighted' : ''
-              }).`}
-          </p>
-          {activeClass && (
-            <div className="school-quest-bar-wrap">
-              <span className="school-quest-tag">This class</span>
-              <ClassQuestBar classId={selectedClassId} assignments={assignments} tests={tests} size="lg" />
-            </div>
-          )}
         </div>
         <button className="school-back-to-classes" onClick={() => setSelectedClassId(null)}>
           ← Back to Classes
         </button>
       </div>
+
+      {/* Stat strip -- Dylan's reference mockup (Algebra II) pulls the
+          grade ring, letter grade, Level pill, and labeled XP bar out of
+          the header band into their own raised strip right below it. */}
+      {activeClass && (
+        <div className="school-stat-strip" style={activeTheme ? { '--class-color-rgb': activeTheme.colorRgb } : undefined}>
+          {classAvg !== null && (
+            <div className="school-stat-grade">
+              <RadialProgress percent={classAvg} size={84} strokeWidth={7} label={`${Math.round(classAvg)}%`} />
+              <span className="school-stat-grade-letter">{letterGrade(classAvg)}</span>
+              <span className="school-stat-grade-caption">Current Grade</span>
+            </div>
+          )}
+          <ClassLevelStatBlock classId={selectedClassId} assignments={assignments} tests={tests} />
+        </div>
+      )}
+      {activeClass && (
+        <p className="school-class-summary-line">
+          Assignments and tests for this class.
+          {classAvg !== null &&
+            ` Current average: ${classAvg.toFixed(1)}% (${weightedClassGPA(classAvg, classLevel(activeClass)).toFixed(1)} GPA${
+              classLevel(activeClass) !== 'regular' ? ', weighted' : ''
+            }).`}
+        </p>
+      )}
 
       <SchoolHUD classes={classes} assignments={assignments} tests={tests} />
 
@@ -978,10 +1034,15 @@ export default function SchoolPage({
         </div>
       )}
 
+      <div className="school-quest-boss-frame" style={activeTheme ? { '--class-color-rgb': activeTheme.colorRgb } : undefined}>
       <div className="dashboard-grid">
         <section className="dashboard-panel">
-          <div className="panel-heading">
-            <h2>Assignments</h2>
+          <div className="panel-heading school-panel-heading-quest">
+            <h2>Quest Log</h2>
+            <span className="school-quest-counter">
+              {currentAssignments.filter((a) => !a.completed).length + canvasClassAssignments(selectedClassId).length} of{' '}
+              {currentAssignments.length + canvasClassAssignments(selectedClassId).length} open
+            </span>
           </div>
           <div className="form-card">
             <input
@@ -1003,7 +1064,7 @@ export default function SchoolPage({
               <>
                 {currentAssignments.map((assignment) => (
                   <div
-                    className={`item-card ${assignment.completed ? 'completed' : ''}`}
+                    className={`item-card school-quest-item ${assignment.completed ? 'completed' : ''}`}
                     key={assignment.id}
                   >
                     <button className="check-button" onClick={() => toggleAssignment(assignment)}>
@@ -1012,6 +1073,7 @@ export default function SchoolPage({
                     <div className="item-content">
                       <strong>{assignment.title}</strong>
                       <div className="item-meta">
+                        <span className="school-item-tag">{CATEGORY_LABELS[itemCategory(assignment, 'homework')]}</span>
                         {assignment.dueDate && (
                         <span>
                           Due {assignment.dueDate} ({weekdayForDateKey(assignment.dueDate)})
@@ -1019,6 +1081,7 @@ export default function SchoolPage({
                       )}
                       </div>
                     </div>
+                    <span className="school-item-xp">+{xpForCategory(assignment, 'homework')} XP</span>
                     <select
                       className="category-select"
                       value={itemCategory(assignment, 'homework')}
@@ -1082,7 +1145,7 @@ export default function SchoolPage({
 
         <section className="dashboard-panel">
           <div className="panel-heading">
-            <h2>Tests</h2>
+            <h2>Boss Battles</h2>
           </div>
           <div className="form-card">
             <input
@@ -1118,9 +1181,12 @@ export default function SchoolPage({
                         {test.completed ? '✓' : ''}
                       </button>
                       <div className="item-content">
-                        <strong>{test.title}</strong>
+                        <strong>
+                          <Shield size={13} strokeWidth={2.5} className="school-boss-shield" />
+                          {test.title}
+                        </strong>
                         <div className="item-meta">
-                          {test.date && <span>Date {test.date}</span>}
+                          {test.date && <span>{test.date}</span>}
                         </div>
                       </div>
                       <select
@@ -1158,13 +1224,11 @@ export default function SchoolPage({
                         className={`school-boss-bar${bossHp(test, tasks) <= 30 ? ' school-boss-low' : ''}`}
                         title="Boss HP -- drops as you complete this test's study plan. A 90%+ grade is what actually defeats it."
                       >
-                        <Swords size={14} strokeWidth={2.5} />
-                        <span className="school-boss-label-text">Boss</span>
+                        <span className="school-boss-label-text">HP</span>
                         <div className="school-boss-track">
                           <div className="school-boss-fill" style={{ width: `${bossHp(test, tasks)}%` }} />
                         </div>
-                        <span className="school-boss-label">{bossHp(test, tasks)}% HP</span>
-                        <Swords size={14} strokeWidth={2.5} />
+                        <span className="school-boss-label">{bossHp(test, tasks)} / 100</span>
                       </div>
                     )}
 
@@ -1246,6 +1310,7 @@ export default function SchoolPage({
             )}
           </div>
         </section>
+      </div>
       </div>
     </div>
   )

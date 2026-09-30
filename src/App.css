@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700;800&family=Lora:wght@500;600;700&family=Bebas+Neue&family=Anton&family=Quicksand:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&family=Poppins:wght@500;600;700&family=Crimson+Pro:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Fredoka:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Oswald:wght@400;500;600&family=Orbitron:wght@500;600;700;800&family=Bitter:wght@500;600;700&family=Comfortaa:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Caveat:wght@600;700&family=Audiowide&family=Rajdhani:wght@500;600;700&family=Press+Start+2P&family=Baloo+2:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700;800&family=Lora:wght@500;600;700&family=Bebas+Neue&family=Anton&family=Quicksand:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&family=Poppins:wght@500;600;700&family=Crimson+Pro:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Fredoka:wght@500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@500;600;700&family=Barlow+Condensed:wght@400;500;600&family=Oswald:wght@400;500;600&family=Orbitron:wght@500;600;700;800&family=Bitter:wght@500;600;700&family=Comfortaa:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Caveat:wght@600;700&family=Audiowide&family=Rajdhani:wght@500;600;700&family=Press+Start+2P&family=Baloo+2:wght@500;600;700&display=swap');
 
 * {
   box-sizing: border-box;
@@ -196,23 +196,42 @@ select option {
 
 /* ============ MODE ACCENTS ============ */
 
+/* THE block that actually wins for School's own rendered chrome --
+   .app-shell carries theme-school directly (confirmed live:
+   document.querySelector('.app-shell').className), so its OWN custom
+   properties beat anything set on the ancestor .app-root, source order
+   or not. A prior pass (Session 58's "exact hex" rewrite) only ever
+   touched .app-root.theme-school below and missed this one -- which is
+   why School was still rendering the old Anton/Barlow Condensed/
+   #1c1608 look under all of it the whole time. Kept in sync with
+   .app-root.theme-school's tokens now; the two should never drift
+   again. */
 .app-shell.theme-school {
-  --mode-accent-rgb: 244, 196, 48;
-  --mode-accent2-rgb: 255, 157, 58;
-  --mode-heading-font: 'Anton', sans-serif;
-  --mode-radius-scale: 0.3;
+  --mode-accent-rgb: 201, 161, 59;
+  --mode-accent2-rgb: 242, 210, 122;
+  --mode-gold-deep-rgb: 138, 111, 46;
+  --mode-heading-font: 'Cinzel', serif;
+  --mode-body-font: 'IBM Plex Sans', sans-serif;
+  --mode-mono-font: 'IBM Plex Mono', monospace;
+  --mode-radius-scale: 0.55;
   --mode-border-width: 1px;
-  --bg-glow-1: rgba(244, 196, 48, 0.22);
-  --bg-glow-2: rgba(244, 196, 48, 0.13);
-  --bg: #1c1608;
+  --bg-glow-1: rgba(201, 161, 59, 0.16);
+  --bg-glow-2: rgba(138, 111, 46, 0.14);
+  --bg: #100d09;
   --mode-tracking: -0.01em;
-  --mode-body-font: 'Barlow Condensed', sans-serif;
-  --surface: rgba(var(--mode-accent-rgb), 0.055);
-  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);
-  --surface-input: rgba(var(--mode-accent-rgb), 0.065);
-  --surface-strong: rgba(57, 48, 23, 0.86);
-  --border: rgba(var(--mode-accent-rgb), 0.18);
-  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
+  --surface: #1a1610;
+  --surface-hover: #2e2819;
+  --surface-input: #241f17;
+  --surface-strong: #241f17;
+  --border: #3a3221;
+  --border-strong: rgba(201, 161, 59, 0.4);
+  --text-primary: #efe6d3;
+  --text-secondary: #a89a7c;
+  --text-muted: #6b604a;
+  --school-panel: #1a1610;
+  --school-card: #241f17;
+  --school-card-hover: #2e2819;
+  --school-ember-rgb: 201, 96, 58;
 }
 
 .app-shell.theme-sports {
@@ -419,27 +438,40 @@ select option {
    headers, borders, or backgrounds. Four category colors (teal / maroon
    / plum / green) carry class-card identity instead of gold. */
 .app-root.theme-school {
-  --mode-accent-rgb: 227, 168, 59;       /* #E3A83B gold core -- CTA/progress/LVL badge ONLY */
-  --mode-accent2-rgb: 240, 195, 104;     /* #F0C368 gold hover/light, for gold gradients only */
-  --mode-gold-deep-rgb: 138, 90, 29;     /* #8A5A1D gold deep, gradient shadows only */
-  --mode-heading-font: 'Playfair Display', serif;
-  --mode-body-font: 'Manrope', sans-serif;
-  --mode-mono-font: 'IBM Plex Mono', monospace;
+  /* Round 2 design-system pass -- Dylan's own exact hex spec (fed through
+     his design tool and sent back with a reference mockup), replacing the
+     Session 58 approximation above. Every value below is his literal spec,
+     not a derived/rounded guess. */
+  --mode-accent-rgb: 201, 161, 59;        /* #c9a13b gold -- CTA/progress/LVL badge ONLY, capped ~10% of screen */
+  --mode-accent2-rgb: 242, 210, 122;      /* #f2d27a gold-bright -- completion moments only, never a resting fill */
+  --mode-gold-deep-rgb: 138, 111, 46;     /* #8a6f2e gold-dim -- low-emphasis labels */
+  --mode-heading-font: 'Cinzel', serif;
+  --mode-body-font: 'IBM Plex Sans', sans-serif;
+  --mode-mono-font: 'IBM Plex Mono', monospace;  /* all numeric HUD readouts: XP, level, grade %, HP */
   --mode-radius-scale: 0.55;
   --mode-border-width: 1px;
-  --bg-glow-1: rgba(227, 168, 59, 0.16);
-  --bg-glow-2: rgba(138, 90, 29, 0.14);
-  --bg: #16130f;                         /* espresso charcoal page background */
+  --bg-glow-1: rgba(201, 161, 59, 0.16);
+  --bg-glow-2: rgba(138, 111, 46, 0.14);
+  --bg: #100d09;                          /* canvas background */
   --mode-tracking: -0.01em;
-  --surface: #221c15;                    /* panel / card surface */
-  --surface-hover: #2a2219;              /* elevated / hover surface */
-  --surface-input: #221c15;
-  --surface-strong: #2a2219;
-  --border: #3d3226;                     /* hairline borders / dividers */
-  --border-strong: rgba(227, 168, 59, 0.4);
-  --text-primary: #f3e9d2;               /* headers, primary text (parchment) */
-  --text-secondary: #c9bba0;             /* body text */
-  --text-muted: #a69a85;                 /* labels, meta, timestamps */
+  --surface: #1a1610;                     /* panel background */
+  --surface-hover: #2e2819;               /* hover surface */
+  --surface-input: #241f17;               /* inputs sit on card-level surface */
+  --surface-strong: #241f17;              /* card background */
+  --border: #3a3221;                      /* hairline borders -- 1px, never heavier */
+  --border-strong: rgba(201, 161, 59, 0.4);
+  --text-primary: #efe6d3;                /* primary text */
+  --text-secondary: #a89a7c;              /* muted text */
+  --text-muted: #6b604a;                  /* faint/disabled text */
+
+  /* Named aliases for the three surface steps + ember, so new markup can
+     reach for these directly instead of overloading --surface/-hover with
+     two different meanings (panel vs. card). Depth comes from these
+     surface steps, never cast shadow. */
+  --school-panel: #1a1610;
+  --school-card: #241f17;
+  --school-card-hover: #2e2819;
+  --school-ember-rgb: 201, 96, 58;        /* #c9603a -- danger/HP-drain, always paired with a text label */
 
   /* Category accent pairs -- each class/item gets one of these, never
      gold. classColorRgb() in SchoolPage.jsx cycles through these four. */
@@ -1793,6 +1825,12 @@ footer {
   color: var(--text-secondary);
   font-size: 13px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.school-class-summary-line {
+  margin: 0 0 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .page-header > button {
@@ -3380,6 +3418,217 @@ footer {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============ SCHOOL: class-detail stat strip + Quest Log / Boss
+   Battles frame (Dylan's round-2 design-system spec + reference mockup:
+   Algebra II page) ============ */
+
+/* Grade ring + letter grade + Level pill + labeled XP bar -- pulled out
+   of the header band (which per the reference mockup only carries the
+   title/subtitle/icon/motifs) into its own raised strip directly below
+   it, on the panel surface. */
+.school-stat-strip {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin: 14px 0 18px;
+  padding: 16px 20px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: 16px;
+  background: var(--school-panel, var(--surface));
+}
+
+.school-stat-grade {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.school-stat-grade-letter {
+  font-family: var(--mode-mono-font);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: -6px;
+}
+
+.school-stat-grade-caption {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.school-stat-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 64px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--school-card, var(--surface-strong));
+  border: var(--mode-border-width, 1px) solid var(--border);
+}
+
+.school-stat-level-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+}
+
+.school-stat-level-value {
+  font-family: var(--mode-mono-font);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  color: rgb(var(--mode-accent2-rgb));
+}
+
+.school-stat-xp {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.school-stat-xp-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.school-stat-xp-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.school-stat-xp-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(var(--mode-gold-deep-rgb)), rgb(var(--mode-accent-rgb)) 55%, rgb(var(--mode-accent2-rgb)));
+  box-shadow: 0 0 8px rgba(var(--mode-accent-rgb), 0.5);
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.school-stat-xp-numbers {
+  align-self: flex-end;
+  font-family: var(--mode-mono-font);
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(var(--mode-accent2-rgb));
+}
+
+/* The bordered frame wrapping Quest Log + Boss Battles together, tinted
+   with the active class's own subject accent -- matches the reference
+   mockup's outlined box, distinguishing "this class's work" from the
+   rest of the page. */
+.school-quest-boss-frame {
+  border: 1.5px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.55);
+  border-radius: 16px;
+  padding: 20px;
+  background: var(--school-panel, var(--surface));
+}
+
+.school-quest-boss-frame .dashboard-grid {
+  gap: 24px;
+}
+
+.school-panel-heading-quest {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.school-quest-counter {
+  font-family: var(--mode-mono-font);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Quest Log items -- square checkbox (filled with the class accent once
+   completed, per the reference), category tag pill, gold XP badge
+   (gold-bright once earned). Scoped to school so the rest of the app's
+   round check-buttons/opacity-fade completion style is untouched. */
+.app-shell.theme-school .school-quest-item {
+  background: var(--school-card, var(--surface-strong));
+  /* The Quest Log column is narrow (half the class-detail width) -- with
+     a checkbox, title, tag, XP badge, category select, grade input AND
+     delete button all fighting for one row, min-width:0 on .item-content
+     (the app-wide default) crushed longer titles down to one word per
+     line. Letting the row wrap keeps the title readable and drops the
+     editing controls to their own line instead. */
+  flex-wrap: wrap;
+}
+
+.app-shell.theme-school .school-quest-item .item-content {
+  min-width: 130px;
+}
+
+.app-shell.theme-school .school-quest-item:hover {
+  background: var(--school-card-hover, var(--surface-hover));
+}
+
+.app-shell.theme-school .school-quest-item .check-button {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 2px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.6);
+  color: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
+}
+
+.app-shell.theme-school .school-quest-item.completed .check-button {
+  background: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
+  border-color: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
+  color: #100d09;
+}
+
+/* Per Dylan's reference mockup, a completed quest reads as slightly
+   quieter (not the app-wide 0.55-opacity + strikethrough fade) -- it's
+   still a log of real work, not something to hide. */
+.app-shell.theme-school .school-quest-item.completed {
+  opacity: 1;
+}
+
+.app-shell.theme-school .school-quest-item.completed strong {
+  text-decoration: none;
+  color: var(--text-secondary);
+}
+
+.school-item-tag {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.14);
+  color: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.school-item-xp {
+  flex-shrink: 0;
+  font-family: var(--mode-mono-font);
+  font-size: 12px;
+  font-weight: 700;
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.app-shell.theme-school .school-quest-item.completed .school-item-xp {
+  color: rgb(var(--mode-accent2-rgb));
+}
+
+
 
 /* ============ CHAT PAGE (Classic Tools) ============ */
 
@@ -12426,9 +12675,9 @@ button:disabled:active {
   gap: 10px;
   margin: 10px 0 0;
   padding: 9px 12px;
-  border: 2px solid rgba(244, 63, 94, 0.5);
+  border: 2px solid rgba(var(--school-ember-rgb), 0.5);
   border-radius: calc(10px * var(--mode-radius-scale, 1));
-  background: linear-gradient(90deg, rgba(120, 10, 25, 0.35), rgba(244, 63, 94, 0.08));
+  background: linear-gradient(90deg, rgba(var(--school-ember-rgb), 0.22), rgba(var(--school-ember-rgb), 0.06));
   color: rgb(255, 150, 160);
   box-shadow: 0 0 18px rgba(244, 63, 94, 0.25);
 }
@@ -12439,7 +12688,7 @@ button:disabled:active {
   font-weight: 900;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgb(251, 113, 133);
+  color: rgb(var(--school-ember-rgb));
 }
 
 .school-boss-track {
@@ -12449,13 +12698,13 @@ button:disabled:active {
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.4);
   overflow: hidden;
-  border: 1px solid rgba(244, 63, 94, 0.4);
+  border: 1px solid rgba(var(--school-ember-rgb), 0.4);
 }
 
 .school-boss-fill {
   position: relative;
   height: 100%;
-  background: linear-gradient(90deg, rgb(190, 20, 40), rgb(244, 63, 94), rgb(251, 146, 60));
+  background: linear-gradient(90deg, rgba(var(--school-ember-rgb), 0.75), rgb(var(--school-ember-rgb)));
   background-size: 200% 100%;
   transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -12481,17 +12730,26 @@ button:disabled:active {
 }
 
 @keyframes schoolBossPulse {
-  0%, 100% { box-shadow: 0 0 18px rgba(244, 63, 94, 0.25); }
-  50% { box-shadow: 0 0 28px rgba(244, 63, 94, 0.6); }
+  0%, 100% { box-shadow: 0 0 18px rgba(var(--school-ember-rgb), 0.25); }
+  50% { box-shadow: 0 0 28px rgba(var(--school-ember-rgb), 0.6); }
 }
 
 .school-boss-label {
   flex-shrink: 0;
+  font-family: var(--mode-mono-font);
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.03em;
   min-width: 54px;
   text-align: right;
+  color: rgb(var(--school-ember-rgb));
+}
+
+.school-boss-shield {
+  flex-shrink: 0;
+  color: rgb(var(--school-ember-rgb));
+  vertical-align: -2px;
+  margin-right: 6px;
 }
 
 @media (prefers-reduced-motion: reduce) {
