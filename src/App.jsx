@@ -272,6 +272,7 @@ function App() {
           setCanvasAssignmentCategory={data.setCanvasAssignmentCategory}
           schoolGradeLevel={data.settings.schoolGradeLevel}
           tasks={data.tasks}
+          toggleTask={data.toggleTask}
           selectedClassId={data.selectedClassId}
           setSelectedClassId={data.setSelectedClassId}
           classNameInput={data.classNameInput}

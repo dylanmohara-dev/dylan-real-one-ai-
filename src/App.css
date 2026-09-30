@@ -2881,6 +2881,65 @@ footer {
   color: var(--text-muted);
 }
 
+/* A real, checkable Boss-Battle sub-task list -- matches Dylan's ENGLISH III
+   reference (small square checkbox, filled with the class's own color when
+   checked, label goes muted+struck when done). Reuses --class-color-rgb the
+   same way DeadlineItem/Quest Log already do, falling back to the mode
+   accent so it still looks right on a class with no assigned color yet. */
+.school-boss-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px dashed var(--border-soft);
+}
+
+.school-boss-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.school-boss-check {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.55);
+  border-radius: 4px;
+  background: rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.08);
+  color: #fff;
+  transition: all 0.15s ease;
+}
+
+.school-boss-check:hover {
+  border-color: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
+  background: rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.2);
+}
+
+.school-boss-check:active {
+  transform: scale(0.85);
+}
+
+.school-boss-check-done {
+  background: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
+  border-color: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
+}
+
+.school-boss-check-label {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.school-boss-check-label-done {
+  color: var(--text-muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.6);
+}
+
 .grade-input {
   flex-shrink: 0;
   width: 68px;

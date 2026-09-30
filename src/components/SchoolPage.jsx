@@ -454,6 +454,8 @@ export default function SchoolPage({
   classes,
   assignments,
   tests,
+  tasks,
+  toggleTask,
   canvas,
   canvasCompletions,
   toggleCanvasAssignment,
@@ -483,7 +485,6 @@ export default function SchoolPage({
   setAssignmentGrade,
   setAssignmentCategory,
   deleteAssignment,
-  tasks,
   addTest,
   toggleTest,
   setTestGrade,
@@ -1154,25 +1155,34 @@ export default function SchoolPage({
                         </div>
 
                         {planTasks.length > 0 && (
-                          // The actual plan, visible right here -- not just a
-                          // count. Dylan's own words: the old version was "just
-                          // like a placeholder... there isn't actually a plan
-                          // for me to study or do." This is the plan itself:
-                          // every session's date, technique, and (when topics
-                          // were given above) exactly what it covers.
-                          <ol className="school-study-plan-sessions">
+                          // A real, checkable sub-task list -- Dylan's ENGLISH III
+                          // reference image ("Outline approved", "Revise thesis",
+                          // "MLA citations check") wants each study-plan session as
+                          // a tickable item, not just a read-only description. Each
+                          // checkbox IS the same task object bossHp() already reads,
+                          // so checking one off both crosses it off here and drops
+                          // the boss's HP above -- one real piece of state, two
+                          // views of it, nothing to keep in sync by hand.
+                          <ul className="school-boss-checklist">
                             {planTasks
                               .slice()
                               .sort((a, b) => (a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0))
                               .map((task) => (
                                 <li key={task.id}>
-                                  <strong>
-                                    {task.dueDate} &mdash; {task.title.split(': ').slice(-1)[0]}
-                                  </strong>
-                                  <p>{task.studyPlanDetail}</p>
+                                  <button
+                                    type="button"
+                                    className={`school-boss-check${task.completed ? ' school-boss-check-done' : ''}`}
+                                    onClick={() => toggleTask(task)}
+                                    title={task.studyPlanDetail || task.title}
+                                  >
+                                    {task.completed && <Check size={11} strokeWidth={3} />}
+                                  </button>
+                                  <span className={`school-boss-check-label${task.completed ? ' school-boss-check-label-done' : ''}`}>
+                                    {task.title.split(': ').slice(-1)[0]}
+                                  </span>
                                 </li>
                               ))}
-                          </ol>
+                          </ul>
                         )}
                       </>
                     )}
