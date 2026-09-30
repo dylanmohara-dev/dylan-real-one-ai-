@@ -461,6 +461,7 @@ export default function SchoolPage({
   toggleCanvasAssignment,
   setCanvasAssignmentCategory,
   schoolGradeLevel,
+  schoolLabelStyle,
   selectedClassId,
   setSelectedClassId,
   classNameInput,
@@ -559,6 +560,18 @@ export default function SchoolPage({
     (item) => !dismissedIds.has(item.id)
   )
   function completeWithCelebration(item) {
+    // A wrongly-checked item needs a way back -- Dylan's own ask, after
+    // noticing there was no way to undo an accidental tap here (Quest
+    // Log's own checkbox already allowed this; this dashboard's shared
+    // row component did not). Un-completing is a correction, not an
+    // achievement, so it skips the scroll/flash/delay theatrics entirely
+    // and just flips the same toggle straight back.
+    if (item.completed) {
+      if (item.kind === 'Canvas') toggleCanvasAssignment(item.raw, item.classId)
+      else if (item.kind === 'Assignment') toggleAssignment(item.raw)
+      else toggleTest(item.raw)
+      return
+    }
     setCelebratingId(item.id)
     document.getElementById('school-stat-strip')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     window.setTimeout(() => {
@@ -874,7 +887,7 @@ export default function SchoolPage({
       <div className="dashboard-grid">
         <section className="dashboard-panel">
           <div className="panel-heading school-panel-heading-quest">
-            <h2>Quest Log</h2>
+            <h2>{schoolLabelStyle === 'plain' ? 'Assignments' : 'Quest Log'}</h2>
             <span className="school-quest-counter">
               {currentAssignments.filter((a) => !a.completed).length +
                 canvasClassAssignments(selectedClassId).filter((c) => !canvasCompletions[c.id]?.completed).length} of{' '}
@@ -1030,7 +1043,7 @@ export default function SchoolPage({
 
         <section className="dashboard-panel">
           <div className="panel-heading">
-            <h2>Boss Battles</h2>
+            <h2>{schoolLabelStyle === 'plain' ? 'Tests' : 'Boss Battles'}</h2>
           </div>
           <div className="form-card">
             <input

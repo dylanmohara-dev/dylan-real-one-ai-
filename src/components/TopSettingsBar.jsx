@@ -175,6 +175,37 @@ export default function TopSettingsBar({ settings, setSettings, playerStats, onO
               <span />
             </button>
           </div>
+
+          <div className="top-settings-group">
+            <label>Mode Switch Arrows</label>
+            <button
+              className={`toggle ${settings.modeNavArrows !== false ? 'on' : ''}`}
+              onClick={() =>
+                setSettings((prev) => ({
+                  ...prev,
+                  modeNavArrows: prev.modeNavArrows === false ? true : false,
+                }))
+              }
+            >
+              <span />
+            </button>
+          </div>
+
+          <div className="top-settings-group">
+            <label>School Labels</label>
+            <select
+              value={settings.schoolLabelStyle || 'rpg'}
+              onChange={(event) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  schoolLabelStyle: event.target.value,
+                }))
+              }
+            >
+              <option value="rpg">Quest Log / Boss Battles</option>
+              <option value="plain">Assignments / Tests</option>
+            </select>
+          </div>
         </div>,
         document.body
       )}

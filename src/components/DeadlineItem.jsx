@@ -34,9 +34,13 @@ export default function DeadlineItem({
         className={`check-button${isCanvas ? ' check-button-canvas' : ''}${celebrating || item.completed ? ' check-button-done' : ''}`}
         onClick={(event) => {
           event.stopPropagation()
-          if (!celebrating && !item.completed) onComplete()
+          // Was: blocked once item.completed, so a wrongly-checked item
+          // had no way back here (Dylan's own bug report). onComplete
+          // itself now knows how to un-complete -- see
+          // completeWithCelebration/completeItem in the two parents.
+          if (!celebrating) onComplete()
         }}
-        title={item.completed ? 'Done' : isCanvas ? 'Mark done (local only -- does not touch Canvas)' : 'Mark done'}
+        title={item.completed ? 'Done -- click to undo' : isCanvas ? 'Mark done (local only -- does not touch Canvas)' : 'Mark done'}
       >
         {(celebrating || item.completed) && <Check size={14} strokeWidth={3} />}
       </button>

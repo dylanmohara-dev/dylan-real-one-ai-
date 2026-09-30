@@ -58,6 +58,17 @@ export const DEFAULT_SETTINGS = {
   // instead of assuming high school. Defaults to high school since
   // that's what his real class data (Class of 2028) shows today.
   schoolGradeLevel: 'high-school',
+  // true -- show the prev/next chevron arrows for cycling straight
+  // between life areas while a mode's full-screen view is open. Dylan's
+  // own ask: some people find them distracting clutter, so it's a real
+  // Display toggle rather than a permanent fixture.
+  modeNavArrows: true,
+  // 'rpg' | 'plain' -- School's "Quest Log"/"Boss Battles" panel titles,
+  // or the literal "Assignments"/"Tests" they stand for. Dylan's own ask:
+  // a way to turn the game-flavor labels off without losing anything the
+  // labels represent -- this only ever changes two strings rendered in
+  // SchoolPage.jsx, never the underlying data or any key.
+  schoolLabelStyle: 'rpg',
 }
 
 // Global "skin" layer, independent of the 9 per-mode color themes above.

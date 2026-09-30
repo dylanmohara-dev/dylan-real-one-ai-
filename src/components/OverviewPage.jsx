@@ -199,6 +199,15 @@ function UpcomingSchoolWidget({
   if (!items.length) return null
 
   function completeItem(item) {
+    // Undo an accidental tap -- same fix as SchoolPage's own dashboard
+    // (this widget shares DeadlineItem with it): un-completing skips the
+    // celebration delay and just flips the toggle straight back.
+    if (item.completed) {
+      if (item.kind === 'Canvas') toggleCanvasAssignment(item.raw, item.classId)
+      else if (item.kind === 'Assignment') toggleAssignment(item.raw)
+      else toggleTest(item.raw)
+      return
+    }
     setCelebratingId(item.id)
     window.setTimeout(() => {
       if (item.kind === 'Canvas') toggleCanvasAssignment(item.raw, item.classId)

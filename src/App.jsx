@@ -271,6 +271,7 @@ function App() {
           toggleCanvasAssignment={data.toggleCanvasAssignment}
           setCanvasAssignmentCategory={data.setCanvasAssignmentCategory}
           schoolGradeLevel={data.settings.schoolGradeLevel}
+          schoolLabelStyle={data.settings.schoolLabelStyle}
           tasks={data.tasks}
           toggleTask={data.toggleTask}
           selectedClassId={data.selectedClassId}
@@ -925,7 +926,7 @@ function App() {
               aria-label="Back to Overview"
             >
               <ArrowLeft size={22} strokeWidth={2.75} />
-              <span>Back</span>
+              <span>Back to Overview</span>
             </button>
           )}
 
@@ -934,7 +935,7 @@ function App() {
               passes itself as the zoom-transition's origin hint, same
               mechanism as the Back button, since there's no sidebar icon
               to zoom from/to while a mode's own sidebar is hidden. */}
-          {activeMode && (
+          {activeMode && settings.modeNavArrows !== false && (
             <>
               <button
                 className="mode-fullscreen-nav mode-fullscreen-prev"
