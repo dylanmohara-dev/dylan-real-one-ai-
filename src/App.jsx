@@ -285,6 +285,8 @@ function App() {
           setTestInput={data.setTestInput}
           testDate={data.testDate}
           setTestDate={data.setTestDate}
+          testTopics={data.testTopics}
+          setTestTopics={data.setTestTopics}
           saving={data.saving}
           addClass={data.addClass}
           deleteClass={data.deleteClass}

@@ -788,6 +788,16 @@ export default function SchoolPage({
             ))}
           </div>
         )}
+        {/* Glowing circular icon badge, top-right -- matches Dylan's
+            ENGLISH III reference image exactly (a soft-glow circle with the
+            subject's own icon, sitting apart from the title rather than
+            inline with it). Class-colored via the same --class-color-rgb
+            every other per-class element already reads. */}
+        {activeTheme && (
+          <div className="school-class-icon-badge" aria-hidden="true">
+            <activeTheme.Icon size={22} strokeWidth={2} />
+          </div>
+        )}
         <div>
           <span className="eyebrow">SCHOOL MODE</span>
           <h1 className="serif">

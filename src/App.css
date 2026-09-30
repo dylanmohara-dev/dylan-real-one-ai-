@@ -3594,6 +3594,14 @@ footer {
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
+  /* The grade ring reads --mode-accent-rgb internally (RadialProgress is a
+     shared component used by other modes too) -- redefining that custom
+     property just within this wrapper's scope, falling back to its real
+     value when a class has no color yet, makes the ring itself render in
+     the CLASS's color rather than School's fixed gold, matching Dylan's
+     reference image, without touching RadialProgress or any other mode
+     that reuses it. */
+  --mode-accent-rgb: var(--class-color-rgb, var(--mode-accent-rgb));
 }
 
 .school-stat-grade-letter {
@@ -12427,11 +12435,54 @@ button:disabled:active {
    in would make School's class-detail view look like a different kind of
    page instead of a themed version of the same one. */
 .school-class-detail-header {
+  position: relative;
   background: linear-gradient(
     120deg,
-    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.14),
-    transparent 55%
+    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.4),
+    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.08) 60%,
+    transparent 85%
   );
+}
+
+/* A thin glowing color bar across the very top -- the one detail that
+   reads "this class has its own identity" at a glance, before you've even
+   looked at the icon or the grade ring. Matches the accent strip across
+   the top of Dylan's ENGLISH III reference image. */
+.school-class-detail-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--class-color-rgb, var(--mode-accent-rgb))),
+    rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.3)
+  );
+  box-shadow: 0 0 14px rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.7);
+}
+
+/* .page-header.mode-hero > * (a generic "lift every direct child above the
+   photo" rule) sets position:relative + z-index on every header child at
+   higher specificity than a single class -- matching that same selector
+   shape here is what actually wins the cascade, not just adding
+   position:absolute in isolation. */
+.page-header.mode-hero > .school-class-icon-badge {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  z-index: 3;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.16);
+  border: 1.5px solid rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.5);
+  color: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
+  box-shadow: 0 0 18px rgba(var(--class-color-rgb, var(--mode-accent-rgb)), 0.45);
 }
 
 .school-class-motif-header {
