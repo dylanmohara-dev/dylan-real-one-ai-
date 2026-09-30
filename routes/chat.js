@@ -555,7 +555,19 @@ router.post('/chat', async (req, res) => {
               role: 'user',
               content: [
                 { type: 'text', text: latestMessage || 'What do you see in this image?' },
-                { type: 'image_url', image_url: { url: image } },
+                // Session 40: this was `image_url: { url: image }` -- the
+                // OpenAI API's own shape, and what every generic example
+                // online shows. Confirmed against Ollama's actual current
+                // docs (docs.ollama.com/api/openai-compatibility) that its
+                // OpenAI-COMPATIBLE endpoint does NOT mirror that: it wants
+                // image_url as the bare base64 data-URL string itself, not
+                // nested under a `url` key. The wrong shape doesn't error --
+                // Ollama still returns 200 and the model still replies, it
+                // just never actually received the image, so the model
+                // answers as if nothing was attached. That's exactly "I sent
+                // a picture and the AI couldn't read it" with no visible
+                // error anywhere -- a silently-ignored field, not a crash.
+                { type: 'image_url', image_url: image },
               ],
             },
           ],
