@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Sparkles, Droplet, Moon, BookOpen, CheckCircle2, Heart, Flame } from 'lucide-react'
+import { Sparkles, Droplet, Moon, BookOpen, CheckCircle2, Heart, Flame, GraduationCap } from 'lucide-react'
 import { WELCOME_GREETINGS } from '../data/lifeModes.js'
 import FootballIcon from './FootballIcon.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
+import DeadlineItem from './DeadlineItem.jsx'
+import { upcomingItems } from '../lib/schoolDeadlines.js'
 
 function todayKey() {
   const d = new Date()
@@ -170,6 +172,69 @@ function DailyFocus({ items, setActivePage }) {
   )
 }
 
+// Dylan's explicit ask, in his own words: "i should be able to click it
+// off on the home screen THIS WEEK." Reuses the exact same upcomingItems()
+// merge/sort and DeadlineItem row component School's own "Coming up"
+// dashboard uses (src/lib/schoolDeadlines.js, src/components/
+// DeadlineItem.jsx) -- same real data, same real checkbox that awards XP
+// and can trigger a level-up, not a second lightweight copy. Capped to
+// what's overdue or due in the next 7 days (a home screen widget that
+// scrolled for a whole semester's worth of Canvas homework would be its
+// own new complaint), with a link to the full dashboard for anything
+// past that window.
+function UpcomingSchoolWidget({
+  classes, assignments, tests, canvas, canvasCompletions,
+  toggleAssignment, toggleTest, toggleCanvasAssignment, setActivePage,
+}) {
+  const [celebratingId, setCelebratingId] = useState(null)
+  const [dismissedIds, setDismissedIds] = useState(() => new Set())
+
+  const hasSchoolData = (classes && classes.length > 0) || (canvas?.assignments && canvas.assignments.length > 0)
+  if (!hasSchoolData) return null
+
+  const all = upcomingItems(classes || [], assignments || [], tests || [], canvas?.assignments, canvasCompletions).filter(
+    (item) => !dismissedIds.has(item.id)
+  )
+  const items = all.filter((item) => item.daysUntil <= 7).slice(0, 5)
+  if (!items.length) return null
+
+  function completeItem(item) {
+    setCelebratingId(item.id)
+    window.setTimeout(() => {
+      if (item.kind === 'Canvas') toggleCanvasAssignment(item.raw, item.classId)
+      else if (item.kind === 'Assignment') toggleAssignment(item.raw)
+      else toggleTest(item.raw)
+      setCelebratingId(null)
+    }, 420)
+  }
+
+  return (
+    <div className="overview-school-widget">
+      <div className="overview-school-widget-header">
+        <span className="overview-school-widget-title">
+          <GraduationCap size={15} strokeWidth={2.25} />
+          Coming up — School
+        </span>
+        <button type="button" className="overview-school-widget-link" onClick={() => setActivePage('School')}>
+          Full schedule →
+        </button>
+      </div>
+      <div className="overview-school-widget-list">
+        {items.map((item) => (
+          <DeadlineItem
+            key={item.id}
+            item={item}
+            celebrating={celebratingId === item.id}
+            onComplete={() => completeItem(item)}
+            onOpenClass={() => setActivePage('School')}
+            onDismiss={() => setDismissedIds((prev) => new Set(prev).add(item.id))}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function OverviewPage({
   overviewEyebrow,
   userName,
@@ -193,6 +258,14 @@ export default function OverviewPage({
   heroImages,
   updateHeroImage,
   resetHeroImage,
+  classes,
+  assignments,
+  tests,
+  canvas,
+  canvasCompletions,
+  toggleAssignment,
+  toggleTest,
+  toggleCanvasAssignment,
 }) {
   const greeting = useMemo(() => {
     const pick = WELCOME_GREETINGS[Math.floor(Math.random() * WELCOME_GREETINGS.length)]
@@ -259,6 +332,18 @@ export default function OverviewPage({
       </div>
 
       <DailyFocus items={dailyFocus} setActivePage={setActivePage} />
+
+      <UpcomingSchoolWidget
+        classes={classes}
+        assignments={assignments}
+        tests={tests}
+        canvas={canvas}
+        canvasCompletions={canvasCompletions}
+        toggleAssignment={toggleAssignment}
+        toggleTest={toggleTest}
+        toggleCanvasAssignment={toggleCanvasAssignment}
+        setActivePage={setActivePage}
+      />
 
       <button className="overview-ask-ai" onClick={openChat}>
         <span className="overview-ask-ai-icon">

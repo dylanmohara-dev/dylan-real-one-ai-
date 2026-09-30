@@ -163,6 +163,14 @@ function App() {
           addSportsSession={data.addSportsSession}
           skills={data.skills}
           addSkillSession={data.addSkillSession}
+          classes={data.classes}
+          assignments={data.assignments}
+          tests={data.tests}
+          canvas={canvas}
+          canvasCompletions={data.canvasCompletions}
+          toggleAssignment={data.toggleAssignment}
+          toggleTest={data.toggleTest}
+          toggleCanvasAssignment={data.toggleCanvasAssignment}
         />
       )
     }
@@ -555,6 +563,14 @@ function App() {
         addSportsSession={data.addSportsSession}
         skills={data.skills}
         addSkillSession={data.addSkillSession}
+        classes={data.classes}
+        assignments={data.assignments}
+        tests={data.tests}
+        canvas={canvas}
+        canvasCompletions={data.canvasCompletions}
+        toggleAssignment={data.toggleAssignment}
+        toggleTest={data.toggleTest}
+        toggleCanvasAssignment={data.toggleCanvasAssignment}
       />
     )
   }
@@ -840,6 +856,7 @@ function App() {
           coverRect={zoomTransition.coverRect}
           mode={zoomTransition.mode}
           heroUrl={data.heroImages?.[zoomTransition.mode?.key]}
+          onComplete={() => setZoomTransition(null)}
         />
       )}
 

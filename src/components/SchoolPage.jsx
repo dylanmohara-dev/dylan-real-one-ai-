@@ -11,6 +11,10 @@ import {
   CATEGORY_WEIGHTS, itemCategory, xpForCategory, computeClassLevel, classXP, schoolTotalXP,
   RANK_TIERS, rankForLevel, unlockedTiersForLevel,
 } from '../lib/schoolProgress.js'
+import {
+  todayKey, weekdayForDateKey, upcomingItems, classColorRgb, CLASS_COLOR_PALETTE,
+} from '../lib/schoolDeadlines.js'
+import DeadlineItem from './DeadlineItem.jsx'
 
 // Standard US 4.0 scale. No school-specific customization yet (some
 // schools weight AP/honors classes, use +/- differently, etc.) — this is
@@ -161,33 +165,6 @@ function currentStreakFromTotals(totals) {
     }
   }
   return streak
-}
-
-// Deterministic per-class accent color -- "everything is the same color,
-// hard to distinguish" was Dylan's own diagnosis of School mode. Derived
-// from the class id (a stable hash into a small curated hue set) rather
-// than stored on the class or picked in a settings UI, so every class --
-// including ones already saved before this existed -- gets a distinct,
-// legible color immediately, with no migration and no new field.
-// 4 fixed category accents (design-brief round 14) -- replaces the old
-// 9-hue hash palette. Fewer, curated hues that were chosen specifically
-// not to clash with the gold that owns the rest of the page, instead of
-// a hash spraying nine competing colors (one of which was itself
-// amber/yellow) across a page that's already gold end to end.
-const CLASS_COLOR_PALETTE = [
-  '111, 198, 222', // teal
-  '227, 138, 155', // maroon
-  '199, 158, 224', // plum
-  '127, 216, 160', // green
-]
-
-function classColorRgb(classId) {
-  const key = String(classId || '')
-  let hash = 0
-  for (let i = 0; i < key.length; i++) {
-    hash = (hash * 31 + key.charCodeAt(i)) >>> 0
-  }
-  return CLASS_COLOR_PALETTE[hash % CLASS_COLOR_PALETTE.length]
 }
 
 // Canvas hands us class names as "Subject - Teacher - Term" (confirmed
@@ -470,132 +447,6 @@ function ClassLevelStatBlock({ classId, assignments, tests, canvasCompletions })
 // (negative daysUntil), not hidden -- an overdue item is exactly the
 // thing you most need to see, not something to bury.
 //
-// Timezone-safe by construction: dueDate/date are bare "YYYY-MM-DD"
-// strings. "Today" is read from local date parts (so it matches the
-// calendar day the user is actually living in), then both sides are
-// compared as UTC-anchored day numbers -- never round-tripped through
-// `new Date(bareDateString)`, which is the exact bug that shifted goal/
-// assignment/test dates back a day earlier this session.
-function todayKey() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function daysBetween(fromKey, toKey) {
-  const [fy, fm, fd] = fromKey.split('-').map(Number)
-  const [ty, tm, td] = toKey.split('-').map(Number)
-  const from = Date.UTC(fy, fm - 1, fd)
-  const to = Date.UTC(ty, tm - 1, td)
-  return Math.round((to - from) / 86400000)
-}
-
-const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-// UTC-anchored on purpose, same convention as daysBetween() above -- a
-// bare 'YYYY-MM-DD' has no timezone of its own, and parsing it any other
-// way (e.g. `new Date(dateKey)`, which treats it as UTC midnight then
-// renders in local time) can walk it back a day depending on Dylan's
-// timezone. This reads back the exact same calendar day the string says.
-function weekdayForDateKey(dateKey) {
-  const [y, m, d] = dateKey.split('-').map(Number)
-  return WEEKDAY_NAMES[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]
-}
-
-const CHIP_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-
-// Parses the app's bare "YYYY-MM-DD" convention directly (no Date/timezone
-// involved) into the two pieces the date chip needs -- same reasoning as
-// todayKey() elsewhere in this project: a bare calendar date should never
-// pass through a timezone-aware Date object, or it can silently shift a
-// day in either direction depending on where the server/browser think
-// "local" is.
-function dateChipParts(dateKey) {
-  if (!dateKey) return { month: '--', day: '--' }
-  const [, m, d] = dateKey.split('-')
-  const monthIdx = Number(m) - 1
-  return { month: CHIP_MONTHS[monthIdx] || '--', day: d || '--' }
-}
-
-function deadlineLabel(daysUntil, dateKey) {
-  const weekday = dateKey ? ` (${weekdayForDateKey(dateKey)})` : ''
-  if (daysUntil < 0) return `${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'} overdue${weekday}`
-  if (daysUntil === 0) return `Due today${weekday}`
-  if (daysUntil === 1) return `Due tomorrow${weekday}`
-  return `Due in ${daysUntil} days${weekday}`
-}
-
-const LINGER_MS = 24 * 60 * 60 * 1000
-
-function stillLingering(item) {
-  if (!item.completed || !item.completedAt) return false
-  return Date.now() - new Date(item.completedAt).getTime() < LINGER_MS
-}
-
-function upcomingItems(classes, assignments, tests, canvasAssignments) {
-  const today = todayKey()
-  const classNameById = Object.fromEntries(classes.map((c) => [c.id, c.name]))
-  // Canvas's own courseId -> this app's local class id, built from classes
-  // routes/canvas.js's /sync-classes has already linked or created. A
-  // Canvas course with no matching local class (sync hasn't run yet, or
-  // failed silently) just falls back to classId: null below, same as
-  // before this existed.
-  const classIdByCourseId = Object.fromEntries(
-    classes.filter((c) => c.canvasCourseId).map((c) => [c.canvasCourseId, c.id])
-  )
-
-  const fromAssignments = assignments
-    .filter((a) => a.dueDate && (!a.completed || stillLingering(a)))
-    .map((a) => ({
-      id: `assignment-${a.id}`,
-      kind: 'Assignment',
-      title: a.title,
-      className: classNameById[a.classId] || 'Unknown class',
-      classId: a.classId,
-      dueDate: a.dueDate,
-      completed: Boolean(a.completed),
-      raw: a,
-    }))
-
-  const fromTests = tests
-    .filter((t) => t.date && (!t.completed || stillLingering(t)))
-    .map((t) => ({
-      id: `test-${t.id}`,
-      kind: 'Test',
-      title: t.title,
-      className: classNameById[t.classId] || 'Unknown class',
-      classId: t.classId,
-      dueDate: t.date,
-      completed: Boolean(t.completed),
-      raw: t,
-    }))
-
-  // Canvas assignments are read-only here (Canvas is the source of truth,
-  // not this app), so they carry no classId/raw-toggle -- they're merged
-  // into the same "Coming up" list rather than living in a second,
-  // easy-to-miss place, which was Dylan's actual complaint: Canvas showed
-  // as connected but its due dates never appeared here or on the
-  // calendar. A submitted item is dropped the same way a completed local
-  // assignment is -- it's no longer something to look at.
-  const fromCanvas = (canvasAssignments || [])
-    .filter((c) => c.dueAt && !c.submitted)
-    .map((c) => {
-      const classId = classIdByCourseId[c.courseId] || null
-      return {
-        id: c.id,
-        kind: 'Canvas',
-        title: c.title,
-        className: (classId && classNameById[classId]) || c.courseName || 'Canvas',
-        classId,
-        dueDate: c.dueAt.slice(0, 10),
-        raw: c,
-      }
-    })
-
-  return [...fromAssignments, ...fromTests, ...fromCanvas]
-    .map((item) => ({ ...item, daysUntil: daysBetween(today, item.dueDate) }))
-    .sort((a, b) => a.daysUntil - b.daysUntil)
-}
-
 export default function SchoolPage({
   heroImages,
   updateHeroImage,
@@ -703,112 +554,40 @@ export default function SchoolPage({
   // referenced above its own declaration would throw at runtime (temporal
   // dead zone), not just read as undefined.
   const [dismissedIds, setDismissedIds] = useState(() => new Set())
-  const deadlines = upcomingItems(classes, assignments, tests, canvas?.assignments).filter(
+  const deadlines = upcomingItems(classes, assignments, tests, canvas?.assignments, canvasCompletions).filter(
     (item) => !dismissedIds.has(item.id)
   )
   function completeWithCelebration(item) {
     setCelebratingId(item.id)
+    document.getElementById('school-stat-strip')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     window.setTimeout(() => {
-      if (item.kind === 'Assignment') toggleAssignment(item.raw)
+      if (item.kind === 'Canvas') toggleCanvasAssignment(item.raw, item.classId)
+      else if (item.kind === 'Assignment') toggleAssignment(item.raw)
       else toggleTest(item.raw)
+      setCelebratingId(null)
+      setXpBarFlash(true)
+      window.setTimeout(() => setXpBarFlash(false), 900)
     }, 420)
   }
   const overdueDeadlines = deadlines.filter((item) => item.daysUntil < 0)
   const thisWeekDeadlines = deadlines.filter((item) => item.daysUntil >= 0 && item.daysUntil <= 7)
   const laterDeadlines = deadlines.filter((item) => item.daysUntil > 7)
 
+  // Session 40: the actual row markup now lives in the shared
+  // DeadlineItem.jsx component (also used by OverviewPage.jsx's new
+  // Home-screen widget) -- this is just the wiring from this page's own
+  // local state (celebratingId, dismissedIds, class-navigation-on-click)
+  // into that shared component's props.
   function renderDeadlineItem(item) {
-    const tone = item.completed ? 'done' : item.daysUntil < 0 ? 'overdue' : item.daysUntil <= 2 ? 'soon' : 'normal'
-    const isCanvas = item.kind === 'Canvas'
-    const isCelebrating = celebratingId === item.id
-    const { month, day } = dateChipParts(item.dueDate)
-    // Canvas overrides the pill regardless of Test/Assignment -- it's the
-    // one piece of Dylan's own explicit "yes" that Canvas items should
-    // read as visibly different (synced/read-only), same rule the old
-    // dashed-border treatment followed.
-    const pillKind = isCanvas ? 'canvas' : item.kind.toLowerCase()
-    const pillLabel = isCanvas ? 'Canvas' : item.kind
     return (
-      <div
-        className={`deadline-item deadline-${tone}${isCanvas ? '' : ' deadline-clickable'}${isCelebrating ? ' deadline-celebrating' : ''}`}
+      <DeadlineItem
         key={item.id}
-        style={item.classId ? { '--class-color-rgb': classColorRgb(item.classId) } : undefined}
-        onClick={() => {
-          // Canvas rows no longer navigate away on a plain click -- Dylan's
-          // own complaint. Opening Canvas is now the small explicit
-          // ExternalLink button below, a separate deliberate action.
-          if (!isCanvas) setSelectedClassId(item.classId)
-        }}
-      >
-        {isCanvas ? (
-          <span className="check-button check-button-canvas" title="From Canvas -- read-only here"></span>
-        ) : (
-          <button
-            className={`check-button${isCelebrating || item.completed ? ' check-button-done' : ''}`}
-            onClick={(event) => {
-              event.stopPropagation()
-              if (!isCelebrating && !item.completed) completeWithCelebration(item)
-            }}
-            title={item.completed ? 'Done' : 'Mark done'}
-          >
-            {(isCelebrating || item.completed) && <Check size={14} strokeWidth={3} />}
-          </button>
-        )}
-        <div className="deadline-date-chip" aria-hidden="true">
-          <span className="deadline-date-month">{month}</span>
-          <span className="deadline-date-day">{day}</span>
-        </div>
-        <div className="deadline-body">
-          <strong>{item.title}</strong>
-          {/* Real data only -- no invented due-time or room number here.
-              The app only ever stores a bare due DATE (see upcomingItems
-              above), never a time or room, so this stays to what's
-              actually known: the class, and for Canvas items, that it's
-              synced rather than typed in by hand. */}
-          <span className="deadline-class">
-            {item.className}
-            {isCanvas ? ' · Synced from Canvas' : ''}
-          </span>
-        </div>
-        <div className="deadline-right">
-          <span className={`deadline-pill deadline-pill-${pillKind}`}>
-            {item.kind === 'Test' && <Swords size={10} strokeWidth={2.5} />}
-            {item.kind === 'Assignment' && !isCanvas && <FileText size={10} strokeWidth={2.5} />}
-            {pillLabel}
-          </span>
-          {item.completed ? (
-            <span className="deadline-when deadline-when-done">Done</span>
-          ) : (
-            <span className="deadline-when">{deadlineLabel(item.daysUntil, item.dueDate)}</span>
-          )}
-        </div>
-        {item.completed && (
-          <button
-            type="button"
-            className="deadline-dismiss"
-            title="Remove now"
-            onClick={(event) => {
-              event.stopPropagation()
-              setDismissedIds((prev) => new Set(prev).add(item.id))
-            }}
-          >
-            <X size={12} strokeWidth={2.5} />
-          </button>
-        )}
-        {isCanvas && (
-          <button
-            type="button"
-            className="deadline-canvas-open"
-            title="Open in Canvas"
-            onClick={(event) => {
-              event.stopPropagation()
-              window.open(item.raw.url, '_blank', 'noopener')
-            }}
-          >
-            <ExternalLink size={12} strokeWidth={2.5} />
-          </button>
-        )}
-      </div>
+        item={item}
+        celebrating={celebratingId === item.id}
+        onComplete={() => completeWithCelebration(item)}
+        onOpenClass={() => setSelectedClassId(item.classId)}
+        onDismiss={() => setDismissedIds((prev) => new Set(prev).add(item.id))}
+      />
     )
   }
 

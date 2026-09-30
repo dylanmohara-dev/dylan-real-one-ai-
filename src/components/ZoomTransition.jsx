@@ -18,10 +18,9 @@
 // .main-content box), then hands both rects here. Everything below is
 // pure CSS transform + opacity (GPU-composited, no layout thrashing) --
 // the actual keyframes live in App.css's ZOOM TRANSITION section.
-export default function ZoomTransition({ zoomKey, origin, coverRect, mode, heroUrl }) {
+export default function ZoomTransition({ zoomKey, origin, coverRect, mode, heroUrl, onComplete }) {
   if (!origin || !coverRect || coverRect.width === 0 || coverRect.height === 0) return null
 
-  const Icon = mode?.icon
   const originCenterX = origin.left + origin.width / 2
   const originCenterY = origin.top + origin.height / 2
 
@@ -44,6 +43,27 @@ export default function ZoomTransition({ zoomKey, origin, coverRect, mode, heroU
       key={zoomKey}
       className="zoom-transition"
       aria-hidden="true"
+      // Bug Dylan hit ("the transition doesn't come off the screen, it's
+      // stuck top-left"): the panel's animation uses `forwards` fill mode
+      // (so it visibly holds its LAST frame -- scaled back down to
+      // icon-size, sitting at the origin point -- rather than snapping
+      // back to invisible), but nothing was ever unmounting this overlay
+      // once that final frame was reached. It sat there, frozen at
+      // icon-size in the corner, forever, until the NEXT mode switch's new
+      // zoomKey happened to remount over it. Listening for the panel's
+      // own animationend here and calling onComplete (which sets
+      // App.jsx's zoomTransition state back to null, unmounting this
+      // whole tree) fixes that, and self-adjusts to the Settings
+      // animation-speed multiplier instead of a hardcoded JS timeout that
+      // could drift from it.
+      //
+      // Session 40: the streaks/scanlines/title-card/icon-pop sub-layers
+      // that used to also live in this tree are gone -- Dylan's ask was
+      // "smooth clean and minimal," and a single panel doing a short,
+      // monotonic scale/blur/fade (see App.css's zoomPanelPlay) is both
+      // simpler to keep glitch-free and the actual "clean" look he asked
+      // for, not a loading-screen's worth of overlapping effects.
+      onAnimationEnd={onComplete}
       style={{
         left: `${coverRect.left}px`,
         top: `${coverRect.top}px`,
@@ -65,45 +85,6 @@ export default function ZoomTransition({ zoomKey, origin, coverRect, mode, heroU
           ...(heroUrl ? { '--zoom-hero': `url(${heroUrl})` } : {}),
         }}
       />
-
-      {/* Warp-speed light streaks, radiating from the exact clicked icon --
-          the classic "hyperspace jump" cue every loading-screen transition
-          in a real game leans on. Screen-blended so they read as light, not
-          a flat shape, over whatever the panel is showing underneath. */}
-      <div
-        className="zoom-transition-streaks"
-        style={{ transformOrigin: `${originXPct}% ${originYPct}%` }}
-      />
-
-      {/* A faint scanline texture, only visible during the fast in/out
-          warp -- nearly gone during the crisp arrived hold -- the last bit
-          of "this is a loading screen, not just a fade" texture. */}
-      <div className="zoom-transition-scanlines" />
-
-      {Icon && (
-        <div
-          className="zoom-transition-icon-wrap"
-          style={{ left: `${originXPct}%`, top: `${originYPct}%` }}
-        >
-          <Icon size={20} strokeWidth={2.25} />
-        </div>
-      )}
-
-      {/* The actual "loading screen" identity: a centered title card --
-          icon, mode name, filling progress bar -- independent of the
-          origin-point icon above. That one sells "flying FROM the sidebar
-          icon you clicked"; this one sells "you are now loading
-          <mode name>", which is what a videogame loading screen actually
-          shows. Both play together during the same ~1s window. */}
-      {Icon && (
-        <div className="zoom-transition-title">
-          <div className="zoom-transition-title-icon">
-            <Icon size={26} strokeWidth={2} />
-          </div>
-          <div className="zoom-transition-title-text">{mode.title}</div>
-          <div className="zoom-transition-bar" />
-        </div>
-      )}
     </div>
   )
 }
