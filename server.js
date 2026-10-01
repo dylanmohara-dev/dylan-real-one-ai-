@@ -36,6 +36,8 @@ import notificationsRouter from './routes/notifications.js'
 import playerRouter from './routes/player.js'
 import schoolProgressRouter from './routes/schoolProgress.js'
 import tradingRouter from './routes/trading.js'
+import financeJournalRouter from './routes/financeJournal.js'
+import financePsychologyRouter from './routes/financePsychology.js'
 import searchRouter from './routes/search.js'
 import heroImagesRouter from './routes/heroImages.js'
 import { startModelWarmup } from './lib/ollamaWarm.js'
@@ -88,6 +90,8 @@ app.use('/api/notifications', notificationsRouter)
 app.use('/api/player', playerRouter)
 app.use('/api/school-progress', schoolProgressRouter)
 app.use('/api/trading', tradingRouter)
+app.use('/api/finance/journal', financeJournalRouter)
+app.use('/api/finance/psychology', financePsychologyRouter)
 app.use('/api', searchRouter)
 app.use('/api', heroImagesRouter)
 

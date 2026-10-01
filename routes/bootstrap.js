@@ -7,6 +7,7 @@ import { DEFAULT_WEEK_PLAN } from './gym.js'
 import { DEFAULT_SCHEDULE } from './sports.js'
 import { loadPlayerStats } from '../lib/playerXP.js'
 import { computeMindInsights } from './mind.js'
+import { MOOD_OPTIONS as FINANCE_MOOD_OPTIONS } from './financePsychology.js'
 import { getHeroImages } from './heroImages.js'
 
 const router = Router()
@@ -102,6 +103,11 @@ router.get('/bootstrap', (req, res) => {
           stats: computeTradingStats(positions, financeAccounts, netWorth, settings.concentrationLimitPct),
         }
       })(),
+      financeJournal: loadData('finance_trade_journal'),
+      financePsychology: {
+        checkins: loadData('finance_psychology_checkins'),
+        moodOptions: FINANCE_MOOD_OPTIONS,
+      },
       player: loadPlayerStats(),
       schoolProgress: loadData('school_progress', { unlockedTierKeys: [] }),
       canvasCompletions: loadData('canvas_completions', {}),

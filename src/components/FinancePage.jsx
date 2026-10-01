@@ -16,6 +16,12 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
+  LayoutDashboard,
+  Compass,
+  BookOpen,
+  Brain,
+  Receipt,
+  BarChart3,
 } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
@@ -1574,6 +1580,198 @@ function TradingTab({
   )
 }
 
+// Aggregates numbers the app already computes/stores elsewhere (net worth
+// history, realized P/L from closed positions, win rate from positions'
+// own exit prices) into one view -- no new metric is invented here, this
+// is strictly a different arrangement of real, existing data. Budget vs
+// actual (BudgetTab) lives at the bottom of the same report.
+function ReportsTab({ netWorth, history, tradingStats, positions, transactions, budgets, saving, setBudget }) {
+  const closedPositions = (positions || []).filter((p) => p.status === 'closed')
+  const wins = closedPositions.filter((p) => (Number(p.exitPrice) - Number(p.avgCost)) * Number(p.shares) > 0).length
+  const winRate = closedPositions.length ? Math.round((wins / closedPositions.length) * 100) : null
+  const firstHistory = history && history.length ? history[0] : null
+  const netWorthChange = firstHistory ? netWorth - Number(firstHistory.netWorth || firstHistory.value || 0) : null
+
+  return (
+    <div className="finance-reports">
+      <span className="finance-ledger-heading">Real numbers, not projections</span>
+      <div className="market-pulse-grid">
+        <div className="market-pulse-card">
+          <div className="market-pulse-card-top">
+            <span>Net worth</span>
+          </div>
+          <div className="market-pulse-price">{formatMoney(netWorth)}</div>
+          {netWorthChange !== null && (
+            <div className={`market-pulse-change ${netWorthChange >= 0 ? 'up' : 'down'}`}>
+              {netWorthChange >= 0 ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />}
+              {formatMoney(Math.abs(netWorthChange))} since tracking began
+            </div>
+          )}
+        </div>
+        <div className="market-pulse-card">
+          <div className="market-pulse-card-top">
+            <span>Realized P/L</span>
+          </div>
+          <div className="market-pulse-price">{formatMoney(tradingStats?.realizedPL || 0)}</div>
+          <span className="trading-card-no-price">{tradingStats?.closedCount || 0} closed trades</span>
+        </div>
+        <div className="market-pulse-card">
+          <div className="market-pulse-card-top">
+            <span>Win rate</span>
+          </div>
+          {winRate !== null ? (
+            <div className="market-pulse-price">{winRate}%</div>
+          ) : (
+            <span className="trading-card-no-price">no closed trades yet</span>
+          )}
+        </div>
+      </div>
+
+      <BudgetTab transactions={transactions} budgets={budgets} saving={saving} setBudget={setBudget} />
+    </div>
+  )
+}
+
+// Dylan's own trade notes. Two sources, both real: the "lesson" he's
+// already required to write when closing a position (routes/trading.js),
+// surfaced here as a read-only timeline entry, plus a freeform note form
+// for anything he wants to log outside of closing a trade. Nothing here
+// is generated -- every word is his.
+function JournalTab({ positions, financeJournal, saving, addFinanceJournalEntry, deleteFinanceJournalEntry }) {
+  const [text, setText] = useState('')
+  const [ticker, setTicker] = useState('')
+
+  const lessons = (positions || [])
+    .filter((p) => p.status === 'closed' && p.lesson)
+    .map((p) => ({ id: `lesson-${p.id}`, kind: 'lesson', ticker: p.ticker, text: p.lesson, createdAt: p.closedAt }))
+
+  const notes = (financeJournal || []).map((entry) => ({ ...entry, kind: 'note' }))
+
+  const combined = [...lessons, ...notes].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+  return (
+    <div className="finance-journal">
+      <span className="finance-ledger-heading">New entry</span>
+      <div className="finance-row-edit trading-close-form">
+        <input type="text" placeholder="Ticker (optional)" value={ticker} onChange={(event) => setTicker(event.target.value)} />
+        <textarea
+          placeholder="What are you thinking? Your own words, not a prediction."
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          rows={3}
+        />
+        <button
+          onClick={() => {
+            addFinanceJournalEntry(text, ticker)
+            setText('')
+            setTicker('')
+          }}
+          disabled={saving || !text.trim()}
+        >
+          Save entry
+        </button>
+      </div>
+
+      <span className="finance-ledger-heading">Timeline</span>
+      <div className="items-list">
+        {combined.length ? (
+          combined.map((item) => (
+            <div className="item-card finance-journal-entry" key={item.id}>
+              <div className="item-content">
+                <div className="finance-journal-entry-top">
+                  {item.ticker && <span className="finance-journal-ticker">{item.ticker}</span>}
+                  <span className={`finance-journal-kind ${item.kind}`}>
+                    {item.kind === 'lesson' ? 'Closed trade lesson' : 'Note'}
+                  </span>
+                  {item.createdAt && <span className="finance-journal-date">{new Date(item.createdAt).toLocaleDateString()}</span>}
+                </div>
+                <p>{item.text}</p>
+              </div>
+              {item.kind === 'note' && (
+                <button className="delete-button" onClick={() => deleteFinanceJournalEntry(item.id)}>
+                  &times;
+                </button>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="empty-state">
+            <div>$</div>
+            <h3>Nothing logged yet</h3>
+            <p>Close a position with a real lesson, or write a note above -- this is your record, not AI commentary.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// A fixed, real self-report mood vocabulary (routes/financePsychology.js)
+// -- Dylan picks the word, never an AI inference from his P/L or the
+// market. Scoped to trading decisions specifically; the app's separate
+// Mind mode covers general habits.
+function PsychologyTab({ financePsychologyCheckins, financePsychologyMoodOptions, saving, addFinancePsychologyCheckin, deleteFinancePsychologyCheckin }) {
+  const [mood, setMood] = useState('')
+  const [note, setNote] = useState('')
+
+  const checkins = [...(financePsychologyCheckins || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+  return (
+    <div className="finance-psychology">
+      <span className="finance-ledger-heading">Log how you're actually trading today</span>
+      <p className="finance-psychology-hint">Pick the word that's true, not the one that sounds disciplined. No AI is grading this.</p>
+      <div className="finance-psychology-moods">
+        {(financePsychologyMoodOptions || []).map((option) => (
+          <button
+            key={option}
+            type="button"
+            className={`finance-mood-chip ${option}${mood === option ? ' selected' : ''}`}
+            onClick={() => setMood(option)}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+      <textarea placeholder="Optional: what's driving it?" value={note} onChange={(event) => setNote(event.target.value)} rows={2} />
+      <button
+        className="finance-mood-submit"
+        onClick={() => {
+          addFinancePsychologyCheckin(mood, note)
+          setMood('')
+          setNote('')
+        }}
+        disabled={saving || !mood}
+      >
+        Log check-in
+      </button>
+
+      <span className="finance-ledger-heading">History</span>
+      <div className="items-list">
+        {checkins.length ? (
+          checkins.map((checkin) => (
+            <div className="item-card" key={checkin.id}>
+              <div className="item-content">
+                <strong className={`finance-mood-tag ${checkin.mood}`}>{checkin.mood}</strong>
+                {checkin.note && <p>{checkin.note}</p>}
+                <p className="finance-journal-date">{new Date(checkin.createdAt).toLocaleString()}</p>
+              </div>
+              <button className="delete-button" onClick={() => deleteFinancePsychologyCheckin(checkin.id)}>
+                &times;
+              </button>
+            </div>
+          ))
+        ) : (
+          <div className="empty-state">
+            <div>$</div>
+            <h3>No check-ins yet</h3>
+            <p>Log one after your next trade -- discipline is easier to see in hindsight than in the moment.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function FinancePage({
   heroImages,
   updateHeroImage,
@@ -1602,10 +1800,26 @@ export default function FinancePage({
   updateWatchlistItem,
   deleteWatchlistItem,
   updateTradingSettings,
+  financeJournal,
+  addFinanceJournalEntry,
+  deleteFinanceJournalEntry,
+  financePsychologyCheckins,
+  financePsychologyMoodOptions,
+  addFinancePsychologyCheckin,
+  deleteFinancePsychologyCheckin,
   assistantContext,
   openChat,
 }) {
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('dashboard')
+
+  const NAV_ITEMS = [
+    { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { key: 'trading', label: 'Macro Desk', icon: Compass },
+    { key: 'journal', label: 'Journal', icon: BookOpen },
+    { key: 'psychology', label: 'Psychology', icon: Brain },
+    { key: 'transactions', label: 'Transactions', icon: Receipt },
+    { key: 'reports', label: 'Reports', icon: BarChart3 },
+  ]
 
   return (
     <div className="page finance-page">
@@ -1628,68 +1842,99 @@ export default function FinancePage({
 
       <ModeChatLauncher assistantContext={assistantContext} modeKey="finance" openChat={openChat} />
 
-      <div className="gym-tabs">
-        <button type="button" className={activeTab === 'overview' ? 'active' : ''} onClick={() => setActiveTab('overview')}>
-          Overview
-        </button>
-        <button
-          type="button"
-          className={activeTab === 'transactions' ? 'active' : ''}
-          onClick={() => setActiveTab('transactions')}
-        >
-          Transactions
-        </button>
-        <button type="button" className={activeTab === 'budget' ? 'active' : ''} onClick={() => setActiveTab('budget')}>
-          Budget
-        </button>
-        <button type="button" className={activeTab === 'trading' ? 'active' : ''} onClick={() => setActiveTab('trading')}>
-          Trading
-        </button>
+      <div className="finance-body">
+        <nav className="finance-nav">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={activeTab === item.key ? 'active' : ''}
+                onClick={() => setActiveTab(item.key)}
+              >
+                <Icon size={16} strokeWidth={2.2} />
+                <span>{item.label}</span>
+              </button>
+            )
+          })}
+        </nav>
+
+        <div className="finance-content">
+          {activeTab === 'dashboard' && (
+            <OverviewTab
+              accounts={accounts}
+              netWorth={netWorth}
+              history={history}
+              saving={saving}
+              addAccount={addAccount}
+              updateBalance={updateBalance}
+              deleteAccount={deleteAccount}
+            />
+          )}
+
+          {activeTab === 'transactions' && (
+            <TransactionsTab
+              accounts={accounts}
+              transactions={transactions}
+              saving={saving}
+              addTransaction={addTransaction}
+              deleteTransaction={deleteTransaction}
+              importTransactions={importTransactions}
+            />
+          )}
+
+          {activeTab === 'reports' && (
+            <ReportsTab
+              netWorth={netWorth}
+              history={history}
+              tradingStats={tradingStats}
+              positions={positions}
+              transactions={transactions}
+              budgets={budgets}
+              saving={saving}
+              setBudget={setBudget}
+            />
+          )}
+
+          {activeTab === 'trading' && (
+            <TradingTab
+              positions={positions}
+              watchlist={watchlist}
+              stats={tradingStats}
+              tradingSettings={tradingSettings}
+              saving={saving}
+              addPosition={addPosition}
+              closePosition={closePosition}
+              deletePosition={deletePosition}
+              addWatchlistItem={addWatchlistItem}
+              updateWatchlistItem={updateWatchlistItem}
+              deleteWatchlistItem={deleteWatchlistItem}
+              updateTradingSettings={updateTradingSettings}
+            />
+          )}
+
+          {activeTab === 'journal' && (
+            <JournalTab
+              positions={positions}
+              financeJournal={financeJournal}
+              saving={saving}
+              addFinanceJournalEntry={addFinanceJournalEntry}
+              deleteFinanceJournalEntry={deleteFinanceJournalEntry}
+            />
+          )}
+
+          {activeTab === 'psychology' && (
+            <PsychologyTab
+              financePsychologyCheckins={financePsychologyCheckins}
+              financePsychologyMoodOptions={financePsychologyMoodOptions}
+              saving={saving}
+              addFinancePsychologyCheckin={addFinancePsychologyCheckin}
+              deleteFinancePsychologyCheckin={deleteFinancePsychologyCheckin}
+            />
+          )}
+        </div>
       </div>
-
-      {activeTab === 'overview' && (
-        <OverviewTab
-          accounts={accounts}
-          netWorth={netWorth}
-          history={history}
-          saving={saving}
-          addAccount={addAccount}
-          updateBalance={updateBalance}
-          deleteAccount={deleteAccount}
-        />
-      )}
-
-      {activeTab === 'transactions' && (
-        <TransactionsTab
-          accounts={accounts}
-          transactions={transactions}
-          saving={saving}
-          addTransaction={addTransaction}
-          deleteTransaction={deleteTransaction}
-          importTransactions={importTransactions}
-        />
-      )}
-
-      {activeTab === 'budget' && (
-        <BudgetTab transactions={transactions} budgets={budgets} saving={saving} setBudget={setBudget} />
-      )}
-
-      {activeTab === 'trading' && (
-        <TradingTab
-          positions={positions}
-          watchlist={watchlist}
-          stats={tradingStats}
-          tradingSettings={tradingSettings}
-          saving={saving}
-          addPosition={addPosition}
-          closePosition={closePosition}
-          deletePosition={deletePosition}
-          addWatchlistItem={addWatchlistItem}
-          updateWatchlistItem={updateWatchlistItem}
-          deleteWatchlistItem={deleteWatchlistItem}
-          updateTradingSettings={updateTradingSettings}
-        />
-      )}
     </div>
   )
 }

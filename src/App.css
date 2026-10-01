@@ -7437,6 +7437,198 @@ footer {
   color: #4ade80;
 }
 
+/* ---------- Finance mode: HybridTrader-style sidebar nav ---------- */
+
+.finance-body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.finance-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 168px;
+  flex-shrink: 0;
+  padding: 10px 0;
+  border-right: 1px solid var(--border);
+}
+
+.finance-nav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: left;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.finance-nav button:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.finance-nav button.active {
+  color: rgb(var(--mode-accent-rgb));
+  background: var(--surface-strong);
+  box-shadow: inset 2px 0 0 rgb(var(--mode-accent-rgb));
+}
+
+.app-shell.theme-finance .finance-nav button.active {
+  text-shadow: 0 0 10px rgba(var(--mode-accent-rgb), 0.5);
+}
+
+.finance-content {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .finance-body {
+    flex-direction: column;
+  }
+
+  .finance-nav {
+    flex-direction: row;
+    width: 100%;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 0 0 10px;
+    gap: 4px;
+  }
+
+  .finance-nav button {
+    flex-shrink: 0;
+  }
+
+  .finance-nav button.active {
+    box-shadow: inset 0 -2px 0 rgb(var(--mode-accent-rgb));
+  }
+}
+
+/* ---------- Finance mode: Journal ---------- */
+
+.finance-journal-entry-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.finance-journal-ticker {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.finance-journal-kind {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.finance-journal-kind.lesson {
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.finance-journal-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* ---------- Finance mode: Psychology ---------- */
+
+.finance-psychology-hint {
+  margin: 2px 0 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.finance-psychology-moods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.finance-mood-chip {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.finance-mood-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.finance-mood-chip.selected,
+.finance-mood-tag {
+  border-color: rgba(74, 222, 128, 0.6);
+  background: rgba(74, 222, 128, 0.16);
+  color: #4ade80;
+}
+
+.finance-mood-chip.anxious.selected,
+.finance-mood-chip.fomo.selected,
+.finance-mood-chip.impulsive.selected,
+.finance-mood-chip.frustrated.selected,
+.finance-mood-chip.fearful.selected,
+.finance-mood-tag.anxious,
+.finance-mood-tag.fomo,
+.finance-mood-tag.impulsive,
+.finance-mood-tag.frustrated,
+.finance-mood-tag.fearful {
+  border-color: rgba(255, 114, 114, 0.6);
+  background: rgba(255, 114, 114, 0.16);
+  color: #ff7272;
+}
+
+.finance-mood-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  margin-bottom: 4px;
+}
+
+.finance-mood-submit {
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+/* ---------- Finance mode: Reports ---------- */
+
+.finance-reports .market-pulse-grid {
+  margin-bottom: 24px;
+}
+
 .market-pulse-change.down {
   color: #ff7272;
 }

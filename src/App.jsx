@@ -383,6 +383,13 @@ function App() {
           updateWatchlistItem={data.updateWatchlistItem}
           deleteWatchlistItem={data.deleteWatchlistItem}
           updateTradingSettings={data.updateTradingSettings}
+          financeJournal={data.financeJournal}
+          addFinanceJournalEntry={data.addFinanceJournalEntry}
+          deleteFinanceJournalEntry={data.deleteFinanceJournalEntry}
+          financePsychologyCheckins={data.financePsychologyCheckins}
+          financePsychologyMoodOptions={data.financePsychologyMoodOptions}
+          addFinancePsychologyCheckin={data.addFinancePsychologyCheckin}
+          deleteFinancePsychologyCheckin={data.deleteFinancePsychologyCheckin}
           assistantContext={assistantContext}
           openChat={openChat}
         />

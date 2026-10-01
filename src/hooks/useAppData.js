@@ -137,6 +137,9 @@ export function useAppData() {
   const [tradingWatchlist, setTradingWatchlist] = useState([])
   const [tradingStats, setTradingStats] = useState(null)
   const [tradingSettings, setTradingSettings] = useState({ concentrationLimitPct: 10 })
+  const [financeJournal, setFinanceJournal] = useState([])
+  const [financePsychologyCheckins, setFinancePsychologyCheckins] = useState([])
+  const [financePsychologyMoodOptions, setFinancePsychologyMoodOptions] = useState([])
   const [skills, setSkills] = useState([])
   const [gymExercises, setGymExercises] = useState([])
   const [gymLogs, setGymLogs] = useState([])
@@ -492,6 +495,9 @@ export function useAppData() {
       setTradingWatchlist(data.trading?.watchlist || [])
       setTradingStats(data.trading?.stats || null)
       setTradingSettings(data.trading?.settings || { concentrationLimitPct: 10 })
+      setFinanceJournal(data.financeJournal || [])
+      setFinancePsychologyCheckins(data.financePsychology?.checkins || [])
+      setFinancePsychologyMoodOptions(data.financePsychology?.moodOptions || [])
       setSkills(data.skills || [])
       setGymExercises(data.gym?.exercises || [])
       setGymLogs(data.gym?.logs || [])
@@ -2200,6 +2206,65 @@ export function useAppData() {
     }
   }
 
+  // Finance trade journal -- Dylan's own notes, optionally tagged to a
+  // ticker. Separate from the app's encrypted personal Journal mode; see
+  // routes/financeJournal.js for why.
+  async function addFinanceJournalEntry(text, ticker = '') {
+    if (!text?.trim()) return
+    setSaving(true)
+    try {
+      await request('/finance/journal', {
+        method: 'POST',
+        body: JSON.stringify({ text: text.trim(), ticker }),
+      })
+      await loadData()
+      showSuccess('Journal entry saved.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteFinanceJournalEntry(id) {
+    try {
+      await request(`/finance/journal/${id}`, { method: 'DELETE' })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // Finance trading psychology -- a fixed real self-report mood vocabulary
+  // (see routes/financePsychology.js), never an AI-inferred emotional
+  // state. Distinct from the app's general Mind/habits mode -- this is
+  // specifically tied to trading decisions.
+  async function addFinancePsychologyCheckin(mood, note = '') {
+    if (!mood) return
+    setSaving(true)
+    try {
+      await request('/finance/psychology', {
+        method: 'POST',
+        body: JSON.stringify({ mood, note }),
+      })
+      await loadData()
+      showSuccess('Check-in logged.')
+    } catch (error) {
+      showError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteFinancePsychologyCheckin(id) {
+    try {
+      await request(`/finance/psychology/${id}`, { method: 'DELETE' })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
   async function addSkill(name, unit) {
     if (!name?.toString().trim()) return
 
@@ -3363,6 +3428,13 @@ export function useAppData() {
     updateWatchlistItem,
     deleteWatchlistItem,
     updateTradingSettings,
+    financeJournal,
+    addFinanceJournalEntry,
+    deleteFinanceJournalEntry,
+    financePsychologyCheckins,
+    financePsychologyMoodOptions,
+    addFinancePsychologyCheckin,
+    deleteFinancePsychologyCheckin,
 
     // skills
     skills,
