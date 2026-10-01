@@ -476,6 +476,96 @@ function MarketSessionStrip() {
   )
 }
 
+// Real-data answer to HybridTrader's "AI Macro Desk" / "Capital flow"
+// panels Dylan asked to copy -- same visual energy (a small card grid of
+// headline tickers, a compact bar-list of broader movers), but every
+// number is a real fetched quote. No fabricated Bearish/Bullish call, no
+// invented "confidence %" -- those would be made-up signal dressed as
+// analysis, which has no place in a tool he's using to make real money
+// decisions. UP/DOWN here is just the literal sign of the real move.
+const MARKET_PULSE_SYMBOLS = [
+  { symbol: 'SPY', label: 'S&P 500' },
+  { symbol: 'QQQ', label: 'Nasdaq 100' },
+  { symbol: 'GLD', label: 'Gold' },
+  { symbol: 'BTCUSD', label: 'Bitcoin' },
+  { symbol: 'EURUSD', label: 'EUR/USD' },
+  { symbol: 'USDJPY', label: 'USD/JPY' },
+]
+
+function formatPulsePrice(symbol, price) {
+  if (symbol === 'EURUSD' || symbol === 'USDJPY') return price.toFixed(4)
+  return `$${price.toLocaleString(undefined, { maximumFractionDigits: price >= 100 ? 0 : 2 })}`
+}
+
+function MarketPulsePanel() {
+  const symbols = MARKET_PULSE_SYMBOLS.map((s) => s.symbol)
+  const { quotes, status } = useLiveQuotes(symbols)
+  const headline = MARKET_PULSE_SYMBOLS.slice(0, 4)
+
+  return (
+    <div className="market-pulse">
+      <div className="market-pulse-header">
+        <span className="eyebrow">Market pulse</span>
+        <span className="market-pulse-sub">Real quotes only -- no AI sentiment, no confidence score</span>
+      </div>
+
+      {status === 'no_key' && (
+        <div className="trading-live-price-hint">
+          Live prices aren't wired up yet -- add a free Twelve Data API key to see real numbers here instead of "no live price".
+        </div>
+      )}
+
+      <div className="market-pulse-grid">
+        {headline.map(({ symbol, label }) => {
+          const quote = quotes[symbol]
+          const hasLive = quote && Number.isFinite(quote.price)
+          const up = hasLive && quote.changePercent >= 0
+          return (
+            <div key={symbol} className="market-pulse-card">
+              <div className="market-pulse-card-top">
+                <strong>{label}</strong>
+                {hasLive && <span className={`market-pulse-tag ${up ? 'up' : 'down'}`}>{up ? 'UP' : 'DOWN'}</span>}
+              </div>
+              {hasLive ? (
+                <>
+                  <span className="market-pulse-price">{formatPulsePrice(symbol, quote.price)}</span>
+                  <span className={`market-pulse-change ${up ? 'up' : 'down'}`}>
+                    {up ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />}
+                    {Math.abs(quote.changePercent).toFixed(2)}%
+                  </span>
+                </>
+              ) : (
+                <span className="market-pulse-no-price">no live price</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="market-pulse-list">
+        {MARKET_PULSE_SYMBOLS.map(({ symbol, label }) => {
+          const quote = quotes[symbol]
+          const hasLive = quote && Number.isFinite(quote.changePercent)
+          const pct = hasLive ? quote.changePercent : 0
+          const magnitude = Math.min(Math.abs(pct) / 3, 1) * 100
+          const up = pct >= 0
+          return (
+            <div key={symbol} className="market-pulse-row">
+              <span className="market-pulse-row-label">{label}</span>
+              <div className="market-pulse-row-bar">
+                <div className={`market-pulse-row-fill ${up ? 'up' : 'down'}`} style={{ width: `${hasLive ? magnitude : 0}%` }} />
+              </div>
+              <span className={`market-pulse-row-value ${hasLive ? (up ? 'up' : 'down') : 'muted'}`}>
+                {hasLive ? `${up ? '+' : ''}${pct.toFixed(2)}%` : '--'}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function OverviewTab({ accounts, netWorth, history, saving, addAccount, updateBalance, deleteAccount }) {
   const [name, setName] = useState('')
   const [type, setType] = useState('checking')
@@ -496,6 +586,7 @@ function OverviewTab({ accounts, netWorth, history, saving, addAccount, updateBa
   return (
     <>
       <MarketSessionStrip />
+      <MarketPulsePanel />
       <div className="finance-hero">
         <div className="finance-hero-figure">
           <span className="finance-hero-label">NET WORTH</span>
