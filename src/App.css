@@ -7623,6 +7623,102 @@ footer {
   margin-bottom: 20px;
 }
 
+/* ---------- Finance mode: Macro Desk (real RSI/trend bias cards) ---------- */
+
+.macro-desk {
+  margin-bottom: 24px;
+}
+
+.macro-desk-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.macro-desk-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.macro-desk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.macro-desk-card {
+  padding: 12px 14px;
+  border-radius: var(--mode-radius-scale, 10px);
+  border: var(--mode-border-width, 1px) solid var(--border);
+  background: var(--surface-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.macro-desk-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.macro-desk-bias {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.macro-desk-bias.bullish {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.2);
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.35);
+}
+
+.macro-desk-bias.bearish {
+  color: #ff7272;
+  background: rgba(255, 114, 114, 0.2);
+  box-shadow: 0 0 10px rgba(255, 114, 114, 0.35);
+}
+
+.macro-desk-bias.mixed,
+.macro-desk-bias.neutral {
+  color: #f5c86b;
+  background: rgba(245, 200, 107, 0.18);
+}
+
+.macro-desk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.macro-desk-row span:last-child {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.macro-desk-trend.bullish {
+  color: #4ade80 !important;
+}
+
+.macro-desk-trend.bearish {
+  color: #ff7272 !important;
+}
+
+.macro-desk-trend.neutral {
+  color: #f5c86b !important;
+}
+
 /* ---------- Finance mode: Reports ---------- */
 
 .finance-reports .market-pulse-grid {

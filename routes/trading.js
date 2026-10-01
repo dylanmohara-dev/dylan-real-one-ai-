@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
 import { fetchQuotes } from '../lib/marketData.js'
+import { fetchTechnicals } from '../lib/technicals.js'
 
 const router = Router()
 
@@ -117,6 +118,28 @@ router.get('/quotes', async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ ok: false, reason: 'Could not fetch quotes', quotes: {} })
+  }
+})
+
+// Macro Desk bias cards -- real RSI(14) + moving-average trend computed
+// from actual historical closes (lib/technicals.js), never an AI call. No
+// key or a provider error just means that symbol comes back null and the
+// UI shows "no signal yet", same honesty rule as /quotes above.
+router.get('/technicals', async (req, res) => {
+  try {
+    const symbols = (req.query.symbols || '')
+      .toString()
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+
+    if (!symbols.length) return res.json({ ok: true, technicals: {} })
+
+    const result = await fetchTechnicals(symbols)
+    res.json(result)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ ok: false, reason: 'Could not fetch technicals', technicals: {} })
   }
 })
 

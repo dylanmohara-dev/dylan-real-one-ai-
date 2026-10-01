@@ -1462,6 +1462,108 @@ function useLiveQuotes(symbols) {
   return { quotes, status }
 }
 
+// Polls GET /api/trading/technicals for the same fixed macro symbol set
+// Market Pulse uses. Separate from useLiveQuotes -- RSI/trend don't need
+// 60s freshness, so this polls far less often to stay well inside the
+// Twelve Data free-tier budget on top of the quote polling that's already
+// running.
+function useTechnicals(symbols) {
+  const [technicals, setTechnicals] = useState({})
+  const [status, setStatus] = useState('idle')
+  const key = symbols.join(',')
+
+  useEffect(() => {
+    if (!key) {
+      setTechnicals({})
+      setStatus('idle')
+      return
+    }
+
+    let cancelled = false
+
+    async function poll() {
+      try {
+        const response = await fetch(`/api/trading/technicals?symbols=${encodeURIComponent(key)}`)
+        const data = await response.json()
+        if (cancelled) return
+        if (data.ok) {
+          setTechnicals(data.technicals || {})
+          setStatus('ok')
+        } else {
+          setStatus(data.reason === 'no_key' ? 'no_key' : 'error')
+        }
+      } catch {
+        if (!cancelled) setStatus('error')
+      }
+    }
+
+    poll()
+    const interval = setInterval(poll, 5 * 60 * 1000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [key])
+
+  return { technicals, status }
+}
+
+// The Macro Desk bias cards -- HybridTrader's "AI Macro Desk" reimagined
+// with real math instead of a fabricated bearish/bullish call and a made-up
+// confidence score. RSI(14) and a 10-day/30-day trend read, computed
+// server-side (lib/technicals.js) from actual historical closes. Nothing
+// here is generated text; every field is a number or a label mechanically
+// derived from that number.
+function MacroDeskPanel() {
+  const symbols = MARKET_PULSE_SYMBOLS.map((item) => item.symbol)
+  const { technicals, status } = useTechnicals(symbols)
+
+  return (
+    <div className="macro-desk">
+      <div className="macro-desk-header">
+        <span className="finance-ledger-heading">Macro Desk</span>
+        <span className="macro-desk-sub">Real RSI(14) + 10d/30d trend -- no AI call, no confidence score</span>
+      </div>
+
+      {status === 'no_key' && (
+        <div className="trading-live-price-hint">
+          Live technicals aren't wired up yet -- add your Twelve Data API key to see real RSI/trend here instead of "no signal yet".
+        </div>
+      )}
+
+      <div className="macro-desk-grid">
+        {MARKET_PULSE_SYMBOLS.map(({ symbol, label }) => {
+          const data = technicals[symbol]
+          return (
+            <div className="macro-desk-card" key={symbol}>
+              <div className="macro-desk-card-top">
+                <span>{label}</span>
+                {data?.bias ? (
+                  <span className={`macro-desk-bias ${data.bias}`}>{data.bias}</span>
+                ) : (
+                  <span className="trading-card-no-price">no signal yet</span>
+                )}
+              </div>
+              {data?.rsi != null && (
+                <div className="macro-desk-row">
+                  <span>RSI(14)</span>
+                  <span>{data.rsi}</span>
+                </div>
+              )}
+              {data?.trend && (
+                <div className="macro-desk-row">
+                  <span>Trend (10d/30d)</span>
+                  <span className={`macro-desk-trend ${data.trend}`}>{data.trend}</span>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function TradingTab({
   positions,
   watchlist,
@@ -1500,6 +1602,8 @@ function TradingTab({
 
   return (
     <div className="finance-transactions">
+      <MacroDeskPanel />
+
       <div className="trading-settings-row">
         <RiskLimitEditor
           limitPct={tradingSettings?.concentrationLimitPct || 10}
