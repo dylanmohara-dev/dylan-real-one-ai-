@@ -7185,6 +7185,140 @@ footer {
   border-color: rgba(var(--mode-accent-rgb), 0.6);
 }
 
+/* Card-grid layout for Trading/Watchlist ("make it look more like the
+   photo I sent you" -- a HybridTrader-style grid instead of a plain
+   vertical list), each card showing a live price pulled from
+   lib/marketData.js (Twelve Data) -- never a fabricated number; a
+   missing key or provider hiccup just shows "no live price" (see
+   .trading-card-no-price) instead of making one up. */
+.trading-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.trading-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(13px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+  animation: fadeUp 0.2s ease;
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trading-card:hover {
+  border-color: rgba(var(--mode-accent-rgb), 0.35);
+  background: rgba(var(--mode-accent-rgb), 0.05);
+}
+
+.trading-card .delete-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.trading-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 26px;
+}
+
+.trading-card-ticker {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.trading-card-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.trading-card-price-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.trading-card-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.trading-card-change.up {
+  color: #4ade80;
+}
+
+.trading-card-change.down {
+  color: #ff7272;
+}
+
+.trading-card-no-price {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.trading-card-line {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.trading-card-unrealized {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.trading-card-unrealized.up {
+  color: #4ade80;
+}
+
+.trading-card-unrealized.down {
+  color: #ff7272;
+}
+
+.trading-card-thesis {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.trading-card .trading-verdict-select {
+  align-self: flex-start;
+  margin-left: 0;
+}
+
+.trading-card .item-meta {
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.trading-live-price-hint {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--border);
+  background: rgba(var(--mode-accent-rgb), 0.06);
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
 .trading-close-form textarea {
   width: 100%;
 }

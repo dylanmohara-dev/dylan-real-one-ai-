@@ -1089,7 +1089,7 @@ function PositionForm({ saving, addPosition, draft }) {
   )
 }
 
-function PositionRow({ position, sizing, saving, closePosition, deletePosition }) {
+function PositionRow({ position, sizing, quote, saving, closePosition, deletePosition }) {
   const [closing, setClosing] = useState(false)
   const [exitPrice, setExitPrice] = useState('')
   const [lesson, setLesson] = useState('')
@@ -1099,70 +1099,96 @@ function PositionRow({ position, sizing, saving, closePosition, deletePosition }
   const overConcentrated = sizing?.overConcentrated ?? false
   const stale = isStale(position.updatedAt || position.openedAt)
 
+  // Unrealized P/L is plain math off a real fetched price (Twelve Data) --
+  // never shown unless `quote` actually came back, so a missing key or a
+  // provider hiccup shows "no live price" instead of a fabricated number.
+  const hasLive = quote && Number.isFinite(quote.price)
+  const unrealized = hasLive ? (quote.price - position.avgCost) * position.shares : null
+  const unrealizedPct = hasLive && position.avgCost ? ((quote.price - position.avgCost) / position.avgCost) * 100 : null
+
   return (
-    <div className="item-card">
-      <div className="item-content">
-        <strong>
-          {position.ticker} &middot; {position.shares} sh @ {formatMoney(position.avgCost)} ({formatMoney(costBasis)})
-        </strong>
-        <p>Thesis: {position.thesis}</p>
-        <p>Invalidation: {position.invalidation}</p>
-        <div className="trading-size-track">
-          <div
-            className={`trading-size-track-fill ${overConcentrated ? 'over' : ''}`}
-            style={{ width: `${Math.min(100, sizePct)}%` }}
-          />
-        </div>
-        <div className="item-meta">
-          <span className={`trading-position-sizing ${overConcentrated ? 'over' : ''}`}>
-            {overConcentrated ? <AlertTriangle size={12} strokeWidth={2.5} /> : null}
-            {sizePct}% of capital
-          </span>
-          {stale && (
-            <span className="trading-stale-badge">
-              <Clock size={12} strokeWidth={2.5} /> Untouched 30+ days -- still the thesis?
-            </span>
-          )}
-        </div>
-        {closing ? (
-          <div className="finance-row-edit trading-close-form" style={{ marginTop: 8 }}>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="Exit price"
-              value={exitPrice}
-              onChange={(event) => setExitPrice(event.target.value)}
-              autoFocus
-            />
-            <textarea
-              placeholder="What did you learn? (required -- win or lose, be honest)"
-              value={lesson}
-              onChange={(event) => setLesson(event.target.value)}
-              rows={2}
-            />
-            <button
-              onClick={() => {
-                closePosition(position.id, exitPrice, lesson)
-                setClosing(false)
-                setExitPrice('')
-                setLesson('')
-              }}
-              disabled={saving || !exitPrice || !lesson.trim()}
-            >
-              Confirm close
-            </button>
-            <button onClick={() => setClosing(false)}>Cancel</button>
-          </div>
-        ) : (
-          <button className="trading-close-button" onClick={() => setClosing(true)}>
-            Close position
-          </button>
-        )}
-      </div>
+    <div className="trading-card">
       <button className="delete-button" onClick={() => deletePosition(position.id)}>
         &times;
       </button>
+      <div className="trading-card-top">
+        <strong className="trading-card-ticker">{position.ticker}</strong>
+        {hasLive ? (
+          <div className="trading-card-price">
+            <span className="trading-card-price-value">{formatMoney(quote.price)}</span>
+            <span className={`trading-card-change ${quote.changePercent >= 0 ? 'up' : 'down'}`}>
+              {quote.changePercent >= 0 ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />}
+              {Math.abs(quote.changePercent).toFixed(2)}%
+            </span>
+          </div>
+        ) : (
+          <span className="trading-card-no-price">no live price</span>
+        )}
+      </div>
+      <p className="trading-card-line">
+        {position.shares} sh @ {formatMoney(position.avgCost)} ({formatMoney(costBasis)})
+      </p>
+      {unrealized !== null && (
+        <p className={`trading-card-unrealized ${unrealized >= 0 ? 'up' : 'down'}`}>
+          {unrealized >= 0 ? '+' : ''}
+          {formatMoney(unrealized)} unrealized ({unrealizedPct >= 0 ? '+' : ''}
+          {unrealizedPct.toFixed(1)}%)
+        </p>
+      )}
+      <p className="trading-card-thesis">Thesis: {position.thesis}</p>
+      <p className="trading-card-thesis">Invalidation: {position.invalidation}</p>
+      <div className="trading-size-track">
+        <div
+          className={`trading-size-track-fill ${overConcentrated ? 'over' : ''}`}
+          style={{ width: `${Math.min(100, sizePct)}%` }}
+        />
+      </div>
+      <div className="item-meta">
+        <span className={`trading-position-sizing ${overConcentrated ? 'over' : ''}`}>
+          {overConcentrated ? <AlertTriangle size={12} strokeWidth={2.5} /> : null}
+          {sizePct}% of capital
+        </span>
+        {stale && (
+          <span className="trading-stale-badge">
+            <Clock size={12} strokeWidth={2.5} /> Untouched 30+ days -- still the thesis?
+          </span>
+        )}
+      </div>
+      {closing ? (
+        <div className="finance-row-edit trading-close-form" style={{ marginTop: 8 }}>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Exit price"
+            value={exitPrice}
+            onChange={(event) => setExitPrice(event.target.value)}
+            autoFocus
+          />
+          <textarea
+            placeholder="What did you learn? (required -- win or lose, be honest)"
+            value={lesson}
+            onChange={(event) => setLesson(event.target.value)}
+            rows={2}
+          />
+          <button
+            onClick={() => {
+              closePosition(position.id, exitPrice, lesson)
+              setClosing(false)
+              setExitPrice('')
+              setLesson('')
+            }}
+            disabled={saving || !exitPrice || !lesson.trim()}
+          >
+            Confirm close
+          </button>
+          <button onClick={() => setClosing(false)}>Cancel</button>
+        </div>
+      ) : (
+        <button className="trading-close-button" onClick={() => setClosing(true)}>
+          Close position
+        </button>
+      )}
     </div>
   )
 }
@@ -1241,43 +1267,99 @@ function WatchlistForm({ saving, addWatchlistItem }) {
   )
 }
 
-function WatchlistRow({ item, saving, updateWatchlistItem, deleteWatchlistItem, onPromote }) {
+function WatchlistRow({ item, quote, saving, updateWatchlistItem, deleteWatchlistItem, onPromote }) {
   const stale = isStale(item.updatedAt || item.addedAt)
+  const hasLive = quote && Number.isFinite(quote.price)
   return (
-    <div className="item-card">
-      <div className="item-content">
-        <strong>
-          {item.ticker}{' '}
-          <select
-            className={`trading-verdict-select ${item.verdict}`}
-            value={item.verdict}
-            disabled={saving}
-            onChange={(event) => updateWatchlistItem(item.id, { verdict: event.target.value })}
-          >
-            {Object.entries(VERDICT_META).map(([key, m]) => (
-              <option key={key} value={key}>{m.label}</option>
-            ))}
-          </select>
-        </strong>
-        <p>{item.thesis}</p>
-        {item.catalyst && <p>Catalyst: {item.catalyst}</p>}
-        {item.valuation && <p>Valuation: {item.valuation}</p>}
-        <div className="item-meta">
-          {stale && (
-            <span className="trading-stale-badge">
-              <Clock size={12} strokeWidth={2.5} /> Untouched 30+ days
-            </span>
-          )}
-          <button className="trading-promote-button" onClick={() => onPromote(item)}>
-            Promote to position <ArrowRight size={12} strokeWidth={2.5} />
-          </button>
-        </div>
-      </div>
+    <div className="trading-card">
       <button className="delete-button" onClick={() => deleteWatchlistItem(item.id)}>
         &times;
       </button>
+      <div className="trading-card-top">
+        <strong className="trading-card-ticker">{item.ticker}</strong>
+        {hasLive ? (
+          <div className="trading-card-price">
+            <span className="trading-card-price-value">{formatMoney(quote.price)}</span>
+            <span className={`trading-card-change ${quote.changePercent >= 0 ? 'up' : 'down'}`}>
+              {quote.changePercent >= 0 ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />}
+              {Math.abs(quote.changePercent).toFixed(2)}%
+            </span>
+          </div>
+        ) : (
+          <span className="trading-card-no-price">no live price</span>
+        )}
+      </div>
+      <select
+        className={`trading-verdict-select ${item.verdict}`}
+        value={item.verdict}
+        disabled={saving}
+        onChange={(event) => updateWatchlistItem(item.id, { verdict: event.target.value })}
+      >
+        {Object.entries(VERDICT_META).map(([key, m]) => (
+          <option key={key} value={key}>{m.label}</option>
+        ))}
+      </select>
+      <p className="trading-card-thesis">{item.thesis}</p>
+      {item.catalyst && <p className="trading-card-line">Catalyst: {item.catalyst}</p>}
+      {item.valuation && <p className="trading-card-line">Valuation: {item.valuation}</p>}
+      <div className="item-meta">
+        {stale && (
+          <span className="trading-stale-badge">
+            <Clock size={12} strokeWidth={2.5} /> Untouched 30+ days
+          </span>
+        )}
+        <button className="trading-promote-button" onClick={() => onPromote(item)}>
+          Promote to position <ArrowRight size={12} strokeWidth={2.5} />
+        </button>
+      </div>
     </div>
   )
+}
+
+// Polls GET /api/trading/quotes for whatever tickers are currently on the
+// book (open positions + watchlist). Deliberately lives here rather than in
+// useAppData's big bootstrap load -- this is cheap, self-contained polling
+// for one tab, not app-wide state. 60s matches the 45s server-side cache in
+// lib/marketData.js so a poll almost never pays the slow, uncached path.
+function useLiveQuotes(symbols) {
+  const [quotes, setQuotes] = useState({})
+  const [status, setStatus] = useState('idle')
+  const key = symbols.join(',')
+
+  useEffect(() => {
+    if (!key) {
+      setQuotes({})
+      setStatus('idle')
+      return
+    }
+
+    let cancelled = false
+
+    async function poll() {
+      try {
+        const response = await fetch(`/api/trading/quotes?symbols=${encodeURIComponent(key)}`)
+        const data = await response.json()
+        if (cancelled) return
+        if (data.ok) {
+          setQuotes(data.quotes || {})
+          setStatus('ok')
+        } else {
+          setStatus(data.reason === 'no_key' ? 'no_key' : 'error')
+        }
+      } catch {
+        if (!cancelled) setStatus('error')
+      }
+    }
+
+    poll()
+    const interval = setInterval(poll, 60000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [key])
+
+  return { quotes, status }
 }
 
 function TradingTab({
@@ -1310,6 +1392,12 @@ function TradingTab({
     .filter((p) => p.status === 'closed')
     .sort((a, b) => new Date(b.closedAt) - new Date(a.closedAt))
 
+  // Real tickers only -- never a fabricated quote. If Dylan hasn't added a
+  // Twelve Data key yet, `status` comes back 'no_key' and every card just
+  // shows "no live price" instead of the app pretending it has one.
+  const liveSymbols = [...new Set([...openPositions.map((p) => p.ticker), ...watchlist.map((w) => w.ticker)])]
+  const { quotes, status: quoteStatus } = useLiveQuotes(liveSymbols)
+
   return (
     <div className="finance-transactions">
       <div className="trading-settings-row">
@@ -1321,16 +1409,23 @@ function TradingTab({
       </div>
       <RiskBanner stats={stats} />
 
+      {quoteStatus === 'no_key' && liveSymbols.length > 0 && (
+        <div className="trading-live-price-hint">
+          Live prices aren't wired up yet -- add a free Twelve Data API key to see real quotes here instead of "no live price".
+        </div>
+      )}
+
       <span className="finance-ledger-heading">Open positions</span>
       <PositionForm key={draftKey} saving={saving} addPosition={addPosition} draft={draft} />
 
-      <div className="items-list">
+      <div className="trading-card-grid">
         {openPositions.length ? (
           openPositions.map((position) => (
             <PositionRow
               key={position.id}
               position={position}
               sizing={stats?.bySizing?.[position.id]}
+              quote={quotes[position.ticker]}
               saving={saving}
               closePosition={closePosition}
               deletePosition={deletePosition}
@@ -1360,12 +1455,13 @@ function TradingTab({
 
       <span className="finance-ledger-heading">Watchlist</span>
       <WatchlistForm saving={saving} addWatchlistItem={addWatchlistItem} />
-      <div className="items-list">
+      <div className="trading-card-grid">
         {watchlist.length ? (
           watchlist.map((item) => (
             <WatchlistRow
               key={item.id}
               item={item}
+              quote={quotes[item.ticker]}
               saving={saving}
               updateWatchlistItem={updateWatchlistItem}
               deleteWatchlistItem={deleteWatchlistItem}

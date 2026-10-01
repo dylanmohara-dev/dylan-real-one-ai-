@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { fetchQuotes } from '../lib/marketData.js'
 
 const router = Router()
 
@@ -94,6 +95,29 @@ router.get('/', (req, res) => {
     settings,
     stats: computeTradingStats(positions, financeAccounts, netWorth, settings.concentrationLimitPct),
   })
+})
+
+// Live prices for whatever tickers are on Dylan's book right now (open
+// positions + watchlist) -- GET so the frontend can call it on a plain
+// polling timer. Never fabricates a price: no key or a provider error just
+// means that ticker comes back null and the UI shows no live price for it,
+// per the house rule against making up market data.
+router.get('/quotes', async (req, res) => {
+  try {
+    const symbols = (req.query.symbols || '')
+      .toString()
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+
+    if (!symbols.length) return res.json({ ok: true, quotes: {} })
+
+    const result = await fetchQuotes(symbols)
+    res.json(result)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ ok: false, reason: 'Could not fetch quotes', quotes: {} })
+  }
 })
 
 router.put('/settings', (req, res) => {
