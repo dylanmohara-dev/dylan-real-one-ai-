@@ -7122,11 +7122,23 @@ footer {
 }
 
 .trading-verdict-select.pass {
-  opacity: 0.6;
+  background: rgba(255, 114, 114, 0.16);
+  border-color: rgba(255, 114, 114, 0.55);
+  color: #ff7272;
+  opacity: 1;
 }
 
 .trading-verdict-select.ready {
-  border-color: rgba(74, 222, 128, 0.6);
+  background: rgba(74, 222, 128, 0.18);
+  border-color: rgba(74, 222, 128, 0.7);
+  color: #4ade80;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.35);
+}
+
+.trading-verdict-select.watching {
+  background: rgba(245, 200, 107, 0.16);
+  border-color: rgba(245, 200, 107, 0.55);
+  color: #f5c86b;
 }
 
 .trading-settings-row {
@@ -7237,6 +7249,20 @@ footer {
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--text-primary);
+}
+
+.trading-card-long-tag {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.18);
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.35);
+  vertical-align: middle;
 }
 
 .trading-card-price {
@@ -7372,21 +7398,23 @@ footer {
 }
 
 .market-pulse-tag {
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 3px 10px;
   border-radius: 999px;
 }
 
 .market-pulse-tag.up {
   color: #4ade80;
-  background: rgba(74, 222, 128, 0.14);
+  background: rgba(74, 222, 128, 0.22);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
 }
 
 .market-pulse-tag.down {
   color: #ff7272;
-  background: rgba(255, 114, 114, 0.14);
+  background: rgba(255, 114, 114, 0.22);
+  box-shadow: 0 0 12px rgba(255, 114, 114, 0.4);
 }
 
 .market-pulse-price {
@@ -8555,11 +8583,10 @@ button:disabled:active {
 }
 .app-shell.theme-finance .form-card button {
   border-radius: 4px;
-  box-shadow: none;
+  box-shadow: 0 0 14px rgba(var(--mode-accent-rgb), 0.3);
 }
 .app-shell.theme-finance .form-card button:hover:not(:disabled) {
-  transform: none;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 22px rgba(var(--mode-accent-rgb), 0.55), inset 0 0 0 2px rgba(255, 255, 255, 0.2);
 }
 .app-shell.theme-finance .page-header h1 {
   font-variant-numeric: tabular-nums;
@@ -8704,26 +8731,6 @@ button:disabled:active {
   background-clip: initial;
   color: #fff;
   filter: none;
-}
-
-.app-shell.theme-finance .mode-chat-launcher {
-  background: var(--surface-strong);
-  box-shadow: none;
-}
-
-.app-shell.theme-finance .mode-chat-launcher::before {
-  display: none;
-}
-
-.app-shell.theme-finance .mode-chat-launcher:hover {
-  background: var(--surface-hover);
-  transform: none;
-  box-shadow: none;
-}
-
-.app-shell.theme-finance .mode-chat-launcher-icon {
-  box-shadow: none;
-  animation: none;
 }
 
 /* 3. Market-status row -- HybridTrader shows this as plain inline text
@@ -11650,6 +11657,10 @@ button:disabled:active {
 .gym-tabs button.active {
   color: rgb(var(--mode-accent-rgb, 249, 115, 22));
   border-bottom-color: rgb(var(--mode-accent-rgb, 249, 115, 22));
+}
+
+.app-shell.theme-finance .gym-tabs button.active {
+  text-shadow: 0 0 12px rgba(var(--mode-accent-rgb), 0.6);
 }
 
 .gym-today-header {

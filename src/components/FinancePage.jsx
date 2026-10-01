@@ -1203,7 +1203,10 @@ function PositionRow({ position, sizing, quote, saving, closePosition, deletePos
         &times;
       </button>
       <div className="trading-card-top">
-        <strong className="trading-card-ticker">{position.ticker}</strong>
+        <strong className="trading-card-ticker">
+          {position.ticker}
+          <span className="trading-card-long-tag">LONG</span>
+        </strong>
         {hasLive ? (
           <div className="trading-card-price">
             <span className="trading-card-price-value">{formatMoney(quote.price)}</span>
