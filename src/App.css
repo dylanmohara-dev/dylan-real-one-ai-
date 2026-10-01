@@ -310,7 +310,7 @@ select option {
   --bg-glow-1: rgba(45, 212, 191, 0.03);
   --bg-glow-2: rgba(94, 234, 212, 0.02);
   --bg: #07090a;
-  --mode-tracking: 0.10em;
+  --mode-tracking: 0.03em;
   --mode-body-font: 'Space Grotesk', 'IBM Plex Mono', monospace;
   --surface: rgba(255, 255, 255, 0.035);
   --surface-hover: rgba(255, 255, 255, 0.055);
@@ -8537,11 +8537,64 @@ button:disabled:active {
 }
 
 .app-shell.theme-finance .page-header h1 {
-  background: linear-gradient(100deg, rgb(var(--mode-accent-rgb)) 25%, rgb(var(--mode-accent2-rgb)) 75%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 0 22px rgba(var(--mode-accent-rgb), 0.65)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  /* Round 3: Dylan put this next to HybridTrader's plain white "Good
+     afternoon, Dovy" and the neon gradient+glow was the biggest mismatch
+     left. Flat white now, no gradient, no drop-shadow halo. */
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  color: #fff;
+  filter: none;
+}
+
+.app-shell.theme-finance .mode-chat-launcher {
+  background: var(--surface-strong);
+  box-shadow: none;
+}
+
+.app-shell.theme-finance .mode-chat-launcher::before {
+  display: none;
+}
+
+.app-shell.theme-finance .mode-chat-launcher:hover {
+  background: var(--surface-hover);
+  transform: none;
+  box-shadow: none;
+}
+
+.app-shell.theme-finance .mode-chat-launcher-icon {
+  box-shadow: none;
+  animation: none;
+}
+
+/* 3. Market-status row -- HybridTrader shows this as plain inline text
+   separated by dots, not individual bordered/filled pill-boxes. Keeps
+   the same markup (.finance-market-pill etc, FinancePage.jsx), just
+   strips the box chrome and adds a text divider between entries. */
+.app-shell.theme-finance .finance-market-strip {
+  gap: 0;
+  row-gap: 8px;
+}
+
+.app-shell.theme-finance .finance-market-pill {
+  padding: 0 14px 0 0;
+  border: none;
+  background: none;
+  border-radius: 0;
+  position: relative;
+}
+
+.app-shell.theme-finance .finance-market-pill:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.6;
 }
 
 .app-shell.theme-skills .page-header h1 {
