@@ -292,29 +292,32 @@ select option {
 }
 
 .app-shell.theme-finance {
-  /* Session 41: re-themed from blue/navy to the dark teal/green "HybridTrader"
-     terminal look Dylan referenced directly (screenshot: near-black
-     background, mint-teal accent, flat ledger-line cards). Every surface/
-     border/glow var below derives from --mode-accent-rgb automatically, so
-     this swap alone re-colors the sidebar, buttons, borders, and the
-     existing trading-size-track-fill "confidence"-style bar without
-     touching their CSS individually. */
+  /* Session 41/42: HybridTrader re-theme, round 2. Round 1 kept the normal
+     per-mode pattern where surface/border/glow are all tints of
+     --mode-accent-rgb -- same formula gym/skills/etc use -- but side by
+     side with the reference screenshot that read as a solid green wash,
+     nothing like HybridTrader's near-flat dark panels with teal used only
+     on active/positive elements. So Finance alone breaks from that shared
+     formula: surface/border/glow below are neutral grays, and teal is
+     reserved for the places that already reference --mode-accent-rgb
+     directly (active tab underline, buttons, progress fills, "up" values,
+     the Ask The Analyst icon). */
   --mode-accent-rgb: 45, 212, 191;
   --mode-accent2-rgb: 94, 234, 212;
   --mode-heading-font: 'Space Grotesk', 'IBM Plex Mono', monospace;
   --mode-radius-scale: 0.7;
   --mode-border-width: 1px;
-  --bg-glow-1: rgba(45, 212, 191, 0.22);
-  --bg-glow-2: rgba(94, 234, 212, 0.13);
-  --bg: #05090a;
+  --bg-glow-1: rgba(45, 212, 191, 0.03);
+  --bg-glow-2: rgba(94, 234, 212, 0.02);
+  --bg: #07090a;
   --mode-tracking: 0.10em;
   --mode-body-font: 'Space Grotesk', 'IBM Plex Mono', monospace;
-  --surface: rgba(var(--mode-accent-rgb), 0.055);
-  --surface-hover: rgba(var(--mode-accent-rgb), 0.09);
-  --surface-input: rgba(var(--mode-accent-rgb), 0.065);
-  --surface-strong: rgba(10, 26, 24, 0.86);
-  --border: rgba(var(--mode-accent-rgb), 0.18);
-  --border-strong: rgba(var(--mode-accent-rgb), 0.34);
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-hover: rgba(255, 255, 255, 0.055);
+  --surface-input: rgba(255, 255, 255, 0.045);
+  --surface-strong: rgba(13, 16, 16, 0.92);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.16);
 }
 
 .app-shell.theme-skills {
@@ -502,7 +505,7 @@ select option {
 .app-root.theme-health {  --mode-accent-rgb: 45, 212, 191;  --mode-accent2-rgb: 20, 184, 166;  --mode-heading-font: 'Manrope', sans-serif;  --mode-radius-scale: 1.1;  --mode-border-width: 1px;  --bg-glow-1: rgba(45, 212, 191, 0.42);  --bg-glow-2: rgba(20, 184, 166, 0.3);  --bg: #051a17;  --mode-tracking: 0.02em;  --mode-body-font: 'Manrope', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(21, 51, 49, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
 }
 
-.app-root.theme-finance {  --mode-accent-rgb: 45, 212, 191;  --mode-accent2-rgb: 94, 234, 212;  --mode-heading-font: 'Space Grotesk', sans-serif;  --mode-radius-scale: 0.35;  --mode-border-width: 1px;  --bg-glow-1: rgba(45, 212, 191, 0.42);  --bg-glow-2: rgba(94, 234, 212, 0.3);  --bg: #05090a;  --mode-tracking: 0.02em;  --mode-body-font: 'IBM Plex Mono', monospace;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(10, 26, 24, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
+.app-root.theme-finance {  --mode-accent-rgb: 45, 212, 191;  --mode-accent2-rgb: 94, 234, 212;  --mode-heading-font: 'Space Grotesk', sans-serif;  --mode-radius-scale: 0.35;  --mode-border-width: 1px;  --bg-glow-1: rgba(45, 212, 191, 0.05);  --bg-glow-2: rgba(94, 234, 212, 0.03);  --bg: #07090a;  --mode-tracking: 0.02em;  --mode-body-font: 'IBM Plex Mono', monospace;  --surface: rgba(255, 255, 255, 0.035);  --surface-hover: rgba(255, 255, 255, 0.055);  --surface-input: rgba(255, 255, 255, 0.045);  --surface-strong: rgba(13, 16, 16, 0.92);  --border: rgba(255, 255, 255, 0.09);  --border-strong: rgba(255, 255, 255, 0.16);
 }
 
 .app-root.theme-skills {  --mode-accent-rgb: 168, 85, 247;  --mode-accent2-rgb: 139, 92, 246;  --mode-heading-font: 'Bitter', Georgia, serif;  --mode-radius-scale: 0.7;  --mode-border-width: 1px;  --bg-glow-1: rgba(168, 85, 247, 0.42);  --bg-glow-2: rgba(139, 92, 246, 0.3);  --bg: #140a1c;  --mode-tracking: 0.06em;  --mode-body-font: 'Poppins', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(43, 28, 59, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
@@ -8214,15 +8217,18 @@ button:disabled:active {
     transparent 14px, transparent 36px);
 }
 
-/* --- Finance: ledger grid --- */
+/* --- Finance: no decorative pattern --- */
+/* Round 2 of the HybridTrader re-theme: Dylan put the two screenshots
+   side by side and the grid-paper texture (every other mode keeps its
+   own pattern here) was the single biggest mismatch -- the reference is
+   a flat, near-solid dark panel with zero visible texture. Dropped
+   entirely for Finance rather than just dimmed. */
 .app-shell.theme-finance .main-content::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image:
-    repeating-linear-gradient(rgba(var(--mode-accent-rgb), 0.16) 0, rgba(var(--mode-accent-rgb), 0.16) 1.5px, transparent 1.5px, transparent 20px),
-    repeating-linear-gradient(90deg, rgba(var(--mode-accent-rgb), 0.16) 0, rgba(var(--mode-accent-rgb), 0.16) 1.5px, transparent 1.5px, transparent 20px);
+  background-image: none;
 }
 
 /* --- Skills: ascending level ticks --- */
