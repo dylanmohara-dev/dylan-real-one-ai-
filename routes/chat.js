@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { loadData } from '../lib/dataStore.js'
-import { detectCommand, executeAction, looksLikeContentRequest } from '../lib/assistant.js'
+import { detectCommand, executeAction, looksLikeContentRequest, looksLikeLiveDataRequest } from '../lib/assistant.js'
+import { webSearch } from '../lib/webSearch.js'
 import { getLiveContextBlock } from '../lib/liveContext.js'
 import { createReplyExtractor } from '../lib/streamingJson.js'
 import { todayKey } from '../lib/studyPlan.js'
@@ -630,6 +631,61 @@ router.post('/chat', async (req, res) => {
 
     const modeLabel = mode && mode !== 'general' ? mode : null
     const modeStyle = modeLabel ? MODE_STYLE[modeLabel] : null
+
+    // Session 41: Dylan asked why the chat can't answer "how many yards does
+    // Joe Burrow have" or "what's happening with the Phillies-Braves series."
+    // The honest "I don't have that" the model was giving is correct --
+    // neither Groq nor local Ollama has internet access -- but not what he
+    // wants. This runs a real search (lib/webSearch.js, Tavily) only for
+    // questions that look time-sensitive, and hands the model real results
+    // to answer from. Checked before the JSON-action contract for the same
+    // reason looksLikeContentRequest is below: no action schema for the
+    // model to hallucinate fake progress into. If TAVILY_API_KEY isn't set,
+    // or the search fails or comes back empty, this falls straight through
+    // to the normal flow -- live search is a bonus, never a hard dependency.
+    if (looksLikeLiveDataRequest(latestMessage)) {
+      const searchResult = await webSearch(latestMessage)
+
+      if (searchResult.ok && (searchResult.results.length > 0 || searchResult.answer)) {
+        const sourcesBlock = searchResult.results
+          .map((r, i) => `${i + 1}. ${r.title} -- ${r.snippet} (${r.url})`)
+          .join('\n')
+
+        const liveDataSystemPrompt = `
+You are Dylan AI, Dylan's personal AI operating system.
+${modeLabel ? `You are currently in Dylan's "${modeLabel}" area — keep it relevant to ${modeLabel} unless Dylan clearly asks about something else.
+` : ''}
+Dylan asked a time-sensitive question. Below are real, just-fetched web search results -- use them to give a direct, specific answer with the actual numbers/facts. If the results don't actually answer his question, say so plainly rather than guessing or padding. Write plain text -- no JSON, no code fences, no markdown headers or asterisks.
+${searchResult.answer ? `
+Quick answer from search: ${searchResult.answer}
+` : ''}
+Search results:
+${sourcesBlock || '(no detailed results, just the quick answer above)'}
+`
+        const { response: liveResponse, usedFallback: liveUsedFallback, backendNotice: liveBackendNotice } = await runChatCompletion((model) => ({
+          model,
+          messages: [{ role: 'system', content: liveDataSystemPrompt }, ...modelMessages],
+          temperature: 0.2,
+          max_tokens: 500,
+        }))
+
+        let liveText = ''
+        await pumpOllamaStream(liveResponse, (delta) => {
+          liveText += delta
+          writeSSE(res, 'token', { text: delta })
+        })
+
+        const liveRaw = liveText.trim()
+
+        return sendDone({
+          reply: (liveRaw || 'No response from Dylan AI.') + fallbackNotice(liveUsedFallback) + liveBackendNotice,
+          actionPerformed: false,
+          skipMemoryCheck: true,
+        })
+      }
+      // No key set, search failed, or came back empty -- fall through to
+      // the normal flow below rather than blocking the whole chat on this.
+    }
 
     // Requests to write/draft/plan/explain something substantial skip the
     // JSON-action contract entirely — the model never sees the action schema,
