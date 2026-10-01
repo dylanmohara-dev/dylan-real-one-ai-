@@ -644,22 +644,44 @@ router.post('/chat', async (req, res) => {
     // or the search fails or comes back empty, this falls straight through
     // to the normal flow -- live search is a bonus, never a hard dependency.
     if (looksLikeLiveDataRequest(latestMessage)) {
-      const searchResult = await webSearch(latestMessage)
+      // Round 3 bug: "game yesterday" as a bare follow-up, with "Phillies
+      // Braves" only mentioned a turn or two earlier, was searched as just
+      // that literal fragment -- no team names, nothing for Tavily to
+      // anchor on, which is exactly how it surfaced an unrelated stale
+      // game. Pulling in the last couple of Dylan's own messages (not the
+      // assistant's replies, which would just be noise/already-wrong
+      // answers feeding back in) gives the search the same context Dylan
+      // himself was relying on when he typed a short follow-up.
+      const recentUserText = messages
+        .filter((m) => m.role === 'user')
+        .slice(-2)
+        .map((m) => m.content)
+        .join(' ')
+      const searchQuery = recentUserText.trim() || latestMessage
+
+      const searchResult = await webSearch(searchQuery)
 
       if (searchResult.ok && (searchResult.results.length > 0 || searchResult.answer)) {
         const sourcesBlock = searchResult.results
-          .map((r, i) => `${i + 1}. ${r.title} -- ${r.snippet} (${r.url})`)
+          .map((r, i) => `${i + 1}. [${r.publishedDate || 'date unknown'}] ${r.title} -- ${r.snippet} (${r.url})`)
           .join('\n')
+
+        // Round 3 bug #2: the model had no idea what "today" actually is,
+        // so even a correctly-dated result couldn't be checked against
+        // "yesterday" -- it just guessed. todayKey() is the same
+        // server-local date already used elsewhere in this file (see
+        // todayForModel below) for exactly this reason.
+        const liveDataToday = todayKey()
 
         const liveDataSystemPrompt = `
 You are Dylan AI, Dylan's personal AI operating system.
 ${modeLabel ? `You are currently in Dylan's "${modeLabel}" area — keep it relevant to ${modeLabel} unless Dylan clearly asks about something else.
 ` : ''}
-Dylan asked a time-sensitive question. Below are real, just-fetched web search results -- this is the ONLY source of truth for this answer.
+Today's real date is ${liveDataToday}. Dylan asked a time-sensitive question. Below are real, just-fetched web search results, each tagged with its actual publish date where known -- this is the ONLY source of truth for this answer.
 
 Hard rules, no exceptions:
 - Every number, name, score, date, or specific detail you state must appear literally in the text below. Do not calculate, round, estimate, or "fill in" anything not written there -- not a single stat, not a score, not a play-by-play detail like who scored.
-- If the results are about a different date or a different game/event than Dylan asked about, say that plainly ("the most recent result I can find is from [date]...") instead of presenting it as current.
+- Compare each result's tagged date against today's real date (${liveDataToday}) yourself before calling anything "today's," "yesterday's," or "the latest" -- if the closest result is from several days or weeks ago, say the actual date instead of implying it's current.
 - If the results partially answer the question, state only the part they actually support, and say what's missing rather than guessing the rest.
 - If the results don't answer it at all, say so directly -- an honest "I couldn't find that" beats a confident wrong answer every time.
 
