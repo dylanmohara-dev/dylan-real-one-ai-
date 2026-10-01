@@ -494,6 +494,24 @@ router.post('/chat', async (req, res) => {
     ? incomingMessages.slice(-MAX_CHAT_HISTORY_MESSAGES)
     : incomingMessages
 
+  // Session 41 bug: the frontend (useAppData.js's sendMessage) stores an
+  // `image` field on EVERY user message object it keeps in chatThreads --
+  // not just ones that actually attached an image, it's `imageDataUrl ||
+  // null` every time -- so that it can re-render a past image if the thread
+  // is ever reloaded. That's correct for the frontend's own state, but this
+  // `messages` array is exactly that same object shape, spread straight
+  // into the Groq request body below (`...messages`). Groq's endpoint does
+  // strict schema validation on `role: user` messages and rejects ANY
+  // extra property, even `image: null` -- confirmed via Dylan's own pasted
+  // log: `'messages.1' : property 'image' is unsupported`. That means
+  // *every* chat message, not just ones following an image, has been
+  // falling back to local Ollama ever since that frontend field was added --
+  // which is exactly why re-keying Groq's dead API key alone didn't speed
+  // anything up. Stripping down to just {role, content} here, once, before
+  // any model call, fixes every call site without touching the frontend's
+  // own (correct) state shape.
+  const modelMessages = messages.map((m) => ({ role: m.role, content: m.content }))
+
   // From here on, every response this route sends -- success or failure --
   // goes out as Server-Sent Events, so the frontend has exactly one response
   // shape to deal with instead of "JSON on success, but sometimes a
@@ -629,7 +647,7 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
 `
       const { response: contentResponse, usedFallback: contentUsedFallback, backendNotice: contentBackendNotice } = await runChatCompletion((model) => ({
         model,
-        messages: [{ role: 'system', content: contentSystemPrompt }, ...messages],
+        messages: [{ role: 'system', content: contentSystemPrompt }, ...modelMessages],
         temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.4) : 0.4,
         max_tokens: 900,
       }))
@@ -824,7 +842,7 @@ ${context}
 
     const { response, usedFallback, backendNotice } = await runChatCompletion((model) => ({
       model,
-      messages: [{ role: 'system', content: systemPrompt }, ...messages],
+      messages: [{ role: 'system', content: systemPrompt }, ...modelMessages],
       temperature: modeLabel ? (MODE_TEMPERATURE[modeLabel] ?? 0.2) : 0.2,
       max_tokens: 500,
     }))
