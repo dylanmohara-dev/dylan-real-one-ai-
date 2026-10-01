@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Wallet,
   PiggyBank,
@@ -385,6 +385,97 @@ function AccountRow({ account, onUpdateBalance, onDelete, saving }) {
   )
 }
 
+// Session 41: Dylan asked Finance to look like the HybridTrader reference
+// he showed, which opens with a real-exchange-hours strip (London/New
+// York/Sydney/Asia, open/closed/pre-market). This is genuine, publicly
+// known, deterministic data -- real market hours computed against the
+// actual current time in each timezone via Intl -- not an invented
+// "AI Macro Desk" bullish/bearish call, which would need a live market
+// data feed this app doesn't have. Closed markets show only the known
+// fixed open time, not a cross-day/DST countdown, since getting that
+// precisely right needs a timezone-arithmetic library this codebase
+// doesn't have installed -- stating what's certain beats faking a
+// plausible-looking "opens in Xh Ym" that could be wrong.
+const MARKET_SESSIONS = [
+  { key: 'london', label: 'LONDON', timeZone: 'Europe/London', openMin: 8 * 60, closeMin: 16 * 60 + 30 },
+  { key: 'newyork', label: 'NEW YORK', timeZone: 'America/New_York', openMin: 9 * 60 + 30, closeMin: 16 * 60, preMarketMin: 4 * 60 },
+  { key: 'sydney', label: 'SYDNEY', timeZone: 'Australia/Sydney', openMin: 10 * 60, closeMin: 16 * 60 },
+  { key: 'tokyo', label: 'ASIA', timeZone: 'Asia/Tokyo', openMin: 9 * 60, closeMin: 15 * 60 },
+]
+
+function getZonedParts(date, timeZone) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    weekday: 'short',
+  })
+  const map = Object.fromEntries(formatter.formatToParts(date).map((p) => [p.type, p.value]))
+  const hour = map.hour === '24' ? 0 : Number(map.hour)
+  return { minutesSinceMidnight: hour * 60 + Number(map.minute), weekday: map.weekday }
+}
+
+function formatHM(mins) {
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
+}
+
+function marketStatus(market, now) {
+  const { minutesSinceMidnight, weekday } = getZonedParts(now, market.timeZone)
+  const isWeekend = weekday === 'Sat' || weekday === 'Sun'
+
+  if (!isWeekend && minutesSinceMidnight >= market.openMin && minutesSinceMidnight < market.closeMin) {
+    return { status: 'OPEN', detail: `closes in ${formatHM(market.closeMin - minutesSinceMidnight)}` }
+  }
+  if (
+    !isWeekend &&
+    market.preMarketMin != null &&
+    minutesSinceMidnight >= market.preMarketMin &&
+    minutesSinceMidnight < market.openMin
+  ) {
+    return { status: 'PRE-MARKET', detail: `opens in ${formatHM(market.openMin - minutesSinceMidnight)}` }
+  }
+  if (!isWeekend && minutesSinceMidnight >= market.closeMin && minutesSinceMidnight < market.closeMin + 240) {
+    return { status: 'AFTER HOURS', detail: `${formatHM(minutesSinceMidnight - market.closeMin)} since close` }
+  }
+  const openHour = Math.floor(market.openMin / 60)
+  const openMinute = market.openMin % 60
+  return {
+    status: 'CLOSED',
+    detail: `opens ${String(openHour).padStart(2, '0')}:${String(openMinute).padStart(2, '0')}`,
+  }
+}
+
+function MarketSessionStrip() {
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <div className="finance-market-strip">
+      {MARKET_SESSIONS.map((market) => {
+        const { status, detail } = marketStatus(market, now)
+        return (
+          <div
+            key={market.key}
+            className={`finance-market-pill status-${status.replace(/\s+/g, '-').toLowerCase()}`}
+          >
+            <span className="finance-market-dot" />
+            <span className="finance-market-name">{market.label}</span>
+            <span className="finance-market-status">{status}</span>
+            <span className="finance-market-detail">{detail}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function OverviewTab({ accounts, netWorth, history, saving, addAccount, updateBalance, deleteAccount }) {
   const [name, setName] = useState('')
   const [type, setType] = useState('checking')
@@ -404,6 +495,7 @@ function OverviewTab({ accounts, netWorth, history, saving, addAccount, updateBa
 
   return (
     <>
+      <MarketSessionStrip />
       <div className="finance-hero">
         <div className="finance-hero-figure">
           <span className="finance-hero-label">NET WORTH</span>
