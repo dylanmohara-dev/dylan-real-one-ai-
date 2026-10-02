@@ -390,6 +390,7 @@ function App() {
           financePsychologyMoodOptions={data.financePsychologyMoodOptions}
           addFinancePsychologyCheckin={data.addFinancePsychologyCheckin}
           deleteFinancePsychologyCheckin={data.deleteFinancePsychologyCheckin}
+          userName={settings.userName}
           assistantContext={assistantContext}
           openChat={openChat}
         />

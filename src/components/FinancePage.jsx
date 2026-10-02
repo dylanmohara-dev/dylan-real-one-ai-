@@ -22,6 +22,7 @@ import {
   Brain,
   Receipt,
   BarChart3,
+  DollarSign,
 } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
@@ -572,7 +573,7 @@ function MarketPulsePanel() {
   )
 }
 
-function OverviewTab({ accounts, netWorth, history, saving, addAccount, updateBalance, deleteAccount }) {
+function OverviewTab({ userName, accounts, netWorth, history, saving, addAccount, updateBalance, deleteAccount }) {
   const [name, setName] = useState('')
   const [type, setType] = useState('checking')
   const [balance, setBalance] = useState('')
@@ -589,8 +590,18 @@ function OverviewTab({ accounts, netWorth, history, saving, addAccount, updateBa
   const weekDelta = weekAgoNetWorth === null ? null : netWorth - weekAgoNetWorth
   const displayedNetWorth = useCountUp(netWorth)
 
+  // A real clock read, not a canned line -- the same "Good morning/afternoon/
+  // evening" logic as the rest of the app's WELCOME_GREETINGS, just local to
+  // Finance's own dashboard header.
+  const hour = new Date().getHours()
+  const dayPart = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'
+
   return (
     <>
+      <div className="finance-greeting">
+        <h2>Good {dayPart}{userName ? `, ${userName}` : ''}.</h2>
+        <p>Here's where your money stands right now.</p>
+      </div>
       <MarketSessionStrip />
       <MarketPulsePanel />
       <div className="finance-hero">
@@ -928,31 +939,47 @@ function TransactionsTab({ accounts, transactions, saving, addTransaction, delet
       <ImportTransactionsForm accounts={accounts} saving={saving} importTransactions={importTransactions} />
       <SpendingTrendCard transactions={transactions} />
 
-      <div className="items-list">
+      <div className="finance-tx-table">
         {sorted.length ? (
-          sorted.map((transaction) => (
-            <div className="item-card" key={transaction.id}>
-              <div className="item-content">
-                <strong>
-                  {transaction.type === 'expense' ? (
-                    <ArrowDownRight size={13} strokeWidth={2.5} className="finance-tx-icon" />
-                  ) : (
-                    <ArrowUpRight size={13} strokeWidth={2.5} className="finance-tx-icon income" />
-                  )}
-                  {CATEGORY_LABELS[transaction.category] || transaction.category}: {formatMoney(transaction.amount)}
-                </strong>
-                <div className="item-meta">
-                  <span>
-                    {transaction.date} &middot; {accountById[transaction.accountId]?.name || 'Unknown account'}
-                    {transaction.note ? ` — ${transaction.note}` : ''}
+          <>
+            <div className="finance-tx-grid finance-tx-header-row">
+              <span>Date</span>
+              <span>Description</span>
+              <span>Account</span>
+              <span>Amount</span>
+            </div>
+            {sorted.map((transaction) => (
+              <div className="finance-tx-row" key={transaction.id}>
+                <button className="delete-button" onClick={() => deleteTransaction(transaction.id)}>
+                  &times;
+                </button>
+                <div className="finance-tx-grid">
+                  <span className="finance-tx-cell" data-label="Date">{transaction.date}</span>
+                  <span className="finance-tx-cell finance-tx-desc" data-label="Description">
+                    <span className={`finance-tx-type-tag ${transaction.type}`}>
+                      {transaction.type === 'expense' ? (
+                        <ArrowDownRight size={11} strokeWidth={2.5} />
+                      ) : (
+                        <ArrowUpRight size={11} strokeWidth={2.5} />
+                      )}
+                      {CATEGORY_LABELS[transaction.category] || transaction.category}
+                    </span>
+                    {transaction.note ? <span className="finance-tx-note">{transaction.note}</span> : null}
+                  </span>
+                  <span className="finance-tx-cell" data-label="Account">
+                    {accountById[transaction.accountId]?.name || 'Unknown account'}
+                  </span>
+                  <span
+                    className={`finance-tx-cell finance-tx-amount ${transaction.type === 'income' ? 'up' : 'down'}`}
+                    data-label="Amount"
+                  >
+                    {transaction.type === 'income' ? '+' : '-'}
+                    {formatMoney(transaction.amount)}
                   </span>
                 </div>
               </div>
-              <button className="delete-button" onClick={() => deleteTransaction(transaction.id)}>
-                &times;
-              </button>
-            </div>
-          ))
+            ))}
+          </>
         ) : (
           <div className="empty-state">
             <div>$</div>
@@ -1204,37 +1231,42 @@ function PositionRow({ position, sizing, quote, saving, closePosition, deletePos
   const unrealizedPct = hasLive && position.avgCost ? ((quote.price - position.avgCost) / position.avgCost) * 100 : null
 
   return (
-    <div className="trading-card">
+    <div className="finance-position-row">
       <button className="delete-button" onClick={() => deletePosition(position.id)}>
         &times;
       </button>
-      <div className="trading-card-top">
-        <strong className="trading-card-ticker">
+      <div className="finance-position-grid">
+        <span className="finance-position-ticker">
           {position.ticker}
           <span className="trading-card-long-tag">LONG</span>
-        </strong>
-        {hasLive ? (
-          <div className="trading-card-price">
-            <span className="trading-card-price-value">{formatMoney(quote.price)}</span>
-            <span className={`trading-card-change ${quote.changePercent >= 0 ? 'up' : 'down'}`}>
-              {quote.changePercent >= 0 ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />}
-              {Math.abs(quote.changePercent).toFixed(2)}%
-            </span>
-          </div>
-        ) : (
-          <span className="trading-card-no-price">no live price</span>
-        )}
+        </span>
+        <span className="finance-position-cell" data-label="Shares">{position.shares} sh</span>
+        <span className="finance-position-cell" data-label="Last price">
+          {hasLive ? (
+            <>
+              {formatMoney(quote.price)}
+              <span className={`trading-card-change ${quote.changePercent >= 0 ? 'up' : 'down'}`}>
+                {quote.changePercent >= 0 ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />}
+                {Math.abs(quote.changePercent).toFixed(2)}%
+              </span>
+            </>
+          ) : (
+            <span className="trading-card-no-price">no live price</span>
+          )}
+        </span>
+        <span className="finance-position-cell" data-label="Cost basis">{formatMoney(costBasis)}</span>
+        <span className={`finance-position-cell finance-position-pl${unrealized !== null ? (unrealized >= 0 ? ' up' : ' down') : ''}`} data-label="Unrealized P/L">
+          {unrealized !== null ? (
+            <>
+              {unrealized >= 0 ? '+' : ''}
+              {formatMoney(unrealized)} ({unrealizedPct >= 0 ? '+' : ''}
+              {unrealizedPct.toFixed(1)}%)
+            </>
+          ) : (
+            '--'
+          )}
+        </span>
       </div>
-      <p className="trading-card-line">
-        {position.shares} sh @ {formatMoney(position.avgCost)} ({formatMoney(costBasis)})
-      </p>
-      {unrealized !== null && (
-        <p className={`trading-card-unrealized ${unrealized >= 0 ? 'up' : 'down'}`}>
-          {unrealized >= 0 ? '+' : ''}
-          {formatMoney(unrealized)} unrealized ({unrealizedPct >= 0 ? '+' : ''}
-          {unrealizedPct.toFixed(1)}%)
-        </p>
-      )}
       <p className="trading-card-thesis">Thesis: {position.thesis}</p>
       <p className="trading-card-thesis">Invalidation: {position.invalidation}</p>
       <div className="trading-size-track">
@@ -1371,12 +1403,12 @@ function WatchlistRow({ item, quote, saving, updateWatchlistItem, deleteWatchlis
   const stale = isStale(item.updatedAt || item.addedAt)
   const hasLive = quote && Number.isFinite(quote.price)
   return (
-    <div className="trading-card">
+    <div className="finance-watchlist-row">
       <button className="delete-button" onClick={() => deleteWatchlistItem(item.id)}>
         &times;
       </button>
-      <div className="trading-card-top">
-        <strong className="trading-card-ticker">{item.ticker}</strong>
+      <div className="finance-watchlist-top">
+        <span className="finance-watchlist-ticker">{item.ticker}</span>
         {hasLive ? (
           <div className="trading-card-price">
             <span className="trading-card-price-value">{formatMoney(quote.price)}</span>
@@ -1388,18 +1420,18 @@ function WatchlistRow({ item, quote, saving, updateWatchlistItem, deleteWatchlis
         ) : (
           <span className="trading-card-no-price">no live price</span>
         )}
+        <select
+          className={`trading-verdict-select ${item.verdict}`}
+          value={item.verdict}
+          disabled={saving}
+          onChange={(event) => updateWatchlistItem(item.id, { verdict: event.target.value })}
+        >
+          {Object.entries(VERDICT_META).map(([key, m]) => (
+            <option key={key} value={key}>{m.label}</option>
+          ))}
+        </select>
       </div>
-      <select
-        className={`trading-verdict-select ${item.verdict}`}
-        value={item.verdict}
-        disabled={saving}
-        onChange={(event) => updateWatchlistItem(item.id, { verdict: event.target.value })}
-      >
-        {Object.entries(VERDICT_META).map(([key, m]) => (
-          <option key={key} value={key}>{m.label}</option>
-        ))}
-      </select>
-      <p className="trading-card-thesis">{item.thesis}</p>
+      <p className="finance-watchlist-thesis">{item.thesis}</p>
       {item.catalyst && <p className="trading-card-line">Catalyst: {item.catalyst}</p>}
       {item.valuation && <p className="trading-card-line">Valuation: {item.valuation}</p>}
       <div className="item-meta">
@@ -1622,19 +1654,28 @@ function TradingTab({
       <span className="finance-ledger-heading">Open positions</span>
       <PositionForm key={draftKey} saving={saving} addPosition={addPosition} draft={draft} />
 
-      <div className="trading-card-grid">
+      <div className="finance-positions-table">
         {openPositions.length ? (
-          openPositions.map((position) => (
-            <PositionRow
-              key={position.id}
-              position={position}
-              sizing={stats?.bySizing?.[position.id]}
-              quote={quotes[position.ticker]}
-              saving={saving}
-              closePosition={closePosition}
-              deletePosition={deletePosition}
-            />
-          ))
+          <>
+            <div className="finance-position-grid finance-position-header-row">
+              <span>Ticker</span>
+              <span>Shares</span>
+              <span>Last price</span>
+              <span>Cost basis</span>
+              <span>Unrealized P/L</span>
+            </div>
+            {openPositions.map((position) => (
+              <PositionRow
+                key={position.id}
+                position={position}
+                sizing={stats?.bySizing?.[position.id]}
+                quote={quotes[position.ticker]}
+                saving={saving}
+                closePosition={closePosition}
+                deletePosition={deletePosition}
+              />
+            ))}
+          </>
         ) : (
           <div className="empty-state">
             <div>$</div>
@@ -1659,7 +1700,7 @@ function TradingTab({
 
       <span className="finance-ledger-heading">Watchlist</span>
       <WatchlistForm saving={saving} addWatchlistItem={addWatchlistItem} />
-      <div className="trading-card-grid">
+      <div className="finance-watchlist-list">
         {watchlist.length ? (
           watchlist.map((item) => (
             <WatchlistRow
@@ -1699,9 +1740,12 @@ function ReportsTab({ netWorth, history, tradingStats, positions, transactions, 
   return (
     <div className="finance-reports">
       <span className="finance-ledger-heading">Real numbers, not projections</span>
-      <div className="market-pulse-grid">
-        <div className="market-pulse-card">
+      <div className="market-pulse-grid finance-reports-grid">
+        <div className="market-pulse-card finance-report-card">
           <div className="market-pulse-card-top">
+            <span className="finance-report-icon-circle">
+              <DollarSign size={15} strokeWidth={2.4} />
+            </span>
             <span>Net worth</span>
           </div>
           <div className="market-pulse-price">{formatMoney(netWorth)}</div>
@@ -1712,15 +1756,21 @@ function ReportsTab({ netWorth, history, tradingStats, positions, transactions, 
             </div>
           )}
         </div>
-        <div className="market-pulse-card">
+        <div className="market-pulse-card finance-report-card">
           <div className="market-pulse-card-top">
+            <span className="finance-report-icon-circle">
+              <TrendingUp size={15} strokeWidth={2.4} />
+            </span>
             <span>Realized P/L</span>
           </div>
           <div className="market-pulse-price">{formatMoney(tradingStats?.realizedPL || 0)}</div>
           <span className="trading-card-no-price">{tradingStats?.closedCount || 0} closed trades</span>
         </div>
-        <div className="market-pulse-card">
+        <div className="market-pulse-card finance-report-card">
           <div className="market-pulse-card-top">
+            <span className="finance-report-icon-circle">
+              <Target size={15} strokeWidth={2.4} />
+            </span>
             <span>Win rate</span>
           </div>
           {winRate !== null ? (
@@ -1754,57 +1804,61 @@ function JournalTab({ positions, financeJournal, saving, addFinanceJournalEntry,
   const combined = [...lessons, ...notes].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
   return (
-    <div className="finance-journal">
-      <span className="finance-ledger-heading">New entry</span>
-      <div className="finance-row-edit trading-close-form">
-        <input type="text" placeholder="Ticker (optional)" value={ticker} onChange={(event) => setTicker(event.target.value)} />
-        <textarea
-          placeholder="What are you thinking? Your own words, not a prediction."
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          rows={3}
-        />
-        <button
-          onClick={() => {
-            addFinanceJournalEntry(text, ticker)
-            setText('')
-            setTicker('')
-          }}
-          disabled={saving || !text.trim()}
-        >
-          Save entry
-        </button>
+    <div className="finance-journal finance-journal-layout">
+      <div className="finance-journal-form-col">
+        <span className="finance-ledger-heading">New entry</span>
+        <div className="finance-row-edit trading-close-form">
+          <input type="text" placeholder="Ticker (optional)" value={ticker} onChange={(event) => setTicker(event.target.value)} />
+          <textarea
+            placeholder="What are you thinking? Your own words, not a prediction."
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            rows={5}
+          />
+          <button
+            onClick={() => {
+              addFinanceJournalEntry(text, ticker)
+              setText('')
+              setTicker('')
+            }}
+            disabled={saving || !text.trim()}
+          >
+            Save entry
+          </button>
+        </div>
       </div>
 
-      <span className="finance-ledger-heading">Timeline</span>
-      <div className="items-list">
-        {combined.length ? (
-          combined.map((item) => (
-            <div className="item-card finance-journal-entry" key={item.id}>
-              <div className="item-content">
-                <div className="finance-journal-entry-top">
-                  {item.ticker && <span className="finance-journal-ticker">{item.ticker}</span>}
-                  <span className={`finance-journal-kind ${item.kind}`}>
-                    {item.kind === 'lesson' ? 'Closed trade lesson' : 'Note'}
-                  </span>
-                  {item.createdAt && <span className="finance-journal-date">{new Date(item.createdAt).toLocaleDateString()}</span>}
+      <div className="finance-journal-timeline-col">
+        <span className="finance-ledger-heading">Timeline</span>
+        <div className="items-list">
+          {combined.length ? (
+            combined.map((item) => (
+              <div className="item-card finance-journal-entry" key={item.id}>
+                <div className="item-content">
+                  <div className="finance-journal-entry-top">
+                    {item.ticker && <span className="finance-journal-ticker">{item.ticker}</span>}
+                    <span className={`finance-journal-kind ${item.kind}`}>
+                      {item.kind === 'lesson' ? 'Closed trade lesson' : 'Note'}
+                    </span>
+                    {item.createdAt && <span className="finance-journal-date">{new Date(item.createdAt).toLocaleDateString()}</span>}
+                  </div>
+                  <p>{item.text}</p>
                 </div>
-                <p>{item.text}</p>
+                {item.kind === 'note' && (
+                  <button className="delete-button" onClick={() => deleteFinanceJournalEntry(item.id)}>
+                    &times;
+                  </button>
+                )}
               </div>
-              {item.kind === 'note' && (
-                <button className="delete-button" onClick={() => deleteFinanceJournalEntry(item.id)}>
-                  &times;
-                </button>
-              )}
+            ))
+          ) : (
+            <div className="empty-state">
+              <div>$</div>
+              <h3>Nothing logged yet</h3>
+              <p>Close a position with a real lesson, or write a note above -- this is your record, not AI commentary.</p>
             </div>
-          ))
-        ) : (
-          <div className="empty-state">
-            <div>$</div>
-            <h3>Nothing logged yet</h3>
-            <p>Close a position with a real lesson, or write a note above -- this is your record, not AI commentary.</p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
@@ -1821,56 +1875,62 @@ function PsychologyTab({ financePsychologyCheckins, financePsychologyMoodOptions
   const checkins = [...(financePsychologyCheckins || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
   return (
-    <div className="finance-psychology">
-      <span className="finance-ledger-heading">Log how you're actually trading today</span>
-      <p className="finance-psychology-hint">Pick the word that's true, not the one that sounds disciplined. No AI is grading this.</p>
-      <div className="finance-psychology-moods">
-        {(financePsychologyMoodOptions || []).map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={`finance-mood-chip ${option}${mood === option ? ' selected' : ''}`}
-            onClick={() => setMood(option)}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-      <textarea placeholder="Optional: what's driving it?" value={note} onChange={(event) => setNote(event.target.value)} rows={2} />
-      <button
-        className="finance-mood-submit"
-        onClick={() => {
-          addFinancePsychologyCheckin(mood, note)
-          setMood('')
-          setNote('')
-        }}
-        disabled={saving || !mood}
-      >
-        Log check-in
-      </button>
-
-      <span className="finance-ledger-heading">History</span>
-      <div className="items-list">
-        {checkins.length ? (
-          checkins.map((checkin) => (
-            <div className="item-card" key={checkin.id}>
-              <div className="item-content">
-                <strong className={`finance-mood-tag ${checkin.mood}`}>{checkin.mood}</strong>
-                {checkin.note && <p>{checkin.note}</p>}
-                <p className="finance-journal-date">{new Date(checkin.createdAt).toLocaleString()}</p>
-              </div>
-              <button className="delete-button" onClick={() => deleteFinancePsychologyCheckin(checkin.id)}>
-                &times;
+    <div className="finance-psychology finance-psychology-layout">
+      <div className="finance-psychology-form-col">
+        <div className="finance-psychology-card">
+          <span className="finance-ledger-heading">Log how you're actually trading today</span>
+          <p className="finance-psychology-hint">Pick the word that's true, not the one that sounds disciplined. No AI is grading this.</p>
+          <div className="finance-psychology-moods">
+            {(financePsychologyMoodOptions || []).map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={`finance-mood-chip ${option}${mood === option ? ' selected' : ''}`}
+                onClick={() => setMood(option)}
+              >
+                {option}
               </button>
-            </div>
-          ))
-        ) : (
-          <div className="empty-state">
-            <div>$</div>
-            <h3>No check-ins yet</h3>
-            <p>Log one after your next trade -- discipline is easier to see in hindsight than in the moment.</p>
+            ))}
           </div>
-        )}
+          <textarea placeholder="Optional: what's driving it?" value={note} onChange={(event) => setNote(event.target.value)} rows={3} />
+          <button
+            className="finance-mood-submit"
+            onClick={() => {
+              addFinancePsychologyCheckin(mood, note)
+              setMood('')
+              setNote('')
+            }}
+            disabled={saving || !mood}
+          >
+            Log check-in
+          </button>
+        </div>
+      </div>
+
+      <div className="finance-psychology-history-col">
+        <span className="finance-ledger-heading">History</span>
+        <div className="items-list">
+          {checkins.length ? (
+            checkins.map((checkin) => (
+              <div className="item-card" key={checkin.id}>
+                <div className="item-content">
+                  <strong className={`finance-mood-tag ${checkin.mood}`}>{checkin.mood}</strong>
+                  {checkin.note && <p>{checkin.note}</p>}
+                  <p className="finance-journal-date">{new Date(checkin.createdAt).toLocaleString()}</p>
+                </div>
+                <button className="delete-button" onClick={() => deleteFinancePsychologyCheckin(checkin.id)}>
+                  &times;
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="empty-state">
+              <div>$</div>
+              <h3>No check-ins yet</h3>
+              <p>Log one after your next trade -- discipline is easier to see in hindsight than in the moment.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -1913,6 +1973,7 @@ export default function FinancePage({
   deleteFinancePsychologyCheckin,
   assistantContext,
   openChat,
+  userName,
 }) {
   const [activeTab, setActiveTab] = useState('dashboard')
 
@@ -1967,6 +2028,7 @@ export default function FinancePage({
         <div className="finance-content">
           {activeTab === 'dashboard' && (
             <OverviewTab
+              userName={userName}
               accounts={accounts}
               netWorth={netWorth}
               history={history}

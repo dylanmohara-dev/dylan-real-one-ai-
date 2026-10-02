@@ -6428,6 +6428,25 @@ footer {
   font-weight: 500;
 }
 
+.finance-greeting {
+  padding: 4px 4px 2px;
+}
+
+.finance-greeting h2 {
+  margin: 0 0 4px;
+  font-family: var(--mode-heading-font);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.finance-greeting p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 .finance-hero {
   display: flex;
   flex-direction: column;
@@ -6953,8 +6972,8 @@ footer {
    sameness Dylan pointed out), plus the running "left to spend" figure
    YNAB actually leads with instead of just percent-full. */
 .finance-budget-track {
-  height: 14px;
-  border-radius: 7px;
+  height: 6px;
+  border-radius: 3px;
   background: var(--surface-input);
   border: 1px solid var(--border-soft);
   overflow: hidden;
@@ -6962,7 +6981,7 @@ footer {
 
 .finance-budget-track-fill {
   height: 100%;
-  border-radius: 7px 0 0 7px;
+  border-radius: 3px 0 0 3px;
   background: linear-gradient(90deg, rgb(var(--mode-accent-rgb)), rgb(var(--mode-accent2-rgb)));
   transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -7210,6 +7229,285 @@ footer {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 12px;
+}
+
+.finance-positions-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(13px * var(--mode-radius-scale, 1));
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.finance-position-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr 1.3fr 1.1fr 1.3fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.finance-position-header-row {
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: var(--mode-border-width, 1px) solid var(--border);
+  background: var(--surface-strong);
+}
+
+.finance-position-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-bottom: var(--mode-border-width, 1px) solid var(--border);
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.finance-position-row:last-child {
+  border-bottom: none;
+}
+
+.finance-position-row:hover {
+  background: rgba(var(--mode-accent-rgb), 0.05);
+}
+
+.finance-position-row .delete-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.finance-position-ticker {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.finance-position-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.finance-position-pl.up {
+  color: #4ade80;
+}
+
+.finance-position-pl.down {
+  color: #f87171;
+}
+
+@media (max-width: 720px) {
+  .finance-position-header-row {
+    display: none;
+  }
+
+  .finance-position-grid {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .finance-position-cell::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-right: 6px;
+  }
+}
+
+.finance-watchlist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(13px * var(--mode-radius-scale, 1));
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.finance-watchlist-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  border-bottom: var(--mode-border-width, 1px) solid var(--border);
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.finance-watchlist-row:last-child {
+  border-bottom: none;
+}
+
+.finance-watchlist-row:hover {
+  background: rgba(var(--mode-accent-rgb), 0.05);
+}
+
+.finance-watchlist-row .delete-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.finance-watchlist-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 26px;
+  flex-wrap: wrap;
+}
+
+.finance-watchlist-ticker {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.finance-watchlist-top .trading-verdict-select {
+  margin-left: auto;
+}
+
+.finance-watchlist-thesis {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.finance-tx-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(13px * var(--mode-radius-scale, 1));
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.finance-tx-grid {
+  display: grid;
+  grid-template-columns: 0.9fr 2fr 1.1fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.finance-tx-header-row {
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: var(--mode-border-width, 1px) solid var(--border);
+  background: var(--surface-strong);
+}
+
+.finance-tx-row {
+  position: relative;
+  padding: 12px 16px 12px 40px;
+  border-bottom: var(--mode-border-width, 1px) solid var(--border);
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.finance-tx-row:last-child {
+  border-bottom: none;
+}
+
+.finance-tx-row:hover {
+  background: rgba(var(--mode-accent-rgb), 0.05);
+}
+
+.finance-tx-row .delete-button {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
+}
+
+.finance-tx-cell {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.finance-tx-desc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.finance-tx-type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--text-primary);
+}
+
+.finance-tx-type-tag.income {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+}
+
+.finance-tx-type-tag.expense {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.finance-tx-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.finance-tx-amount {
+  font-weight: 700;
+}
+
+.finance-tx-amount.up {
+  color: #4ade80;
+}
+
+.finance-tx-amount.down {
+  color: var(--text-primary);
+}
+
+@media (max-width: 720px) {
+  .finance-tx-header-row {
+    display: none;
+  }
+
+  .finance-tx-grid {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .finance-tx-cell::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-right: 6px;
+  }
 }
 
 .trading-card {
@@ -7477,12 +7775,7 @@ footer {
 
 .finance-nav button.active {
   color: rgb(var(--mode-accent-rgb));
-  background: var(--surface-strong);
-  box-shadow: inset 2px 0 0 rgb(var(--mode-accent-rgb));
-}
-
-.app-shell.theme-finance .finance-nav button.active {
-  text-shadow: 0 0 10px rgba(var(--mode-accent-rgb), 0.5);
+  background: rgba(var(--mode-accent-rgb), 0.12);
 }
 
 .finance-content {
@@ -7510,11 +7803,62 @@ footer {
   }
 
   .finance-nav button.active {
-    box-shadow: inset 0 -2px 0 rgb(var(--mode-accent-rgb));
+    background: rgba(var(--mode-accent-rgb), 0.12);
   }
 }
 
 /* ---------- Finance mode: Journal ---------- */
+
+.finance-journal-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.finance-journal-form-col {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* The narrow sidebar column breaks finance-row-edit's normal horizontal
+   layout (built for a full-width inline row) -- stack it vertically here
+   instead of fighting the shared class with !important. */
+.finance-journal-form-col .finance-row-edit {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.finance-journal-form-col .finance-row-edit input,
+.finance-journal-form-col .finance-row-edit textarea {
+  width: 100%;
+}
+
+.finance-journal-form-col .finance-row-edit button {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+}
+
+.finance-journal-timeline-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .finance-journal-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .finance-journal-form-col {
+    position: static;
+  }
+}
 
 .finance-journal-entry-top {
   display: flex;
@@ -7554,6 +7898,44 @@ footer {
 }
 
 /* ---------- Finance mode: Psychology ---------- */
+
+.finance-psychology-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.finance-psychology-form-col {
+  position: sticky;
+  top: 0;
+}
+
+.finance-psychology-history-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.finance-psychology-card {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(14px * var(--mode-radius-scale, 1));
+  background: var(--surface);
+}
+
+@media (max-width: 900px) {
+  .finance-psychology-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .finance-psychology-form-col {
+    position: static;
+  }
+}
 
 .finance-psychology-hint {
   margin: 2px 0 12px;
@@ -7620,7 +8002,7 @@ footer {
 
 .finance-mood-submit {
   margin-top: 10px;
-  margin-bottom: 20px;
+  align-self: flex-start;
 }
 
 /* ---------- Finance mode: Macro Desk (real RSI/trend bias cards) ---------- */
@@ -7723,6 +8105,22 @@ footer {
 
 .finance-reports .market-pulse-grid {
   margin-bottom: 24px;
+}
+
+.finance-report-card .market-pulse-card-top {
+  justify-content: flex-start;
+}
+
+.finance-report-icon-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(var(--mode-accent-rgb), 0.14);
+  color: rgb(var(--mode-accent-rgb));
+  flex-shrink: 0;
 }
 
 .market-pulse-change.down {
