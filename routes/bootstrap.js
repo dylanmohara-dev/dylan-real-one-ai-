@@ -36,6 +36,7 @@ const router = Router()
 router.get('/bootstrap', (req, res) => {
   try {
     const financeAccounts = loadData('finance_accounts')
+    const skillsPayload = buildSkillsPayload()
 
     res.json({
       heroImages: getHeroImages(),
@@ -54,7 +55,18 @@ router.get('/bootstrap', (req, res) => {
         transactions: loadData('finance_transactions'),
         budgets: loadData('finance_budgets', {}),
       },
-      skills: buildSkillsPayload().skills,
+      skills: skillsPayload.skills,
+      // Quests/totalXp/heatmap: the Skills mode "game layer" added on top
+      // of the base skills array above -- one buildSkillsPayload() call
+      // for the whole bootstrap, split across two response keys for the
+      // frontend's convenience (the existing `skills` prop shape stays
+      // untouched, this is purely additive).
+      skillsMeta: {
+        quests: skillsPayload.quests,
+        questsWeekEnd: skillsPayload.questsWeekEnd,
+        totalXp: skillsPayload.totalXp,
+        heatmap: skillsPayload.heatmap,
+      },
       gym: {
         exercises: loadData('gym_exercises'),
         logs: loadData('gym_logs'),

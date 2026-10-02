@@ -8734,6 +8734,247 @@ button:disabled:active {
   box-shadow: 0 0 10px rgba(var(--mode-accent-rgb), 0.55);
 }
 
+/* Mastery tier pill next to "Level N" on each skill card. */
+.skill-card-tier {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(var(--mode-accent-rgb), 0.16);
+  color: rgb(var(--mode-accent-rgb));
+  font-size: 9px;
+  letter-spacing: 0.05em;
+}
+
+/* Skills mode tab body -- reuses Finance's .finance-body/.finance-nav/
+   .finance-content layout (a plain left-rail nav + content pane) rather
+   than redefining the same flex/rail CSS a second time under a new name. */
+.skills-body {
+  margin-top: 16px;
+}
+
+/* ---- Quests tab ---- */
+.skill-quests-sub {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 0 0 14px;
+}
+
+.skill-quests-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 24px 0;
+}
+
+.skill-quests {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skill-quest-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+}
+
+.skill-quest-card.completed {
+  border-color: rgba(var(--mode-accent-rgb), 0.5);
+  background: rgba(var(--mode-accent-rgb), 0.08);
+}
+
+.skill-quest-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.skill-quest-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+}
+
+.skill-quest-card.completed .skill-quest-title {
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.skill-quest-bonus {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgb(var(--mode-accent-rgb));
+  letter-spacing: 0.04em;
+}
+
+.skill-quest-card p {
+  margin: 6px 0 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.skill-quest-progress {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.skill-quest-card.completed .skill-quest-progress {
+  color: rgb(var(--mode-accent-rgb));
+  font-weight: 600;
+}
+
+/* ---- Mastery tab ---- */
+.skill-mastery-summary {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.skill-mastery-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.skill-mastery-stat div {
+  display: flex;
+  flex-direction: column;
+}
+
+.skill-mastery-stat strong {
+  font-size: 18px;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.skill-mastery-stat span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.skill-mastery-heading {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: 22px 0 10px;
+}
+
+.skill-heatmap-grid {
+  display: grid;
+  grid-template-rows: repeat(7, 12px);
+  grid-auto-flow: column;
+  gap: 3px;
+}
+
+.skill-heatmap-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: rgb(var(--mode-accent-rgb));
+  opacity: 0.08;
+}
+
+.skill-heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.skill-mastery-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skill-mastery-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 0.7fr 1fr;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12px;
+  align-items: center;
+}
+
+.skill-mastery-row-name {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.skill-mastery-row-tier {
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.skill-mastery-row-level,
+.skill-mastery-row-xp {
+  color: var(--text-muted);
+}
+
+/* ---- Journal tab ---- */
+.skill-journal-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 24px 0;
+}
+
+.skill-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skill-journal-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 100px 1.4fr;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  align-items: center;
+}
+
+.skill-journal-row:nth-child(odd) {
+  background: var(--surface);
+}
+
+.skill-journal-date {
+  color: var(--text-muted);
+}
+
+.skill-journal-skill {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.skill-journal-quantity {
+  color: rgb(var(--mode-accent-rgb));
+}
+
+.skill-journal-note {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .skill-mastery-row,
+  .skill-journal-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
 /* ============ DESIGN SYSTEMS (global skin, independent of mode color) ============ */
 /* A mode theme (.theme-{key}) still owns accent color, glow color, and
    content texture. A design system (.design-{key}) owns HOW the app is

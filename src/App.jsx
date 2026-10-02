@@ -404,6 +404,8 @@ function App() {
           updateHeroImage={data.updateHeroImage}
           resetHeroImage={data.resetHeroImage}
           skills={data.skills}
+          skillsMeta={data.skillsMeta}
+          fetchSkillJournal={data.fetchSkillJournal}
           saving={data.saving}
           addSkill={data.addSkill}
           addSkillSession={data.addSkillSession}

@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { Flame, Trophy, Award, X, Plus, Video, Upload } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Flame, Trophy, Award, X, Plus, Video, Upload, Dumbbell, Target, TrendingUp, BookOpen, Zap, CheckCircle2 } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
 
@@ -147,7 +147,10 @@ function SkillCard({ skill, saving, removeSkill, deleteSkillSession, uploadSkill
       <div className="skill-card-header">
         <div>
           <span className="skill-card-name">{skill.name}</span>
-          <span className="skill-card-level">Level {skill.level}</span>
+          <span className="skill-card-level">
+            Level {skill.level}
+            <span className="skill-card-tier">{skill.tier}</span>
+          </span>
         </div>
         <button className="skill-card-remove" onClick={() => removeSkill(skill.id)} title="Stop tracking this skill">
           <X size={13} strokeWidth={2.25} />
@@ -242,11 +245,197 @@ function SkillCard({ skill, saving, removeSkill, deleteSkillSession, uploadSkill
   )
 }
 
+function TrainingGroundTab({ skills, saving, removeSkill, deleteSkillSession, uploadSkillVideo, deleteSkillVideo, addSkillSession, addSkill }) {
+  return (
+    <div className="skills-grid">
+      {skills.map((skill) => (
+        <SkillCard
+          key={skill.id}
+          skill={skill}
+          saving={saving}
+          removeSkill={removeSkill}
+          deleteSkillSession={deleteSkillSession}
+          uploadSkillVideo={uploadSkillVideo}
+          deleteSkillVideo={deleteSkillVideo}
+          addSkillSession={addSkillSession}
+        />
+      ))}
+      <AddSkillCard saving={saving} addSkill={addSkill} />
+    </div>
+  )
+}
+
+function QuestsTab({ quests, questsWeekEnd }) {
+  if (!quests.length) {
+    return (
+      <div className="skill-quests-empty">
+        Add at least one skill to start getting weekly quests.
+      </div>
+    )
+  }
+
+  return (
+    <div className="skill-quests">
+      <p className="skill-quests-sub">
+        Resets {questsWeekEnd ? `after ${new Date(`${questsWeekEnd}T23:59:59`).toLocaleDateString(undefined, { weekday: 'long' })}` : 'weekly'} — complete one to bank bonus XP toward your overall level.
+      </p>
+      {quests.map((quest) => {
+        const percent = Math.max(0, Math.min(100, Math.round((quest.progress / quest.target) * 100)))
+        return (
+          <div className={`skill-quest-card${quest.completed ? ' completed' : ''}`} key={quest.id}>
+            <div className="skill-quest-top">
+              <div className="skill-quest-title">
+                {quest.completed ? <CheckCircle2 size={16} strokeWidth={2.25} /> : <Target size={16} strokeWidth={2.25} />}
+                <strong>{quest.title}</strong>
+              </div>
+              <span className="skill-quest-bonus">+{quest.bonusXp} XP</span>
+            </div>
+            <p>{quest.description}</p>
+            <div className="skill-xp-bar quest-bar">
+              <div className="skill-xp-bar-fill" style={{ width: `${percent}%` }} />
+            </div>
+            <div className="skill-quest-progress">
+              {quest.progress} / {quest.target}
+              {quest.completed ? ' — complete' : ''}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function Heatmap({ heatmap }) {
+  if (!heatmap.length) return null
+  const max = Math.max(1, ...heatmap.map((cell) => cell.xp))
+
+  return (
+    <div className="skill-heatmap">
+      <div className="skill-heatmap-grid">
+        {heatmap.map((cell) => {
+          const intensity = cell.xp === 0 ? 0 : Math.max(0.18, Math.min(1, cell.xp / max))
+          return (
+            <div
+              key={cell.date}
+              className="skill-heatmap-cell"
+              style={cell.xp > 0 ? { opacity: intensity } : undefined}
+              title={`${cell.date}: ${cell.xp} XP`}
+            />
+          )
+        })}
+      </div>
+      <div className="skill-heatmap-legend">
+        <span>Less</span>
+        <div className="skill-heatmap-cell" style={{ opacity: 0.18 }} />
+        <div className="skill-heatmap-cell" style={{ opacity: 0.5 }} />
+        <div className="skill-heatmap-cell" style={{ opacity: 1 }} />
+        <span>More</span>
+      </div>
+    </div>
+  )
+}
+
+function MasteryTab({ skills, heatmap, totalXp }) {
+  const sorted = [...skills].sort((a, b) => b.xp - a.xp)
+  const topTier = sorted[0]?.tier || 'Novice'
+
+  return (
+    <div className="skill-mastery">
+      <div className="skill-mastery-summary">
+        <div className="skill-mastery-stat">
+          <Zap size={16} strokeWidth={2.25} />
+          <div>
+            <strong>{totalXp.toLocaleString()}</strong>
+            <span>total XP earned</span>
+          </div>
+        </div>
+        <div className="skill-mastery-stat">
+          <Trophy size={16} strokeWidth={2.25} />
+          <div>
+            <strong>{topTier}</strong>
+            <span>highest rank</span>
+          </div>
+        </div>
+        <div className="skill-mastery-stat">
+          <Dumbbell size={16} strokeWidth={2.25} />
+          <div>
+            <strong>{skills.length}</strong>
+            <span>{skills.length === 1 ? 'skill' : 'skills'} in training</span>
+          </div>
+        </div>
+      </div>
+
+      <h3 className="skill-mastery-heading">Consistency (last 12 weeks)</h3>
+      <Heatmap heatmap={heatmap} />
+
+      <h3 className="skill-mastery-heading">Rank by skill</h3>
+      <div className="skill-mastery-list">
+        {sorted.map((skill) => (
+          <div className="skill-mastery-row" key={skill.id}>
+            <span className="skill-mastery-row-name">{skill.name}</span>
+            <span className="skill-mastery-row-tier">{skill.tier}</span>
+            <span className="skill-mastery-row-level">Lv {skill.level}</span>
+            <span className="skill-mastery-row-xp">{(skill.xp || 0).toLocaleString()} XP</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function JournalTab({ fetchSkillJournal }) {
+  const [sessions, setSessions] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    fetchSkillJournal().then((data) => {
+      if (!cancelled) {
+        setSessions(data)
+        setLoading(false)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [fetchSkillJournal])
+
+  if (loading) return <p className="skill-journal-empty">Loading practice history...</p>
+  if (!sessions?.length) {
+    return <p className="skill-journal-empty">Nothing logged yet across any skill -- log your first session on the Training Ground tab.</p>
+  }
+
+  return (
+    <div className="skill-journal">
+      {sessions.map((session) => (
+        <div className="skill-journal-row" key={session.id}>
+          <span className="skill-journal-date">{session.date}</span>
+          <span className="skill-journal-skill">{session.skillName}</span>
+          <span className="skill-journal-quantity">
+            {session.quantity} {session.unit}
+          </span>
+          {session.note && <span className="skill-journal-note">{session.note}</span>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const TABS = [
+  { key: 'training', label: 'Training Ground', icon: Dumbbell },
+  { key: 'quests', label: 'Quests', icon: Target },
+  { key: 'mastery', label: 'Mastery', icon: TrendingUp },
+  { key: 'journal', label: 'Journal', icon: BookOpen },
+]
+
 export default function SkillsPage({
   heroImages,
   updateHeroImage,
   resetHeroImage,
   skills,
+  skillsMeta,
+  fetchSkillJournal,
   saving,
   addSkill,
   addSkillSession,
@@ -257,6 +446,9 @@ export default function SkillsPage({
   assistantContext,
   openChat,
 }) {
+  const [activeTab, setActiveTab] = useState('training')
+  const meta = skillsMeta || { quests: [], questsWeekEnd: null, totalXp: 0, heatmap: [] }
+
   return (
     <div className="page skills-page">
       <div
@@ -278,20 +470,41 @@ export default function SkillsPage({
 
       <ModeChatLauncher assistantContext={assistantContext} modeKey="skills" openChat={openChat} />
 
-      <div className="skills-grid">
-        {skills.map((skill) => (
-          <SkillCard
-            key={skill.id}
-            skill={skill}
-            saving={saving}
-            removeSkill={removeSkill}
-            deleteSkillSession={deleteSkillSession}
-            uploadSkillVideo={uploadSkillVideo}
-            deleteSkillVideo={deleteSkillVideo}
-            addSkillSession={addSkillSession}
-          />
-        ))}
-        <AddSkillCard saving={saving} addSkill={addSkill} />
+      <div className="finance-body skills-body">
+        <nav className="finance-nav">
+          {TABS.map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={activeTab === item.key ? 'active' : ''}
+                onClick={() => setActiveTab(item.key)}
+              >
+                <Icon size={16} strokeWidth={2.2} />
+                <span>{item.label}</span>
+              </button>
+            )
+          })}
+        </nav>
+
+        <div className="finance-content">
+          {activeTab === 'training' && (
+            <TrainingGroundTab
+              skills={skills}
+              saving={saving}
+              removeSkill={removeSkill}
+              deleteSkillSession={deleteSkillSession}
+              uploadSkillVideo={uploadSkillVideo}
+              deleteSkillVideo={deleteSkillVideo}
+              addSkillSession={addSkillSession}
+              addSkill={addSkill}
+            />
+          )}
+          {activeTab === 'quests' && <QuestsTab quests={meta.quests} questsWeekEnd={meta.questsWeekEnd} />}
+          {activeTab === 'mastery' && <MasteryTab skills={skills} heatmap={meta.heatmap} totalXp={meta.totalXp} />}
+          {activeTab === 'journal' && <JournalTab fetchSkillJournal={fetchSkillJournal} />}
+        </div>
       </div>
     </div>
   )

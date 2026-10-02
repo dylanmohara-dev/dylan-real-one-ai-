@@ -2,137 +2,9 @@ import express, { Router } from 'express'
 import fs from 'fs'
 import path from 'path'
 import { loadData, saveData, dataDirectory } from '../lib/dataStore.js'
+import { enrichSkill, computeQuests, buildHeatmap, todayKey, BASE_SESSION_XP } from '../lib/skillsEngine.js'
 
 const router = Router()
-
-const STREAK_BADGES = [3, 7, 30, 100]
-const LEVEL_BADGES = [5, 10, 25]
-
-// Every logged session earns this much XP on top of its raw quantity.
-// Without it, XP was pure quantity (1 unit = 1 xp), which unfairly
-// punished any skill tracked by session count or small numbers ("guitar,
-// 1 session" earned 1 xp) next to one tracked by volume ("pushups, 30
-// reps" earned 30 xp for the same amount of real-world effort) -- this
-// was Dylan's own "XP/level system doesn't feel rewarding" complaint,
-// traced to the fact that reward depended on which unit he happened to
-// type in, not on whether he showed up.
-const BASE_SESSION_XP = 10
-
-// Bare local YYYY-MM-DD -- NOT toISOString().slice(0, 10), which reads off
-// UTC. On any machine west of UTC (all of the US, including wherever this
-// server actually runs), that UTC-based version tags practice logged in
-// the evening as tomorrow's date -- corrupting todayQuantity, streaks, and
-// badge-threshold checks. This exact bug class is already documented and
-// fixed once in routes/calendar.js's dayKey() (a goal due "2026-09-11"
-// landed on the 10th under America/New_York) and is the same local-time
-// convention every other date field in this app uses (health.js, the
-// Mind/Health/Gym/Sports/Reading/Family frontend helpers).
-function todayKey() {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  const d = String(now.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
-// Level N requires 50*N xp to clear (so 1->2 needs 50, 2->3 needs 100 more,
-// 3->4 needs 150 more, etc.) — a simple accelerating curve driven entirely
-// by cumulative quantity logged, no separate "goal" concept needed.
-function computeLevel(xp) {
-  let level = 1
-  let required = 50
-  let remaining = Number(xp) || 0
-
-  while (remaining >= required) {
-    remaining -= required
-    level += 1
-    required = 50 * level
-  }
-
-  return { level, xpIntoLevel: remaining, xpForNextLevel: required }
-}
-
-// Total cumulative xp needed to have already cleared levels 1..targetLevel-1
-// (i.e. the xp value at which computeLevel() first reports targetLevel).
-// Kept as a sum over the same 50*N-per-level curve computeLevel() uses,
-// rather than a separate formula, so the two can never disagree.
-function xpRequiredThroughLevel(targetLevel) {
-  let total = 0
-  for (let n = 1; n < targetLevel; n++) total += 50 * n
-  return total
-}
-
-function quantityByDate(sessions, skillId) {
-  const totals = {}
-  for (const session of sessions) {
-    if (session.skillId !== skillId) continue
-    totals[session.date] = (totals[session.date] || 0) + Number(session.quantity || 0)
-  }
-  return totals
-}
-
-function computeCurrentStreak(totals) {
-  let cursor = new Date()
-  const today = todayKey()
-  if (!totals[today]) {
-    cursor.setDate(cursor.getDate() - 1)
-  }
-
-  let streak = 0
-  while (true) {
-    // Same local-time key as todayKey() above -- the walking cursor must
-    // use the identical convention or every day it checks (not just
-    // "today") drifts by the UTC/local offset, same bug, same fix.
-    const cy = cursor.getFullYear()
-    const cm = String(cursor.getMonth() + 1).padStart(2, '0')
-    const cd = String(cursor.getDate()).padStart(2, '0')
-    const key = `${cy}-${cm}-${cd}`
-    if (totals[key] > 0) {
-      streak += 1
-      cursor.setDate(cursor.getDate() - 1)
-    } else {
-      break
-    }
-  }
-  return streak
-}
-
-// All-time longest run of consecutive logged days — kept separate from the
-// current streak so a badge earned once (e.g. "7-day streak") never
-// disappears just because today's streak later breaks.
-function computeMaxStreak(totals) {
-  const dates = Object.keys(totals).filter((date) => totals[date] > 0).sort()
-  if (!dates.length) return 0
-
-  let longest = 1
-  let running = 1
-
-  for (let i = 1; i < dates.length; i++) {
-    const prev = new Date(dates[i - 1])
-    const curr = new Date(dates[i])
-    const dayDiff = Math.round((curr - prev) / 86400000)
-
-    if (dayDiff === 1) {
-      running += 1
-    } else {
-      running = 1
-    }
-    longest = Math.max(longest, running)
-  }
-
-  return longest
-}
-
-function computeBadges(level, maxStreak) {
-  const badges = []
-  for (const threshold of STREAK_BADGES) {
-    if (maxStreak >= threshold) badges.push({ type: 'streak', threshold, label: `${threshold}-day streak` })
-  }
-  for (const threshold of LEVEL_BADGES) {
-    if (level >= threshold) badges.push({ type: 'level', threshold, label: `Level ${threshold}` })
-  }
-  return badges
-}
 
 const VIDEO_DIR = path.join(dataDirectory, 'skill_videos')
 const MAX_VIDEO_BYTES = 150 * 1024 * 1024 // 150MB
@@ -157,61 +29,51 @@ function skillVideos(skillId) {
     .map(({ filePath, ...meta }) => meta) // never leak the on-disk path to the client
 }
 
-// A badge earned some day is motivating; a badge with no visible way to
-// tell how close you are to the NEXT one just sits there. This is the
-// other half of "XP/level system doesn't feel rewarding" -- badges were
-// binary (earned or not), with nothing showing progress toward the next
-// threshold the way the level XP bar already does.
-function nextBadgeProgress(level, streak, xp) {
-  const nextStreakThreshold = STREAK_BADGES.find((t) => t > streak) || null
-  const nextLevelThreshold = LEVEL_BADGES.find((t) => t > level) || null
-  return {
-    streak: nextStreakThreshold
-      ? { threshold: nextStreakThreshold, remainingDays: nextStreakThreshold - streak }
-      : null,
-    level: nextLevelThreshold
-      ? { threshold: nextLevelThreshold, remainingXp: Math.max(0, xpRequiredThroughLevel(nextLevelThreshold) - (xp || 0)) }
-      : null,
-  }
-}
-
-function enrichSkill(skill, allSessions) {
-  const sessions = allSessions
-    .filter((s) => s.skillId === skill.id)
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-
-  const totals = quantityByDate(allSessions, skill.id)
-  const { level, xpIntoLevel, xpForNextLevel } = computeLevel(skill.xp || 0)
-  const streak = computeCurrentStreak(totals)
-  const maxStreak = computeMaxStreak(totals)
-
-  return {
-    ...skill,
-    level,
-    xpIntoLevel,
-    xpForNextLevel,
-    streak,
-    maxStreak,
-    todayQuantity: totals[todayKey()] || 0,
-    badges: computeBadges(level, maxStreak),
-    nextBadgeProgress: nextBadgeProgress(level, streak, skill.xp || 0),
-    sessions: sessions.slice(0, 20),
-    videos: skillVideos(skill.id),
-  }
-}
-
 export function buildPayload() {
   const skills = loadData('skills')
   const sessions = loadData('skill_sessions')
   const active = skills.filter((s) => s.active)
+  const enriched = active.map((skill) => enrichSkill(skill, sessions, skillVideos))
+
+  const totalXp = enriched.reduce((sum, s) => sum + (Number(s.xp) || 0), 0)
+  const { weekEnd, quests } = computeQuests(enriched, sessions)
 
   return {
-    skills: active.map((skill) => enrichSkill(skill, sessions)),
+    skills: enriched,
+    quests,
+    questsWeekEnd: weekEnd,
+    totalXp,
+    heatmap: buildHeatmap(sessions),
   }
 }
 
 router.get('/', (req, res) => {
   res.json(buildPayload())
+})
+
+// Full combined practice journal across every skill (active or not), newest
+// first, enriched with the skill's own name/unit so the Journal tab doesn't
+// need a second lookup. Separate from the main payload's enrichSkill()
+// sessions (capped at 20 per skill, for the Training Ground cards) --
+// this is the uncapped, cross-skill view, fetched once when the Journal
+// or Mastery tab is actually opened rather than on every bootstrap load.
+router.get('/sessions', (req, res) => {
+  const skills = loadData('skills')
+  const sessions = loadData('skill_sessions')
+  const skillById = new Map(skills.map((s) => [s.id, s]))
+
+  const journal = sessions
+    .map((session) => {
+      const skill = skillById.get(session.skillId)
+      return {
+        ...session,
+        skillName: skill?.name || 'Deleted skill',
+        unit: skill?.unit || 'reps',
+      }
+    })
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+
+  res.json({ sessions: journal })
 })
 
 router.post('/', (req, res) => {

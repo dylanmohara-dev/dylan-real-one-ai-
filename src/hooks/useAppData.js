@@ -141,6 +141,7 @@ export function useAppData() {
   const [financePsychologyCheckins, setFinancePsychologyCheckins] = useState([])
   const [financePsychologyMoodOptions, setFinancePsychologyMoodOptions] = useState([])
   const [skills, setSkills] = useState([])
+  const [skillsMeta, setSkillsMeta] = useState({ quests: [], questsWeekEnd: null, totalXp: 0, heatmap: [] })
   const [gymExercises, setGymExercises] = useState([])
   const [gymLogs, setGymLogs] = useState([])
   const [gymRoutines, setGymRoutines] = useState([])
@@ -499,6 +500,7 @@ export function useAppData() {
       setFinancePsychologyCheckins(data.financePsychology?.checkins || [])
       setFinancePsychologyMoodOptions(data.financePsychology?.moodOptions || [])
       setSkills(data.skills || [])
+      setSkillsMeta(data.skillsMeta || { quests: [], questsWeekEnd: null, totalXp: 0, heatmap: [] })
       setGymExercises(data.gym?.exercises || [])
       setGymLogs(data.gym?.logs || [])
       setGymRoutines(data.gym?.routines || [])
@@ -546,6 +548,7 @@ export function useAppData() {
       // detection, not the whole payload.
       return {
         skills: data.skills || [],
+        skillsMeta: data.skillsMeta || { quests: [], questsWeekEnd: null, totalXp: 0, heatmap: [] },
         goals: data.goals || [],
         mind: {
           habits: data.mind?.habits || [],
@@ -905,6 +908,33 @@ export function useAppData() {
         }
         awardXP('skill-badge')
       })
+    }
+  }
+
+  // Weekly Skills quests (lib/skillsEngine.js's computeQuests) are entirely
+  // DERIVED from skills/sessions data, not a separate stored "claimed"
+  // flag -- so completion itself is the signal. Same before/after diff
+  // technique as detectSkillMilestones just above: compare the quest list
+  // from right before this action to the fresh one after it, and fire the
+  // celebration + bonus XP exactly once, the instant a quest flips to
+  // completed. A page reload mid-week just shows "completed" with no diff
+  // taken, so it never re-fires.
+  function detectQuestCompletions(previousQuests, nextQuests) {
+    if (!Array.isArray(nextQuests)) return
+
+    for (const nextQuest of nextQuests) {
+      const prevQuest = (previousQuests || []).find((item) => item.id === nextQuest.id)
+      const wasComplete = prevQuest?.completed || false
+
+      if (nextQuest.completed && !wasComplete) {
+        pushAchievement({
+          kind: 'milestone',
+          title: 'QUEST COMPLETE',
+          subtitle: `${nextQuest.title} -- +${nextQuest.bonusXp} bonus XP`,
+        })
+        maybePlaySound('milestone')
+        awardXP('skill-quest-complete')
+      }
     }
   }
 
@@ -1724,6 +1754,7 @@ export function useAppData() {
 
       if (chatResult.actionPerformed) {
         const previousSkills = skills
+        const previousQuests = skillsMeta.quests
         const previousGoals = goals
         const previousGymLogs = gymLogs
         const previousCompletions = mindCompletions
@@ -1731,6 +1762,7 @@ export function useAppData() {
         const fresh = await loadData()
         if (fresh) {
           detectSkillMilestones(previousSkills, fresh.skills)
+          detectQuestCompletions(previousQuests, fresh.skillsMeta?.quests)
           detectGoalMilestones(previousGoals, fresh.goals)
           detectGymPRs(previousGymLogs, fresh.gym.logs, fresh.gym.exercises)
           detectHabitCompletions(previousCompletions, fresh.mind.completions, fresh.mind.habits)
@@ -2311,9 +2343,11 @@ export function useAppData() {
       // at all. Same fix as the AI-chat call site: diff the pre-call
       // skills against loadData()'s freshly-returned ones.
       const previousSkills = skills
+      const previousQuests = skillsMeta.quests
       const fresh = await loadData()
       if (fresh) {
         detectSkillMilestones(previousSkills, fresh.skills)
+        detectQuestCompletions(previousQuests, fresh.skillsMeta?.quests)
       }
       showSuccess('Practice logged.')
     } catch (error) {
@@ -2353,6 +2387,23 @@ export function useAppData() {
       showError(error.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Lazy, on-demand fetch for the Skills Mastery/Journal tabs' full
+  // cross-skill session history -- deliberately NOT part of the bootstrap
+  // payload (which caps each skill's own `sessions` at 20, for the
+  // Training Ground cards) since the combined, uncapped history is only
+  // ever needed once those specific tabs are actually opened.
+  async function fetchSkillJournal() {
+    try {
+      const response = await fetch(`${API}/skills/sessions`)
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'Could not load practice journal')
+      return data.sessions || []
+    } catch (error) {
+      showError(error.message)
+      return []
     }
   }
 
@@ -3446,6 +3497,8 @@ export function useAppData() {
 
     // skills
     skills,
+    skillsMeta,
+    fetchSkillJournal,
     addSkill,
     addSkillSession,
     removeSkill,

@@ -7,6 +7,7 @@ import { createReplyExtractor } from '../lib/streamingJson.js'
 import { todayKey } from '../lib/studyPlan.js'
 import { fetchQuotes } from '../lib/marketData.js'
 import { fetchTechnicals } from '../lib/technicals.js'
+import { enrichSkill, computeQuests } from '../lib/skillsEngine.js'
 import {
   OLLAMA_HOST,
   OLLAMA_URL,
@@ -327,6 +328,21 @@ Dylan is a BEGINNER investor currently focused on stocks and ETFs. You are his r
 - Be concrete and precise. Give a clear verdict -- "could go either way" is a failure unless the evidence is genuinely split, and if so say exactly what would tip it.
 - This is analysis and education, not licensed financial advice -- say so once, briefly, without repeating it every message.
 - NEVER issue a blanket refusal ("I can't help with that," "I'm not able to give financial advice," "consult a professional" as a full answer). That is a worse failure than an imperfect answer -- it gives Dylan nothing to work with. If he asks something like "what should I buy" or "top stocks right now," you still don't have live data, so say that once, then immediately do the real job anyway: name concrete, well-known candidates worth him researching (by category/sector if he gave no direction), and run each one through the screening rules above -- thesis, invalidation point, position size, risk/reward. A shortlist to verify and screen is a real answer; silence is not.
+`
+
+// Extra hard rules layered on top of the style/persona framing above, only
+// in Skills mode -- same reasoning as FINANCE_MENTOR_RULES: turn "The
+// Mentor" persona into concrete deliberate-practice coaching behavior
+// instead of a vibe, grounded in Dylan's REAL level/streak/quest data
+// (injected below via skillsContext), never a guess.
+const SKILLS_MENTOR_RULES = `
+You coach deliberate practice, not generic encouragement. Follow these rules without exception:
+- You have REAL live level, XP, streak, and weekly quest data for every skill Dylan tracks -- shown below under SKILLS PROGRESS. Use those numbers as fact, always read the figure given, never estimate or round from memory.
+- Never say just "good job" or "keep practicing." Every real answer gives one concrete, specific next action for TODAY's session -- what to focus on, a target quantity, or a specific weak point to drill -- grounded in what he actually told you he practiced.
+- If a streak broke, say so plainly and matter-of-factly (not a lecture), then immediately pivot to today: "the streak reset, here's the one thing that gets a new one started today."
+- If a weekly quest (shown below) is close to completion, point it out -- "you're N reps away from Cross-Train this week" is exactly the kind of concrete nudge this mode exists for.
+- Call out when effort is spread too thin (many skills logged once, none with real reps) versus genuine progress (consistent reps on fewer skills) -- deliberate practice rewards focus and repetition, not breadth for its own sake.
+- Deliberate practice, not just volume: push for a specific sub-skill or weak point to isolate and drill, not just "do more reps" -- ask what felt hardest in today's session if he hasn't said.
 `
 
 const MODE_ACTION_DOCS = {
@@ -869,6 +885,27 @@ ${watchlist.map((w) => `- ${w.ticker} (${w.verdict}): ${w.thesis}${liveLine(w.ti
 `
     })() : ''
 
+    // Only pulled in Skills mode -- real level/XP/streak/quest data so
+    // "The Mentor" can reference Dylan's actual progress instead of
+    // coaching in the abstract. Reuses the exact same lib/skillsEngine.js
+    // math the Skills page itself renders from (enrichSkill, computeQuests)
+    // so the chat can never disagree with what's on screen.
+    const skillsContext = modeLabel === 'skills' ? (() => {
+      const rawSkills = loadData('skills').filter((s) => s.active)
+      if (!rawSkills.length) return ''
+      const allSessions = loadData('skill_sessions')
+      const enriched = rawSkills.map((skill) => enrichSkill(skill, allSessions))
+      const { quests } = computeQuests(enriched, allSessions)
+
+      return `
+SKILLS PROGRESS (real data, not estimates):
+${enriched.map((s) => `- ${s.name}: Level ${s.level} (${s.tier}), ${s.xpIntoLevel}/${s.xpForNextLevel} XP to next level, ${s.streak}-day current streak (best ${s.maxStreak}), ${s.todayQuantity} ${s.unit} logged today`).join('\n')}
+
+THIS WEEK'S QUESTS:
+${quests.map((q) => `- ${q.title}: ${q.description} -- ${q.progress}/${q.target}${q.completed ? ' (COMPLETE)' : ''}`).join('\n')}
+`
+    })() : ''
+
     const context = `
 CURRENT DYLAN AI DATA
 
@@ -885,6 +922,7 @@ NOTES:
 ${notes.map((n) => `- ${n.content}`).join('\n') || '- None'}
 ${lifeAreasSnapshot}
 ${tradingContext}
+${skillsContext}
 ${liveContext}
 `
 
@@ -902,7 +940,7 @@ ${liveContext}
     const systemPrompt = `
 You are Dylan AI, Dylan's personal AI operating system.
 Today's date is ${todayForModel} (${weekdayForModel}), current local time is roughly ${nowForModel}. Use this to resolve any relative date or time Dylan mentions ("tomorrow," "next Friday," "in two weeks") into an actual calendar date -- never guess or leave it vague.
-${modeLabel ? `\nYou are currently in Dylan's "${modeLabel}" area — keep your focus and suggestions relevant to ${modeLabel} unless Dylan clearly asks about something else.\n${personaFraming(modeLabel) ? `${personaFraming(modeLabel)}\n` : ''}${modeStyle ? `Style for this area: ${modeStyle}\n` : ''}${modeLabel === 'finance' ? FINANCE_MENTOR_RULES : ''}` : ''}
+${modeLabel ? `\nYou are currently in Dylan's "${modeLabel}" area — keep your focus and suggestions relevant to ${modeLabel} unless Dylan clearly asks about something else.\n${personaFraming(modeLabel) ? `${personaFraming(modeLabel)}\n` : ''}${modeStyle ? `Style for this area: ${modeStyle}\n` : ''}${modeLabel === 'finance' ? FINANCE_MENTOR_RULES : ''}${modeLabel === 'skills' ? SKILLS_MENTOR_RULES : ''}` : ''}
 You have access to Dylan's tasks, goals, notes, and memories, plus live data from any of Gmail, Google Drive, and Slack that Dylan has connected (shown below under CURRENT DYLAN AI DATA when connected). If a section like GMAIL or SLACK is missing entirely, that integration is not connected — say so plainly rather than guessing at its contents.
 
 Be concise, useful, organized and action-oriented.
