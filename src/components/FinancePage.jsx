@@ -490,10 +490,25 @@ function MarketSessionStrip() {
 // invented "confidence %" -- those would be made-up signal dressed as
 // analysis, which has no place in a tool he's using to make real money
 // decisions. UP/DOWN here is just the literal sign of the real move.
+// Labels are honest about what's actually being fetched, not what it's a
+// proxy for. Verified directly against Twelve Data's own API (not just the
+// docs): the real S&P 500 / Nasdaq-100 INDEX values (symbols SPX/NDX) are
+// explicitly blocked on the free plan -- "This symbol is available
+// starting with the Pro/Grow/Venture plan" -- so there is no way to show
+// the literal index number (S&P 500 ~7,600+, Nasdaq-100 ~30,000+ as of
+// Oct 2026) without a paid upgrade. SPY/QQQ/GLD are real, live ETF prices
+// that track those markets closely in percentage terms, which is why
+// they're kept -- just labeled as the ETF they actually are instead of
+// silently standing in for a bigger number they aren't.
+// Dylan's own 4 ETFs (SPY, QQQ, VTI, VOO) lead the list so they're the
+// first 4 headline cards; Gold/Bitcoin/forex still show in the compact
+// list below exactly as before.
 const MARKET_PULSE_SYMBOLS = [
-  { symbol: 'SPY', label: 'S&P 500' },
-  { symbol: 'QQQ', label: 'Nasdaq 100' },
-  { symbol: 'GLD', label: 'Gold' },
+  { symbol: 'SPY', label: 'S&P 500 (SPY)' },
+  { symbol: 'QQQ', label: 'Nasdaq 100 (QQQ)' },
+  { symbol: 'VTI', label: 'Total Market (VTI)' },
+  { symbol: 'VOO', label: 'S&P 500 (VOO)' },
+  { symbol: 'GLD', label: 'Gold (GLD)' },
   { symbol: 'BTCUSD', label: 'Bitcoin' },
   { symbol: 'EURUSD', label: 'EUR/USD' },
   { symbol: 'USDJPY', label: 'USD/JPY' },
