@@ -5,6 +5,8 @@ import { webSearch } from '../lib/webSearch.js'
 import { getLiveContextBlock } from '../lib/liveContext.js'
 import { createReplyExtractor } from '../lib/streamingJson.js'
 import { todayKey } from '../lib/studyPlan.js'
+import { fetchQuotes } from '../lib/marketData.js'
+import { fetchTechnicals } from '../lib/technicals.js'
 import {
   OLLAMA_HOST,
   OLLAMA_URL,
@@ -317,7 +319,7 @@ const MODE_PERSONA = {
 // edited independently.
 const FINANCE_MENTOR_RULES = `
 Dylan is a BEGINNER investor currently focused on stocks and ETFs. You are his ruthless, precision-first trading/investing mentor -- not a cheerleader. Follow these rules without exception:
-- You have NO live market data and NO internet access. NEVER state a current price, quote, earnings figure, or news item as fact -- you cannot know it. If Dylan's message doesn't give you the number you need, say plainly that you don't have live data and ask him to paste the current price/figures rather than guessing or using a stale number from training.
+- You have REAL live price + RSI(14)/trend data ONLY for tickers Dylan already holds as an open position or has on his watchlist -- shown per-ticker below under OPEN TRADING POSITIONS / WATCHLIST as "| LIVE: ...". Use those numbers as fact when present; never restate or round them from memory, always read the figure given. For any OTHER ticker (a brand-new name Dylan asks about that isn't on his watchlist yet, or one marked "LIVE: no data"), you have NO live market data and NO internet access -- NEVER state a current price, quote, earnings figure, or news item as fact for it. Say plainly you don't have live data on that one, tell him to add it to his watchlist first (so the next message has real numbers) or paste the current price/figures himself, and never guess or use a stale number from training.
 - Never give a bare buy/sell directive. Every real answer covers: the thesis (his, or ask for one), what would prove it wrong (the invalidation point), a position size appropriate to a beginner, and the risk/reward.
 - Risk first. Flag any position or idea sized above roughly 5-10% of his trading capital as overconcentrated for a beginner -- say so by name, every time, even if he doesn't ask. Never encourage margin, leverage, or an all-in position.
 - Screen ideas on real criteria -- valuation vs. history/peers, business quality, the actual catalyst and its timeline, risk/reward -- not hype. If his "thesis" is just "it's going up," say so and demand the real one.
@@ -825,16 +827,45 @@ LIFE AREAS SNAPSHOT (real counts and names, not estimates -- if Dylan asks about
     // Real holdings and screened ideas, not just style rules, are what let
     // the mentor persona actually reference Dylan's own positions instead
     // of speaking in the abstract.
-    const tradingContext = modeLabel === 'finance' ? (() => {
+    const tradingContext = modeLabel === 'finance' ? await (async () => {
       const openPositions = loadData('trading_positions').filter((p) => p.status === 'open')
       const watchlist = loadData('trading_watchlist')
       if (!openPositions.length && !watchlist.length) return ''
+
+      // Real quotes + RSI/trend for every ticker Dylan actually holds or is
+      // screening -- the exact same lib/marketData.js + lib/technicals.js
+      // Market Pulse and the Macro Desk already use, so the Analyst is
+      // never a second, divergent source of truth for the same number.
+      // Twelve Data's free tier (TWELVE_DATA_API_KEY in aiConfig.js) gates
+      // this the same way it gates every other live-data surface in this
+      // app -- a missing/invalid key means quotes/technicals come back
+      // {ok: false}, and liveLine() below just says so per ticker rather
+      // than fabricating a number. This is what finally lets FINANCE_MENTOR
+      // _RULES' old blanket "you have no live data" instruction retire --
+      // see that block immediately below this one.
+      const allTickers = [...new Set([...openPositions.map((p) => p.ticker), ...watchlist.map((w) => w.ticker)])]
+      const [quoteResult, technicalResult] = await Promise.all([
+        fetchQuotes(allTickers),
+        fetchTechnicals(allTickers),
+      ])
+      const quotes = quoteResult.ok ? quoteResult.quotes : {}
+      const technicals = technicalResult.ok ? technicalResult.technicals : {}
+
+      const liveLine = (ticker) => {
+        const q = quotes[ticker]
+        const t = technicals[ticker]
+        const parts = []
+        if (q) parts.push(`$${q.price.toFixed(2)} (${q.changePercent >= 0 ? '+' : ''}${q.changePercent.toFixed(2)}% today)`)
+        if (t && t.rsi !== null) parts.push(`RSI(14) ${t.rsi}, trend ${t.trend || 'unknown'}, bias ${t.bias || 'unknown'}`)
+        return parts.length ? ` | LIVE: ${parts.join(', ')}` : ' | LIVE: no data for this ticker (not covered by Twelve Data free tier, or key missing/invalid)'
+      }
+
       return `
 OPEN TRADING POSITIONS:
-${openPositions.map((p) => `- ${p.ticker}: ${p.shares} sh @ $${p.avgCost} | Thesis: ${p.thesis} | Invalidation: ${p.invalidation}`).join('\n') || '- None'}
+${openPositions.map((p) => `- ${p.ticker}: ${p.shares} sh @ $${p.avgCost} | Thesis: ${p.thesis} | Invalidation: ${p.invalidation}${liveLine(p.ticker)}`).join('\n') || '- None'}
 
 WATCHLIST (ideas being screened, not yet positions):
-${watchlist.map((w) => `- ${w.ticker} (${w.verdict}): ${w.thesis}`).join('\n') || '- None'}
+${watchlist.map((w) => `- ${w.ticker} (${w.verdict}): ${w.thesis}${liveLine(w.ticker)}`).join('\n') || '- None'}
 `
     })() : ''
 
