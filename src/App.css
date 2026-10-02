@@ -8113,6 +8113,14 @@ footer {
   font-style: italic;
 }
 
+.market-pulse-stale-tag {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+  display: block;
+  margin-top: 2px;
+}
+
 .market-pulse-list {
   display: flex;
   flex-direction: column;

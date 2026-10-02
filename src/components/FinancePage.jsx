@@ -504,19 +504,34 @@ function MarketSessionStrip() {
 // first 4 headline cards; Gold/Bitcoin/forex still show in the compact
 // list below exactly as before.
 const MARKET_PULSE_SYMBOLS = [
-  { symbol: 'SPY', label: 'S&P 500 (SPY)' },
-  { symbol: 'QQQ', label: 'Nasdaq 100 (QQQ)' },
-  { symbol: 'VTI', label: 'Total Market (VTI)' },
-  { symbol: 'VOO', label: 'S&P 500 (VOO)' },
-  { symbol: 'GLD', label: 'Gold (GLD)' },
+  { symbol: 'SPY', label: 'SPY (ETF)' },
+  { symbol: 'QQQ', label: 'QQQ (ETF)' },
+  { symbol: 'VTI', label: 'VTI (ETF)' },
+  { symbol: 'VOO', label: 'VOO (ETF)' },
+  { symbol: 'GLD', label: 'Gold ETF (GLD)' },
   { symbol: 'BTCUSD', label: 'Bitcoin' },
   { symbol: 'EURUSD', label: 'EUR/USD' },
   { symbol: 'USDJPY', label: 'USD/JPY' },
 ]
 
+// The actual indexes (real S&P 500 / Nasdaq Composite numbers), fetched
+// separately from lib/indexData.js -- these are NEVER the same number as
+// the ETF cards above, and are shown in their own panel so they can't be
+// mistaken for each other again.
+const REAL_INDEXES = [
+  { key: 'SPX', label: 'S&P 500 (Index)' },
+  { key: 'IXIC', label: 'Nasdaq Composite (Index)' },
+]
+
 function formatPulsePrice(symbol, price) {
   if (symbol === 'EURUSD' || symbol === 'USDJPY') return price.toFixed(4)
-  return `$${price.toLocaleString(undefined, { maximumFractionDigits: price >= 100 ? 0 : 2 })}`
+  return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+// Indexes have no currency symbol in convention (quoted as a bare number,
+// e.g. "the S&P 500 closed at 7,668.82") but still need exact cents.
+function formatIndexPrice(price) {
+  return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function MarketPulsePanel() {
@@ -618,6 +633,7 @@ function OverviewTab({ userName, accounts, netWorth, history, saving, addAccount
         <p>Here's where your money stands right now.</p>
       </div>
       <MarketSessionStrip />
+      <RealIndexPanel />
       <MarketPulsePanel />
       <div className="finance-hero">
         <div className="finance-hero-figure">
@@ -1507,6 +1523,102 @@ function useLiveQuotes(symbols) {
   }, [key])
 
   return { quotes, status }
+}
+
+// Same polling shape as useLiveQuotes, but against /api/trading/indices --
+// a completely separate endpoint and a completely separate cache, so a
+// failure or rate-limit on one never shows up as a wrong number on the
+// other. No "no_key" state here since Yahoo's endpoint needs no API key;
+// a failure just means status 'error' and the panel shows no live number.
+function useLiveIndices(keys) {
+  const [indices, setIndices] = useState({})
+  const [status, setStatus] = useState('idle')
+  const key = keys.join(',')
+
+  useEffect(() => {
+    if (!key) {
+      setIndices({})
+      setStatus('idle')
+      return
+    }
+
+    let cancelled = false
+
+    async function poll() {
+      try {
+        const response = await fetch(`/api/trading/indices?symbols=${encodeURIComponent(key)}`)
+        const data = await response.json()
+        if (cancelled) return
+        if (data.ok) {
+          setIndices(data.indices || {})
+          setStatus('ok')
+        } else {
+          setStatus('error')
+        }
+      } catch {
+        if (!cancelled) setStatus('error')
+      }
+    }
+
+    poll()
+    const interval = setInterval(poll, 60000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [key])
+
+  return { indices, status }
+}
+
+function RealIndexPanel() {
+  const keys = REAL_INDEXES.map((i) => i.key)
+  const { indices, status } = useLiveIndices(keys)
+
+  return (
+    <div className="market-pulse real-index-panel">
+      <div className="market-pulse-header">
+        <span className="eyebrow">Real indexes</span>
+        <span className="market-pulse-sub">The actual index value -- not an ETF price. Different number from the ETF cards below on purpose.</span>
+      </div>
+      {status === 'error' && (
+        <div className="trading-live-price-hint">
+          Couldn't reach the index data source just now -- this refreshes every 60s, try again shortly.
+        </div>
+      )}
+      <div className="market-pulse-grid">
+        {REAL_INDEXES.map(({ key, label }) => {
+          const point = indices[key]
+          const hasLive = point && Number.isFinite(point.price)
+          const up = hasLive && point.changePercent >= 0
+          return (
+            <div key={key} className="market-pulse-card">
+              <div className="market-pulse-card-top">
+                <strong>{label}</strong>
+                {hasLive && <span className={`market-pulse-tag ${up ? 'up' : 'down'}`}>{up ? 'UP' : 'DOWN'}</span>}
+              </div>
+              {hasLive ? (
+                <>
+                  <span className="market-pulse-price">{formatIndexPrice(point.price)}</span>
+                  <span className={`market-pulse-change ${up ? 'up' : 'down'}`}>
+                    {up ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />}
+                    {Math.abs(point.changePercent).toFixed(2)}%
+                  </span>
+                  {point.stale && (
+                    <span className="market-pulse-stale-tag" title="Yahoo's index feed didn't respond just now -- showing the last real value this app actually fetched, not a guess.">
+                      as of {new Date(point.asOf).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="market-pulse-no-price">no live index value</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 // Polls GET /api/trading/technicals for the same fixed macro symbol set

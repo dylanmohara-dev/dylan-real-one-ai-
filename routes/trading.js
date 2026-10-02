@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
 import { fetchQuotes } from '../lib/marketData.js'
 import { fetchTechnicals } from '../lib/technicals.js'
+import { fetchIndices, INDEX_DEFS } from '../lib/indexData.js'
 
 const router = Router()
 
@@ -140,6 +141,22 @@ router.get('/technicals', async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ ok: false, reason: 'Could not fetch technicals', technicals: {} })
+  }
+})
+
+// Real index values (actual S&P 500 / Nasdaq numbers, not an ETF price) --
+// see lib/indexData.js for why this is a separate source from /quotes.
+// No `symbols` param needed since there are only 4 known indices; accepts
+// an optional comma list to fetch a subset, defaults to all of them.
+router.get('/indices', async (req, res) => {
+  try {
+    const requested = (req.query.symbols || '').toString().split(',').map((s) => s.trim()).filter(Boolean)
+    const keys = requested.length ? requested.filter((k) => INDEX_DEFS[k]) : Object.keys(INDEX_DEFS)
+    const result = await fetchIndices(keys)
+    res.json(result)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ ok: false, reason: 'Could not fetch indices', indices: {} })
   }
 })
 
