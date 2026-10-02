@@ -7665,18 +7665,51 @@ footer {
 .market-pulse-card-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* flex-start, not space-between -- the TradingView link sits right next
+     to the label now, and the UP/DOWN tag (when present) pushes itself to
+     the far right via its own margin-left:auto below. With space-between
+     here, the tag would jump to a different spot depending on whether the
+     link's card-top has 2 children (no tag yet) or 3 (tag present). The
+     Reports cards already override this to flex-start explicitly, so this
+     change is a no-op for them. */
+  justify-content: flex-start;
   gap: 6px;
   font-size: 12.5px;
   color: var(--text-secondary);
 }
 
 .market-pulse-tag {
+  margin-left: auto;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.05em;
   padding: 3px 10px;
   border-radius: 999px;
+}
+
+/* Opens the ticker's real TradingView chart in a new tab -- used on Market
+   Pulse cards, Real Index cards, Macro Desk cards, Watchlist rows, and
+   open-position rows (anywhere this app shows a ticker next to a live or
+   intended-to-be-live number). Muted by default so it never competes with
+   the actual price/signal; brightens to the mode accent on hover so it
+   still reads as clickable. */
+.trading-view-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  color: var(--text-muted);
+  opacity: 0.75;
+  flex-shrink: 0;
+  transition: color 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.trading-view-link:hover {
+  color: rgb(var(--mode-accent-rgb));
+  opacity: 1;
+  background: rgba(var(--mode-accent-rgb), 0.14);
 }
 
 .market-pulse-tag.up {
@@ -8018,10 +8051,17 @@ footer {
 .macro-desk-card-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 6px;
   font-size: 12.5px;
   color: var(--text-secondary);
+}
+
+/* Same reasoning as .market-pulse-tag above -- push right via margin, not
+   a space-between whose effect would differ by whether a bias is present. */
+.macro-desk-card-top > .macro-desk-bias,
+.macro-desk-card-top > .trading-card-no-price {
+  margin-left: auto;
 }
 
 .macro-desk-bias {

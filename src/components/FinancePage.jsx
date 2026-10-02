@@ -23,6 +23,7 @@ import {
   Receipt,
   BarChart3,
   DollarSign,
+  ExternalLink,
 } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
@@ -521,6 +522,10 @@ const MARKET_PULSE_SYMBOLS = [
 const REAL_INDEXES = [
   { key: 'SPX', label: 'S&P 500 (Index)' },
   { key: 'IXIC', label: 'Nasdaq Composite (Index)' },
+  { key: 'NDX', label: 'Nasdaq 100 (Index)' },
+  { key: 'DJI', label: 'Dow Jones (Index)' },
+  { key: 'RUT', label: 'Russell 2000 (Index)' },
+  { key: 'VIX', label: 'VIX (Volatility Index)' },
 ]
 
 function formatPulsePrice(symbol, price) {
@@ -532,6 +537,33 @@ function formatPulsePrice(symbol, price) {
 // e.g. "the S&P 500 closed at 7,668.82") but still need exact cents.
 function formatIndexPrice(price) {
   return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// Real TradingView chart link for a ticker, opened in a new tab. Verified
+// directly against TradingView's own symbol pages before shipping this --
+// indices need TradingView's TVC: data-vendor prefix (confirmed live:
+// tradingview.com/symbols/TVC-DJI and TVC-RUT are the real Dow/Russell
+// index pages), while plain tickers (ETFs, forex pairs, crypto) resolve
+// correctly on TradingView's own bare /symbols/<TICKER>/ page -- no
+// prefix guessing needed there.
+function tradingViewUrl(symbol, isIndex) {
+  const clean = String(symbol).replace('/', '')
+  return `https://www.tradingview.com/symbols/${isIndex ? `TVC-${clean}` : clean}/`
+}
+
+function TradingViewLink({ symbol, isIndex }) {
+  return (
+    <a
+      className="trading-view-link"
+      href={tradingViewUrl(symbol, isIndex)}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`Open ${symbol} on TradingView`}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <ExternalLink size={12} strokeWidth={2.5} />
+    </a>
+  )
 }
 
 function MarketPulsePanel() {
@@ -561,6 +593,7 @@ function MarketPulsePanel() {
             <div key={symbol} className="market-pulse-card">
               <div className="market-pulse-card-top">
                 <strong>{label}</strong>
+                <TradingViewLink symbol={symbol} />
                 {hasLive && <span className={`market-pulse-tag ${up ? 'up' : 'down'}`}>{up ? 'UP' : 'DOWN'}</span>}
               </div>
               {hasLive ? (
@@ -1270,6 +1303,7 @@ function PositionRow({ position, sizing, quote, saving, closePosition, deletePos
         <span className="finance-position-ticker">
           {position.ticker}
           <span className="trading-card-long-tag">LONG</span>
+          <TradingViewLink symbol={position.ticker} />
         </span>
         <span className="finance-position-cell" data-label="Shares">{position.shares} sh</span>
         <span className="finance-position-cell" data-label="Last price">
@@ -1440,6 +1474,7 @@ function WatchlistRow({ item, quote, saving, updateWatchlistItem, deleteWatchlis
       </button>
       <div className="finance-watchlist-top">
         <span className="finance-watchlist-ticker">{item.ticker}</span>
+        <TradingViewLink symbol={item.ticker} />
         {hasLive ? (
           <div className="trading-card-price">
             <span className="trading-card-price-value">{formatMoney(quote.price)}</span>
@@ -1595,6 +1630,7 @@ function RealIndexPanel() {
             <div key={key} className="market-pulse-card">
               <div className="market-pulse-card-top">
                 <strong>{label}</strong>
+                <TradingViewLink symbol={key} isIndex />
                 {hasLive && <span className={`market-pulse-tag ${up ? 'up' : 'down'}`}>{up ? 'UP' : 'DOWN'}</span>}
               </div>
               {hasLive ? (
@@ -1697,6 +1733,7 @@ function MacroDeskPanel() {
             <div className="macro-desk-card" key={symbol}>
               <div className="macro-desk-card-top">
                 <span>{label}</span>
+                <TradingViewLink symbol={symbol} />
                 {data?.bias ? (
                   <span className={`macro-desk-bias ${data.bias}`}>{data.bias}</span>
                 ) : (
