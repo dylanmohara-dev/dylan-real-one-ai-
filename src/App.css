@@ -291,34 +291,14 @@ select option {
   --border-strong: rgba(var(--mode-accent-rgb), 0.34);
 }
 
-.app-shell.theme-finance {
-  /* Session 41/42: HybridTrader re-theme, round 2. Round 1 kept the normal
-     per-mode pattern where surface/border/glow are all tints of
-     --mode-accent-rgb -- same formula gym/skills/etc use -- but side by
-     side with the reference screenshot that read as a solid green wash,
-     nothing like HybridTrader's near-flat dark panels with teal used only
-     on active/positive elements. So Finance alone breaks from that shared
-     formula: surface/border/glow below are neutral grays, and teal is
-     reserved for the places that already reference --mode-accent-rgb
-     directly (active tab underline, buttons, progress fills, "up" values,
-     the Ask The Analyst icon). */
-  --mode-accent-rgb: 45, 212, 191;
-  --mode-accent2-rgb: 94, 234, 212;
-  --mode-heading-font: 'Space Grotesk', 'IBM Plex Mono', monospace;
-  --mode-radius-scale: 0.7;
-  --mode-border-width: 1px;
-  --bg-glow-1: rgba(45, 212, 191, 0.03);
-  --bg-glow-2: rgba(94, 234, 212, 0.02);
-  --bg: #07090a;
-  --mode-tracking: 0.03em;
-  --mode-body-font: 'Space Grotesk', 'IBM Plex Mono', monospace;
-  --surface: rgba(255, 255, 255, 0.035);
-  --surface-hover: rgba(255, 255, 255, 0.055);
-  --surface-input: rgba(255, 255, 255, 0.045);
-  --surface-strong: rgba(13, 16, 16, 0.92);
-  --border: rgba(255, 255, 255, 0.09);
-  --border-strong: rgba(255, 255, 255, 0.16);
-}
+/* Stale "HybridTrader" teal override removed here (session 41/42 era) --
+   it duplicated .app-root.theme-finance below with old teal values and,
+   because .app-shell is a DOM descendant of .app-root, was silently
+   winning over the arcade-theme block for every mode variable they both
+   defined (accent colors, fonts, radius, borders, surface tints) even
+   though the arcade block was edited correctly. Finance now follows the
+   same single-source-of-truth pattern as every other mode:
+   .app-root.theme-finance is the only place these variables are set. */
 
 .app-shell.theme-skills {
   --mode-accent-rgb: 168, 85, 247;
@@ -505,7 +485,7 @@ select option {
 .app-root.theme-health {  --mode-accent-rgb: 45, 212, 191;  --mode-accent2-rgb: 20, 184, 166;  --mode-heading-font: 'Manrope', sans-serif;  --mode-radius-scale: 1.1;  --mode-border-width: 1px;  --bg-glow-1: rgba(45, 212, 191, 0.42);  --bg-glow-2: rgba(20, 184, 166, 0.3);  --bg: #051a17;  --mode-tracking: 0.02em;  --mode-body-font: 'Manrope', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(21, 51, 49, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
 }
 
-.app-root.theme-finance {  --mode-accent-rgb: 45, 212, 191;  --mode-accent2-rgb: 94, 234, 212;  --mode-heading-font: 'Space Grotesk', sans-serif;  --mode-radius-scale: 0.35;  --mode-border-width: 1px;  --bg-glow-1: rgba(45, 212, 191, 0.05);  --bg-glow-2: rgba(94, 234, 212, 0.03);  --bg: #07090a;  --mode-tracking: 0.02em;  --mode-body-font: 'IBM Plex Mono', monospace;  --surface: rgba(255, 255, 255, 0.035);  --surface-hover: rgba(255, 255, 255, 0.055);  --surface-input: rgba(255, 255, 255, 0.045);  --surface-strong: rgba(13, 16, 16, 0.92);  --border: rgba(255, 255, 255, 0.09);  --border-strong: rgba(255, 255, 255, 0.16);
+.app-root.theme-finance {  --mode-accent-rgb: 255, 214, 10;  --mode-accent2-rgb: 0, 229, 255;  --mode-heading-font: 'Press Start 2P', 'IBM Plex Mono', monospace;  --mode-radius-scale: 0;  --mode-border-width: 3px;  --bg-glow-1: rgba(255, 214, 10, 0.07);  --bg-glow-2: rgba(0, 229, 255, 0.05);  --bg: #0a0a16;  --mode-tracking: 0.04em;  --mode-body-font: 'IBM Plex Mono', monospace;  --surface: rgba(255, 255, 255, 0.045);  --surface-hover: rgba(255, 255, 255, 0.075);  --surface-input: rgba(255, 255, 255, 0.055);  --surface-strong: #141420;  --border: rgba(255, 255, 255, 0.16);  --border-strong: rgba(255, 255, 255, 0.32);  --pixel-shadow: 4px 4px 0 rgba(0, 0, 0, 0.85);  --pixel-shadow-sm: 2px 2px 0 rgba(0, 0, 0, 0.85);
 }
 
 .app-root.theme-skills {  --mode-accent-rgb: 168, 85, 247;  --mode-accent2-rgb: 139, 92, 246;  --mode-heading-font: 'Bitter', Georgia, serif;  --mode-radius-scale: 0.7;  --mode-border-width: 1px;  --bg-glow-1: rgba(168, 85, 247, 0.42);  --bg-glow-2: rgba(139, 92, 246, 0.3);  --bg: #140a1c;  --mode-tracking: 0.06em;  --mode-body-font: 'Poppins', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(43, 28, 59, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
@@ -9268,11 +9248,17 @@ button:disabled:active {
   border-left-color: rgb(var(--mode-accent-rgb));
 }
 .app-shell.theme-finance .form-card button {
-  border-radius: 4px;
-  box-shadow: 0 0 14px rgba(var(--mode-accent-rgb), 0.3);
+  border-radius: 0;
+  border: 3px solid #000;
+  box-shadow: var(--pixel-shadow), 0 0 14px rgba(var(--mode-accent-rgb), 0.3);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
 }
 .app-shell.theme-finance .form-card button:hover:not(:disabled) {
-  box-shadow: 0 0 22px rgba(var(--mode-accent-rgb), 0.55), inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+  box-shadow: var(--pixel-shadow), 0 0 22px rgba(var(--mode-accent-rgb), 0.55), inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+.app-shell.theme-finance .form-card button:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: none;
 }
 .app-shell.theme-finance .page-header h1 {
   font-variant-numeric: tabular-nums;
@@ -13925,5 +13911,205 @@ button:disabled:active {
   .school-boss-bar.school-boss-low {
     transition: none;
     animation: none;
+  }
+}
+
+/* ============ FINANCE MODE: ARCADE REDESIGN ============ */
+/* Dylan's ask: "make the whole screen feel like a video game, like Pac-Man
+   or Mario." Direction picked with him: retro 8-bit arcade, skin + light
+   structural changes (nav as a level-select strip, net worth as a score
+   panel), not a full rebuild of the data layout from the mockup pass.
+   Press Start 2P is already loaded by this file's own @import at the top
+   (unused until now), so headings/nav/labels switch to it for free via
+   --mode-heading-font (set in the theme-finance variable block). Body
+   text and every real number stay in IBM Plex Mono / Orbitron -- this is
+   still a tool for real money decisions, so no financial figure gets
+   pixelated or hard to read at a glance. The existing net-worth-milestone
+   achievements, win/loss toasts on closing a position, and the realized
+   P/L math are untouched -- this pass is visual + a couple of new XP
+   hooks, never new fabricated feedback. */
+
+/* --- CRT scanline overlay across the whole mode --- */
+.app-shell.theme-finance .finance-page {
+  position: relative;
+}
+.app-shell.theme-finance .finance-page::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.035) 0px,
+    rgba(255, 255, 255, 0.035) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+
+/* --- Page title: pixel font sized down so "THE LEDGER" doesn't overflow --- */
+.app-shell.theme-finance .page-header .eyebrow {
+  font-family: var(--mode-heading-font);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: rgb(var(--mode-accent-rgb));
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.85);
+}
+.app-shell.theme-finance .page-header h1 {
+  font-size: clamp(15px, 2.1vw, 21px);
+  line-height: 1.6;
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.85);
+}
+
+/* --- Nav: level-select strip -- small numbered badge per item, chunky
+   pixel-shadow idle state, a "pressed cabinet button" active state --- */
+.app-shell.theme-finance .finance-nav {
+  counter-reset: finance-level;
+  gap: 8px;
+  border-right: none;
+  padding: 2px;
+}
+.app-shell.theme-finance .finance-nav button {
+  position: relative;
+  padding: 10px 12px 10px 32px;
+  border: 3px solid #000;
+  background: var(--surface-strong);
+  box-shadow: var(--pixel-shadow-sm);
+  font-family: var(--mode-heading-font);
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  line-height: 1.7;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease, color 0.15s ease;
+}
+.app-shell.theme-finance .finance-nav button::before {
+  counter-increment: finance-level;
+  content: counter(finance-level, decimal-leading-zero);
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8px;
+  opacity: 0.5;
+}
+.app-shell.theme-finance .finance-nav button:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.85);
+}
+.app-shell.theme-finance .finance-nav button.active {
+  background: rgb(var(--mode-accent-rgb));
+  color: #0a0a16;
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+.app-shell.theme-finance .finance-nav button.active::before {
+  opacity: 0.65;
+}
+@media (max-width: 720px) {
+  .app-shell.theme-finance .finance-nav {
+    gap: 6px;
+    padding: 2px 0 10px;
+  }
+  .app-shell.theme-finance .finance-nav button {
+    padding: 8px 10px 8px 28px;
+  }
+}
+
+/* --- Net worth: a framed "SCORE" panel, Orbitron (already loaded) for
+   the big digits -- a digital-HUD number, not a pixelated one, since
+   this is the one figure that most needs to stay instantly readable --- */
+.app-shell.theme-finance .finance-hero-figure {
+  padding: 16px 20px;
+  border: 3px solid #000;
+  background: var(--surface-strong);
+  box-shadow: var(--pixel-shadow);
+  width: fit-content;
+}
+.app-shell.theme-finance .finance-hero-label {
+  font-family: var(--mode-heading-font);
+  font-size: 8px;
+  letter-spacing: 0.16em;
+}
+.app-shell.theme-finance .finance-hero-figure strong {
+  font-family: 'Orbitron', var(--mode-body-font);
+  font-weight: 800;
+  font-size: clamp(30px, 4.6vw, 44px);
+  color: rgb(var(--mode-accent-rgb));
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.85), 0 0 16px rgba(var(--mode-accent-rgb), 0.45);
+  letter-spacing: 0.02em;
+}
+
+/* --- Greeting heading also goes pixel -- small size, it's a short line --- */
+.app-shell.theme-finance .finance-greeting h2 {
+  font-family: var(--mode-heading-font);
+  font-size: clamp(12px, 1.6vw, 15px);
+  line-height: 1.8;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.85);
+}
+
+/* --- Section headings ("Open positions", "Watchlist", etc.) -- pixel,
+   small, with a bright accent underline standing in for an arcade rule --- */
+.app-shell.theme-finance .finance-ledger-heading {
+  font-family: var(--mode-heading-font);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  display: inline-block;
+  padding-bottom: 4px;
+  border-bottom: 3px solid rgb(var(--mode-accent-rgb));
+}
+
+/* --- Every other finance button: pixel press-down feedback in place of
+   the app-wide scale() press, chunky black border to match the cabinet
+   look (radius is already 0 everywhere via --mode-radius-scale) --- */
+.app-shell.theme-finance button:not(:disabled) {
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+}
+.app-shell.theme-finance button:not(:disabled):active {
+  transform: translate(2px, 2px) scale(1);
+}
+.app-shell.theme-finance .finance-mood-submit,
+.app-shell.theme-finance .trading-promote-button,
+.app-shell.theme-finance .trading-close-button,
+.app-shell.theme-finance .finance-row-edit button {
+  border: 3px solid #000;
+  box-shadow: var(--pixel-shadow-sm);
+}
+.app-shell.theme-finance .finance-mood-submit:active:not(:disabled),
+.app-shell.theme-finance .trading-promote-button:active:not(:disabled),
+.app-shell.theme-finance .trading-close-button:active:not(:disabled),
+.app-shell.theme-finance .finance-row-edit button:active:not(:disabled) {
+  box-shadow: none;
+}
+
+/* --- Mood chips + verdict/bias tags: chunky pixel pills instead of soft
+   rounded ones (radius already 0 app-wide for this theme) --- */
+.app-shell.theme-finance .finance-mood-chip,
+.app-shell.theme-finance .finance-mood-tag,
+.app-shell.theme-finance .trading-card-long-tag,
+.app-shell.theme-finance .finance-tx-type-tag,
+.app-shell.theme-finance .finance-journal-ticker {
+  border-width: 2px;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.7);
+}
+
+/* --- Achievement-style callouts already exist (net worth milestones,
+   realized-gain toasts) -- give the Macro Desk bias cards and Reports
+   stat tiles the same chunky frame as everything else in this pass --- */
+.app-shell.theme-finance .market-pulse-card,
+.app-shell.theme-finance .macro-desk-grid > *,
+.app-shell.theme-finance .finance-psychology-card {
+  border-width: 2px;
+  box-shadow: var(--pixel-shadow-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.theme-finance .finance-nav button,
+  .app-shell.theme-finance .form-card button,
+  .app-shell.theme-finance button {
+    transition: none;
   }
 }

@@ -79,6 +79,13 @@ const CUES = {
     osc.start()
     osc.stop(c.currentTime + 0.26)
   },
+  // The classic two-note arcade "coin" blink -- Finance mode's arcade
+  // pass (money = coins). Deliberately its own short cue, not a reuse of
+  // `click`, so a logged transaction reads as a distinct small reward.
+  coin: (c) => {
+    tone(c, 988, 0, 0.05, 0.04) // B5
+    tone(c, 1318.5, 0.05, 0.11, 0.045) // E6
+  },
 }
 
 export function playSound(cue) {

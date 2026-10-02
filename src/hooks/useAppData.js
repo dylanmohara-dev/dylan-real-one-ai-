@@ -1984,6 +1984,7 @@ export function useAppData() {
       maybeCelebrateNetWorthSwing(fresh)
       maybeCelebrateNetWorthMilestone(fresh)
       showSuccess(type === 'expense' ? 'Expense logged.' : 'Income logged.')
+      maybePlaySound('coin')
     } catch (error) {
       showError(error.message)
     } finally {
@@ -2129,6 +2130,10 @@ export function useAppData() {
           })
         }
       }
+      // Flat XP for closing WITH a real lesson -- win or loss, same amount
+      // either way. Separate from the realized-gain achievement above,
+      // which still only fires on an actual win.
+      awardXP('trade-closed')
     } catch (error) {
       showError(error.message)
     } finally {
@@ -2249,6 +2254,9 @@ export function useAppData() {
       })
       await loadData()
       showSuccess('Check-in logged.')
+      // Same XP regardless of which mood was picked -- this rewards the
+      // honesty of checking in, not a good mood (see lib/playerXP.js).
+      awardXP('psychology-checkin')
     } catch (error) {
       showError(error.message)
     } finally {
