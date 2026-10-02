@@ -116,14 +116,16 @@ export function upcomingItems(classes, assignments, tests, canvasAssignments, ca
 
 // Deterministic per-class accent color -- see the longer explanation that
 // used to live with this in SchoolPage.jsx: 4 curated hues (not a wider
-// hash palette) chosen not to clash with the gold theme, hashed off the
-// class id so every class (including ones saved before this existed) gets
-// a distinct, legible color with no migration and no new field.
+// hash palette) chosen not to clash with the theme, hashed off the class id
+// so every class (including ones saved before this existed) gets a
+// distinct, legible color with no migration and no new field. Round 15:
+// recolored to match the HybridTrader re-theme's own ticker-chip palette
+// (blue data chips, red "Bearish", green "Bullish", a neutral violet).
 export const CLASS_COLOR_PALETTE = [
-  '111, 198, 222', // teal
-  '227, 138, 155', // maroon
-  '199, 158, 224', // plum
-  '127, 216, 160', // green
+  '96, 170, 224',  // blue
+  '224, 112, 140', // rose
+  '176, 132, 224', // violet
+  '91, 200, 160',  // green
 ]
 
 export function classColorRgb(classId) {

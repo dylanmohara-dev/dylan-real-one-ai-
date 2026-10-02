@@ -207,31 +207,39 @@ select option {
    .app-root.theme-school's tokens now; the two should never drift
    again. */
 .app-shell.theme-school {
-  --mode-accent-rgb: 201, 161, 59;
-  --mode-accent2-rgb: 242, 210, 122;
-  --mode-gold-deep-rgb: 138, 111, 46;
-  --mode-heading-font: 'Cinzel', serif;
-  --mode-body-font: 'IBM Plex Sans', sans-serif;
-  --mode-mono-font: 'IBM Plex Mono', monospace;
-  --mode-radius-scale: 0.55;
+  /* Round 15: HybridTrader dark-terminal re-theme, replacing the
+     dark-academia/RPG-HUD gold look above. Palette pixel-sampled directly
+     off Dylan's HybridTrader reference screenshot (not guessed) -- a
+     near-black canvas, mint/teal as the one restrained accent (CTA/
+     progress/LVL badge only, same discipline gold had), a true green for
+     "bullish"/completion moments, coral-red reserved for danger/HP-drain.
+     RPG mechanics (Quest Log, XP, levels, streaks) are untouched -- visual
+     shell swap only, per Dylan's own confirmed scope. */
+  --mode-accent-rgb: 82, 199, 168;
+  --mode-accent2-rgb: 91, 200, 106;
+  --mode-gold-deep-rgb: 58, 110, 98;
+  --mode-heading-font: 'Space Grotesk', sans-serif;
+  --mode-body-font: 'Inter', sans-serif;
+  --mode-mono-font: 'JetBrains Mono', monospace;
+  --mode-radius-scale: 0.8;
   --mode-border-width: 1px;
-  --bg-glow-1: rgba(201, 161, 59, 0.16);
-  --bg-glow-2: rgba(138, 111, 46, 0.14);
-  --bg: #100d09;
+  --bg-glow-1: rgba(82, 199, 168, 0.08);
+  --bg-glow-2: rgba(91, 200, 106, 0.05);
+  --bg: #05060a;
   --mode-tracking: -0.01em;
-  --surface: #1a1610;
-  --surface-hover: #2e2819;
-  --surface-input: #241f17;
-  --surface-strong: #241f17;
-  --border: #3a3221;
-  --border-strong: rgba(201, 161, 59, 0.4);
-  --text-primary: #efe6d3;
-  --text-secondary: #a89a7c;
-  --text-muted: #6b604a;
-  --school-panel: #1a1610;
-  --school-card: #241f17;
-  --school-card-hover: #2e2819;
-  --school-ember-rgb: 201, 96, 58;
+  --surface: #121319;
+  --surface-hover: #262530;
+  --surface-input: #1c1b22;
+  --surface-strong: #1c1b22;
+  --border: #2a2832;
+  --border-strong: rgba(82, 199, 168, 0.4);
+  --text-primary: #eef0f2;
+  --text-secondary: #9298a6;
+  --text-muted: #5b6270;
+  --school-panel: #121319;
+  --school-card: #1c1b22;
+  --school-card-hover: #262530;
+  --school-ember-rgb: 240, 99, 124;
 }
 
 .app-shell.theme-sports {
@@ -420,60 +428,53 @@ select option {
    the top bar (and anything else outside .app-shell) picks up mode color
    too, instead of always falling back to the :root defaults. */
 
-/* School's full palette, replaced per Dylan's design brief (round 14) --
-   the old theme used gold/orange for nearly everything (background glow,
-   borders, badges, headers), which is exactly why headers disappeared
-   and the page read as "too yellow." Gold is now reserved to four jobs
-   only: primary CTA, progress-bar fills, and the hero LVL badge -- never
-   headers, borders, or backgrounds. Four category colors (teal / maroon
-   / plum / green) carry class-card identity instead of gold. */
+/* School's full palette, round 15 -- HybridTrader dark-terminal re-theme
+   per Dylan's reference image (pixel-sampled hex; see .app-shell.theme-school
+   above for the derivation note). Same discipline as the gold era: one
+   restrained accent (mint) carries CTA/progress/LVL only; four category
+   hues (blue / rose / violet / green) carry class-card identity, echoing
+   HybridTrader's own ticker-chip colors (blue data chips, red "Bearish",
+   green "Bullish", a neutral violet for the fourth slot). */
 .app-root.theme-school {
-  /* Round 2 design-system pass -- Dylan's own exact hex spec (fed through
-     his design tool and sent back with a reference mockup), replacing the
-     Session 58 approximation above. Every value below is his literal spec,
-     not a derived/rounded guess. */
-  --mode-accent-rgb: 201, 161, 59;        /* #c9a13b gold -- CTA/progress/LVL badge ONLY, capped ~10% of screen */
-  --mode-accent2-rgb: 242, 210, 122;      /* #f2d27a gold-bright -- completion moments only, never a resting fill */
-  --mode-gold-deep-rgb: 138, 111, 46;     /* #8a6f2e gold-dim -- low-emphasis labels */
-  --mode-heading-font: 'Cinzel', serif;
-  --mode-body-font: 'IBM Plex Sans', sans-serif;
-  --mode-mono-font: 'IBM Plex Mono', monospace;  /* all numeric HUD readouts: XP, level, grade %, HP */
-  --mode-radius-scale: 0.55;
+  --mode-accent-rgb: 82, 199, 168;         /* #52c7a8 mint -- CTA/progress/LVL badge ONLY, capped ~10% of screen */
+  --mode-accent2-rgb: 91, 200, 106;        /* #5bc86a bullish-green -- completion moments only, never a resting fill */
+  --mode-gold-deep-rgb: 58, 110, 98;       /* dim mint -- low-emphasis labels */
+  --mode-heading-font: 'Space Grotesk', sans-serif;
+  --mode-body-font: 'Inter', sans-serif;
+  --mode-mono-font: 'JetBrains Mono', monospace;  /* all numeric HUD readouts: XP, level, grade %, HP */
+  --mode-radius-scale: 0.8;
   --mode-border-width: 1px;
-  --bg-glow-1: rgba(201, 161, 59, 0.16);
-  --bg-glow-2: rgba(138, 111, 46, 0.14);
-  --bg: #100d09;                          /* canvas background */
+  --bg-glow-1: rgba(82, 199, 168, 0.08);
+  --bg-glow-2: rgba(91, 200, 106, 0.05);
+  --bg: #05060a;                          /* canvas background */
   --mode-tracking: -0.01em;
-  --surface: #1a1610;                     /* panel background */
-  --surface-hover: #2e2819;               /* hover surface */
-  --surface-input: #241f17;               /* inputs sit on card-level surface */
-  --surface-strong: #241f17;              /* card background */
-  --border: #3a3221;                      /* hairline borders -- 1px, never heavier */
-  --border-strong: rgba(201, 161, 59, 0.4);
-  --text-primary: #efe6d3;                /* primary text */
-  --text-secondary: #a89a7c;              /* muted text */
-  --text-muted: #6b604a;                  /* faint/disabled text */
+  --surface: #121319;                     /* panel background */
+  --surface-hover: #262530;               /* hover surface */
+  --surface-input: #1c1b22;               /* inputs sit on card-level surface */
+  --surface-strong: #1c1b22;              /* card background */
+  --border: #2a2832;                      /* hairline borders -- 1px, never heavier */
+  --border-strong: rgba(82, 199, 168, 0.4);
+  --text-primary: #eef0f2;                /* primary text */
+  --text-secondary: #9298a6;              /* muted text */
+  --text-muted: #5b6270;                  /* faint/disabled text */
 
-  /* Named aliases for the three surface steps + ember, so new markup can
-     reach for these directly instead of overloading --surface/-hover with
-     two different meanings (panel vs. card). Depth comes from these
-     surface steps, never cast shadow. */
-  --school-panel: #1a1610;
-  --school-card: #241f17;
-  --school-card-hover: #2e2819;
-  --school-ember-rgb: 201, 96, 58;        /* #c9603a -- danger/HP-drain, always paired with a text label */
+  --school-panel: #121319;
+  --school-card: #1c1b22;
+  --school-card-hover: #262530;
+  --school-ember-rgb: 240, 99, 124;       /* #f0637c -- danger/HP-drain, always paired with a text label */
 
   /* Category accent pairs -- each class/item gets one of these, never
-     gold. classColorRgb() in SchoolPage.jsx cycles through these four. */
-  --school-cat-1-bg: 28, 58, 68;      --school-cat-1-bright: 111, 198, 222;  /* teal */
-  --school-cat-2-bg: 58, 22, 32;      --school-cat-2-bright: 227, 138, 155;  /* maroon */
-  --school-cat-3-bg: 51, 34, 59;      --school-cat-3-bright: 199, 158, 224;  /* plum */
-  --school-cat-4-bg: 30, 59, 42;      --school-cat-4-bright: 127, 216, 160;  /* green */
+     mint. classColorRgb() in src/lib/schoolDeadlines.js cycles through the
+     matching CLASS_COLOR_PALETTE (kept in sync with these). */
+  --school-cat-1-bg: 22, 42, 62;      --school-cat-1-bright: 96, 170, 224;   /* blue */
+  --school-cat-2-bg: 58, 26, 36;      --school-cat-2-bright: 224, 112, 140;  /* rose */
+  --school-cat-3-bg: 42, 30, 60;      --school-cat-3-bright: 176, 132, 224;  /* violet */
+  --school-cat-4-bg: 20, 50, 42;      --school-cat-4-bright: 91, 200, 160;   /* green */
 
   /* Status/type badge colors -- exact per spec, used nowhere else. */
-  --school-badge-standard-bg: #1f4552;    --school-badge-standard-text: #9fe0ef;
-  --school-badge-urgent-bg: #5c1e2a;      --school-badge-urgent-text: #f2b8c2;
-  --school-badge-synced-border: #4a4032;  --school-badge-synced-text: #a69a85;
+  --school-badge-standard-bg: #13303a;    --school-badge-standard-text: #7fd8ec;
+  --school-badge-urgent-bg: #3d1620;      --school-badge-urgent-text: #f0637c;
+  --school-badge-synced-border: #3a3942;  --school-badge-synced-text: #9aa0ac;
 }
 
 .app-root.theme-sports {  --mode-accent-rgb: 34, 197, 94;  --mode-accent2-rgb: 163, 230, 53;  --mode-heading-font: 'Space Grotesk', sans-serif;  --mode-radius-scale: 0.5;  --mode-border-width: 1px;  --bg-glow-1: rgba(34, 197, 94, 0.42);  --bg-glow-2: rgba(163, 230, 53, 0.3);  --bg: #06190f;  --mode-tracking: -0.005em;  --mode-body-font: 'Manrope', sans-serif;  --surface: rgba(var(--mode-accent-rgb), 0.1);  --surface-hover: rgba(var(--mode-accent-rgb), 0.16);  --surface-input: rgba(var(--mode-accent-rgb), 0.12);  --surface-strong: rgba(19, 49, 32, 0.86);  --border: rgba(var(--mode-accent-rgb), 0.3);  --border-strong: rgba(var(--mode-accent-rgb), 0.5);
@@ -511,10 +512,10 @@ select option {
 /* Same pattern used on .main-content, reapplied to the persistent chrome so
    texture isn't limited to page content — full commitment per Dylan's ask. */
 
+/* Round 15: HybridTrader's sidebar is flat near-black with no pattern --
+   dropped the dotted-line texture, kept only a faint top vignette. */
 .app-shell.theme-school .sidebar {
-  background-image:
-    radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.45), transparent 65%),
-    repeating-linear-gradient(rgba(var(--mode-accent-rgb), 0.16) 0, rgba(var(--mode-accent-rgb), 0.16) 1.5px, transparent 1.5px, transparent 12px);
+  background-image: radial-gradient(circle at 50% -8%, rgba(var(--mode-accent-rgb), 0.18), transparent 70%);
 }
 
 .app-shell.theme-sports .sidebar {
@@ -1326,19 +1327,14 @@ select option {
    the card lives outside the themed .app-shell wrapper. */
 
 .mode-card.theme-school {
-  --mode-heading-font: 'Anton', sans-serif;
-  --mode-radius-scale: 0.3;
-  /* Notebook ruled lines, matching the full School page's own texture. */
-  background-image: repeating-linear-gradient(
-    rgba(var(--card-rgb), 0.22) 0,
-    rgba(var(--card-rgb), 0.22) 1.5px,
-    transparent 1.5px,
-    transparent 12px
-  );
+  /* Round 15: matches the full page's flat HybridTrader look -- no ruled
+     lines, heading font swapped from Anton to the new Space Grotesk. */
+  --mode-heading-font: 'Space Grotesk', sans-serif;
+  --mode-radius-scale: 0.6;
 }
 
 .mode-card.theme-school:hover {
-  box-shadow: 0 4px 0 rgba(var(--card-rgb), 0.4);
+  border-color: rgba(var(--card-rgb), 0.5);
 }
 
 .mode-card.theme-sports {
@@ -3737,7 +3733,7 @@ footer {
 .app-shell.theme-school .school-quest-item.completed .check-button {
   background: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
   border-color: rgb(var(--class-color-rgb, var(--mode-accent-rgb)));
-  color: #100d09;
+  color: var(--bg);
 }
 
 /* Per Dylan's reference mockup, a completed quest reads as slightly
@@ -9247,33 +9243,12 @@ button:disabled:active {
   position: relative;
 }
 
-/* --- School: notebook paper --- */
+/* --- School: round 15, HybridTrader re-theme removed the notebook-paper
+   ruled lines entirely -- the reference's cards sit on a flat, textureless
+   dark canvas. .main-content keeps position:relative in case a future
+   pass needs a ::before layer again, it just paints nothing today. */
 .app-shell.theme-school .main-content {
   position: relative;
-}
-
-/* Ruled horizontal lines + a vertical red margin line, like a page of
-   notebook paper. Lines sit low-opacity so real content stays the focus. */
-.app-shell.theme-school .main-content::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    repeating-linear-gradient(
-      rgba(var(--mode-accent-rgb), 0.18) 0,
-      rgba(var(--mode-accent-rgb), 0.18) 2px,
-      transparent 2px,
-      transparent 30px
-    ),
-    linear-gradient(
-      to right,
-      transparent 0,
-      transparent 44px,
-      rgba(239, 68, 68, 0.4) 44px,
-      rgba(239, 68, 68, 0.4) 46px,
-      transparent 46px
-    );
 }
 
 /* --- Sports: field yard-lines --- */
@@ -9399,22 +9374,21 @@ button:disabled:active {
 /* --- School: paper-edge shadow, page-flip lift, warm underline --- */
 .app-shell.theme-school .item-card,
 .app-shell.theme-school .form-card button {
-  box-shadow: 0 2px 0 rgba(var(--mode-accent-rgb), 0.3);
+  border: 1px solid var(--border);
 }
 .app-shell.theme-school .item-card:hover {
-  box-shadow: 0 4px 0 rgba(var(--mode-accent-rgb), 0.4);
-  transform: translateY(-3px);
+  border-color: rgba(var(--mode-accent-rgb), 0.45);
+  transform: translateY(-1px);
 }
 .app-shell.theme-school .form-card button:hover:not(:disabled) {
-  box-shadow: 0 4px 0 rgba(var(--mode-accent-rgb), 0.45);
-  transform: translateY(-3px);
+  border-color: rgba(var(--mode-accent-rgb), 0.5);
+  transform: translateY(-1px);
 }
 .app-shell.theme-school .page-header h1 {
-  border-bottom: 3px solid rgba(var(--mode-accent-rgb), 0.5);
-  padding-bottom: 6px;
   display: inline-block;
-  font-size: clamp(34px, 5vw, 54px);
-  text-transform: uppercase;
+  font-size: clamp(30px, 4.2vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 /* --- Sports: jersey-notch corner, bouncy kick --- */
@@ -9612,11 +9586,11 @@ button:disabled:active {
 
 /* ============ PAGE HEADING COLOR + GLOW, per mode ============ */
 .app-shell.theme-school .page-header h1 {
-  background: linear-gradient(100deg, rgb(var(--mode-accent-rgb)) 25%, rgb(var(--mode-accent2-rgb)) 75%);
+  background: linear-gradient(100deg, rgb(var(--mode-accent-rgb)) 35%, rgb(var(--mode-accent2-rgb)) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 22px rgba(var(--mode-accent-rgb), 0.65)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
 
 .app-shell.theme-sports .page-header h1 {
