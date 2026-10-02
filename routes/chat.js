@@ -411,6 +411,16 @@ Dylan: "got paid, 2000 into checking"
 
 If the account doesn't match anything he has, ask which account in "reply" instead.
 
+set_budget — use this whenever Dylan tells you a monthly spending limit for one category, instead of him clicking into that category's box on the Budget tab himself. Fields: category (required, must be exactly one of groceries/dining/transport/housing/utilities/entertainment/shopping/health/subscriptions/other), monthlyLimit (positive number; 0 or omitted clears that category's budget instead of setting one).
+
+Dylan: "set my grocery budget to 400 a month"
+{"reply": "Set groceries budget to $400.00/month.", "action": {"type": "set_budget", "category": "groceries", "monthlyLimit": 400}}
+
+Dylan: "take off my dining budget, I don't want a limit there anymore"
+{"reply": "Cleared the dining budget.", "action": {"type": "set_budget", "category": "dining", "monthlyLimit": 0}}
+
+If the category he means isn't one of the ten listed above, ask which one in "reply" instead.
+
 `,
   family: `log_family_entry — use this whenever Dylan mentions spending time with a family member he already has in the Family tab, or a faith-practice moment. Fields: entryType (must be exactly "checkin" or "faith"), memberName (required for a checkin, matched against his existing family members), minutesSpent (number, checkin only), note (optional), date (optional, defaults to today).
 
