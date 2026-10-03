@@ -2,6 +2,21 @@ import { useEffect, useRef, useState } from 'react'
 import { Image as ImageIcon, X, Sparkles, Mic, MicOff, CalendarPlus, Check } from 'lucide-react'
 import { LIFE_MODES } from '../data/lifeModes.js'
 
+// Deliberately generic rather than written per-mode (9 modes x N phrases
+// is a maintenance tax with no real payoff) -- each one reads naturally
+// after "<assistant name> ", which is however every mode's loading bubble
+// prefixes it (see the render below), so "The Professor" vs "The Coach"
+// still gives each mode its own voice without a separate phrase list per
+// mode.
+const THINKING_PHRASES = [
+  'is thinking',
+  'is reviewing the details',
+  'is connecting the dots',
+  'is weighing the options',
+  'is sanity-checking the numbers',
+  'is putting it together',
+]
+
 export default function ChatPage({
   chatMessages,
   loading,
@@ -162,6 +177,26 @@ export default function ChatPage({
     const seconds = Math.round((ms % 60000) / 1000)
     return `${minutes}m ${seconds}s`
   }
+
+  /*
+    Rotating status text for the "thinking" bubble, replacing the old
+    static three-dots-and-nothing-else state. Cycles through a short list
+    of phrases while the model is working and hasn't started streaming
+    yet -- the dots alone never told Dylan anything beyond "not dead",
+    this gives the same reassurance the live "Thinking for Xs" counter
+    does, just friendlier. Keyed off `loading` the same way the elapsed
+    timer above is, so both reset together on every new question.
+  */
+  const [phraseIndex, setPhraseIndex] = useState(0)
+
+  useEffect(() => {
+    if (!loading) return undefined
+    setPhraseIndex(0)
+    const timer = setInterval(() => {
+      setPhraseIndex((i) => (i + 1) % THINKING_PHRASES.length)
+    }, 1700)
+    return () => clearInterval(timer)
+  }, [loading])
 
   // Renders a create_event proposal's start (and its own date/time format,
   // which is a bare "YYYY-MM-DD" for an allDay event or a local
@@ -357,10 +392,15 @@ export default function ChatPage({
                 // a loading state.
                 <div className="message-bubble">{streamingText}</div>
               ) : (
-                <div className="message-bubble typing-dots">
-                  <span className="dotPulse">•</span>
-                  <span className="dotPulse">•</span>
-                  <span className="dotPulse">•</span>
+                <div className="message-bubble thinking-indicator">
+                  <div className="typing-dots">
+                    <span className="typing-dot" />
+                    <span className="typing-dot" />
+                    <span className="typing-dot" />
+                  </div>
+                  <span key={phraseIndex} className="thinking-status-text">
+                    {mode?.assistantName || 'Thinking'} {THINKING_PHRASES[phraseIndex]}
+                  </span>
                 </div>
               )}
               <span className="message-thinking-time is-live">

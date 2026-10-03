@@ -4035,12 +4035,22 @@ footer {
   transition: background 0.4s ease, border-color 0.4s ease;
 }
 
+/* The loading bubble is now dots + rotating status text side by side,
+   not dots alone -- .thinking-indicator is the row, .typing-dots is just
+   the three-dot cluster within it. */
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .typing-dots {
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
 }
 
-.typing-dots span {
+.typing-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
@@ -4048,12 +4058,32 @@ footer {
   animation: dotPulse 1.2s infinite ease-in-out;
 }
 
-.typing-dots span:nth-child(2) {
+.typing-dots .typing-dot:nth-child(2) {
   animation-delay: 0.15s;
 }
 
-.typing-dots span:nth-child(3) {
+.typing-dots .typing-dot:nth-child(3) {
   animation-delay: 0.3s;
+}
+
+.thinking-status-text {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  /* Re-triggers on every phrase change because ChatPage.jsx keys this
+     span by phraseIndex -- a new key means a new DOM node, which is what
+     makes a CSS animation (as opposed to a transition) restart at all. */
+  animation: statusTextIn 0.35s ease;
+}
+
+@keyframes statusTextIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .memory-suggestion {
@@ -5079,7 +5109,9 @@ footer {
   .achievement-modal-backdrop-finance::before,
   .game-toast,
   .game-toast-levelup .game-toast-icon,
-  .player-level-bar-fill {
+  .player-level-bar-fill,
+  .typing-dot,
+  .thinking-status-text {
     animation: none !important;
     transition: none !important;
   }
