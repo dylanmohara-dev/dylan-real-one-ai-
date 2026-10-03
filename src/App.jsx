@@ -899,6 +899,7 @@ function App() {
         settings={settings}
         setSettings={data.setSettings}
         playerStats={data.playerStats}
+        xpPopups={data.xpPopups}
         onOpenSearch={() => setSearchOverlayOpen(true)}
         onOpenStats={() => setStatsOverlayOpen(true)}
       />

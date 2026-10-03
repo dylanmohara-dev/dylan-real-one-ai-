@@ -183,6 +183,12 @@ export function useAppData() {
   // 'current' state to keep in sync with it.
   const [achievementQueue, setAchievementQueue] = useState([])
   const [playerStats, setPlayerStats] = useState({ xp: 0, level: 1, xpIntoLevel: 0, xpForNextLevel: 50 })
+  // Short-lived "+N XP" floating tags near the persistent level pill in
+  // TopSettingsBar -- separate from the achievement queue above, which is
+  // reserved for the rare full-screen moments. This fires on every single
+  // XP award so the always-visible bar actually feels like it's gaining
+  // something, not just a number that silently changes on refresh.
+  const [xpPopups, setXpPopups] = useState([])
   // Persisted set of School rank tiers (src/lib/schoolProgress.js) that
   // have already had their one-time unlock celebration -- see
   // detectSchoolLevelUp below.
@@ -813,23 +819,52 @@ export function useAppData() {
   // this one number goes up no matter which life area you're working in.
   // `reason` must be one of the fixed keys in lib/playerXP.js's reward
   // table; the server, not this call site, decides how much it's worth.
-  async function awardXP(reason) {
+  // Fires a transient "+N XP" tag next to the persistent level pill --
+  // auto-removes itself after its own animation finishes. `amount` is
+  // always the real XP delta the server just granted, never a guess.
+  function pushXpPopup(amount) {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    setXpPopups((prev) => [...prev, { id, amount }])
+    setTimeout(() => {
+      setXpPopups((prev) => prev.filter((item) => item.id !== id))
+    }, 1150)
+  }
+
+  // `modeKey` is optional and purely cosmetic -- it tells the level-up
+  // celebration (and, downstream, the SpellCastTransition pre-roll) which
+  // life area's colors to theme itself with. Omit it for XP sources that
+  // aren't tied to one of the 9 life modes (a generic task, a generic
+  // goal) and the celebration falls back to a neutral gold.
+  async function awardXP(reason, modeKey) {
     try {
       const result = await request('/player/award', {
         method: 'POST',
         body: JSON.stringify({ reason }),
       })
+      // Captured from the closure BEFORE setPlayerStats below overwrites
+      // it, so this is the real amount the server just granted, not a
+      // guess from the reason string.
+      const gained = result.xp - playerStats.xp
+      if (gained > 0) pushXpPopup(gained)
       setPlayerStats(result)
       if (result.leveledUp) {
         // Upgraded from a corner toast to the full Achievement unlock --
         // a level-up is the single biggest "you're making progress" event
         // in the whole app, it deserves more than the same treatment as
-        // an ordinary task completion.
+        // an ordinary task completion. The extra fields below (level/
+        // xpGained/modeKey) feed AchievementModal's count-up tally and
+        // the SpellCastTransition pre-roll -- harmless extra data for any
+        // other achievement kind, which ignores fields it doesn't use.
         pushAchievement({
           kind: 'levelup',
           title: 'LEVEL UP',
           subtitle: `You reached Level ${result.level}`,
           duration: 3600,
+          level: result.level,
+          xpGained: Math.max(gained, 0),
+          xpIntoLevel: result.xpIntoLevel,
+          xpForNextLevel: result.xpForNextLevel,
+          modeKey,
         })
         maybePlaySound('levelup')
       }
@@ -865,6 +900,7 @@ export function useAppData() {
         title: 'RANK UNLOCKED',
         subtitle: tier.title,
         duration: 3600,
+        modeKey: 'school',
       })
       maybePlaySound('levelup')
       try {
@@ -896,7 +932,7 @@ export function useAppData() {
           title: 'LEVEL UP',
           message: `${nextSkill.name} reached Level ${nextSkill.level}`,
         })
-        awardXP('skill-levelup')
+        awardXP('skill-levelup', 'skills')
       }
 
       const newBadges = (nextSkill.badges || []).slice(prevBadgeCount)
@@ -920,7 +956,7 @@ export function useAppData() {
             message: badge.label,
           })
         }
-        awardXP('skill-badge')
+        awardXP('skill-badge', 'skills')
       })
     }
   }
@@ -947,7 +983,7 @@ export function useAppData() {
           subtitle: `${nextQuest.title} -- +${nextQuest.bonusXp} bonus XP`,
         })
         maybePlaySound('milestone')
-        awardXP('skill-quest-complete')
+        awardXP('skill-quest-complete', 'skills')
       }
     }
   }
@@ -1027,7 +1063,7 @@ export function useAppData() {
       if (priorLogs.length > 0 && newBestWeight > priorBestWeight) {
         pushAchievement({ kind: 'pr', title: 'NEW PR', subtitle: `${exerciseName}: ${newBestWeight} lbs` })
         maybePlaySound('pr')
-        awardXP('gym-pr')
+        awardXP('gym-pr', 'gym')
       } else if (priorLogs.length > 0 && newBest1RM > priorBest1RM) {
         pushAchievement({
           kind: 'pr',
@@ -1035,7 +1071,7 @@ export function useAppData() {
           subtitle: `${exerciseName}: ~${Math.round(newBest1RM)} lbs`,
         })
         maybePlaySound('pr')
-        awardXP('gym-pr')
+        awardXP('gym-pr', 'gym')
       }
 
       if (!historyByExercise.has(log.exerciseId)) historyByExercise.set(log.exerciseId, [])
@@ -1052,7 +1088,7 @@ export function useAppData() {
     for (const completion of newCompletions) {
       const habit = habits?.find((h) => h.id === completion.habitId)
       pushToast({ kind: 'task', title: 'HABIT DONE', message: habit ? habit.name : 'Habit' })
-      awardXP('habit-done')
+      awardXP('habit-done', 'mind')
 
       // Same "only today counts toward an active streak" rule as
       // toggleMindCompletion -- a chat message marking a past day
@@ -1192,7 +1228,7 @@ export function useAppData() {
           subtitle: `${exerciseName}: ${newBestWeight} lbs`,
         })
         maybePlaySound('pr')
-        awardXP('gym-pr')
+        awardXP('gym-pr', 'gym')
       } else if (priorLogs.length > 0 && newBest1RM > priorBest1RM) {
         pushAchievement({
           kind: 'pr',
@@ -1200,7 +1236,7 @@ export function useAppData() {
           subtitle: `${exerciseName}: ~${Math.round(newBest1RM)} lbs`,
         })
         maybePlaySound('pr')
-        awardXP('gym-pr')
+        awardXP('gym-pr', 'gym')
       }
 
       showSuccess('Workout logged.')
@@ -1573,7 +1609,7 @@ export function useAppData() {
       if (result.done) {
         const habit = mindHabits.find((h) => h.id === habitId)
         pushToast({ kind: 'task', title: 'HABIT DONE', message: habit ? habit.name : 'Habit' })
-        awardXP('habit-done')
+        awardXP('habit-done', 'mind')
 
         // habitCurrentStreak counts back from TODAY, so this only means
         // something when the date just toggled on is today -- checking
@@ -2179,7 +2215,7 @@ export function useAppData() {
       // Flat XP for closing WITH a real lesson -- win or loss, same amount
       // either way. Separate from the realized-gain achievement above,
       // which still only fires on an actual win.
-      awardXP('trade-closed')
+      awardXP('trade-closed', 'finance')
     } catch (error) {
       showError(error.message)
     } finally {
@@ -2302,7 +2338,7 @@ export function useAppData() {
       showSuccess('Check-in logged.')
       // Same XP regardless of which mood was picked -- this rewards the
       // honesty of checking in, not a good mood (see lib/playerXP.js).
-      awardXP('psychology-checkin')
+      awardXP('psychology-checkin', 'finance')
     } catch (error) {
       showError(error.message)
     } finally {
@@ -2637,7 +2673,7 @@ export function useAppData() {
 
       if (completing) {
         pushToast({ kind: 'task', title: 'ASSIGNMENT DONE', message: assignment.title })
-        awardXP('assignment-done')
+        awardXP('assignment-done', 'school')
         await detectSchoolLevelUp(fresh)
       }
     } catch (error) {
@@ -2716,7 +2752,7 @@ export function useAppData() {
 
       if (completing) {
         pushToast({ kind: 'task', title: 'ASSIGNMENT DONE', message: canvasAssignment.title })
-        awardXP('assignment-done')
+        awardXP('assignment-done', 'school')
         await detectSchoolLevelUp(fresh)
       }
     } catch (error) {
@@ -2792,7 +2828,7 @@ export function useAppData() {
 
       if (completing) {
         pushToast({ kind: 'task', title: 'TEST LOGGED', message: test.title })
-        awardXP('test-logged')
+        awardXP('test-logged', 'school')
         await detectSchoolLevelUp(fresh)
       }
     } catch (error) {
@@ -2942,7 +2978,7 @@ export function useAppData() {
           duration: 3600,
         })
         maybePlaySound('levelup')
-        awardXP('boss-defeated')
+        awardXP('boss-defeated', 'school')
       }
     } catch (error) {
       showError(error.message)
@@ -3476,6 +3512,7 @@ export function useAppData() {
     dismissAchievement,
     maybePlaySound,
     playerStats,
+    xpPopups,
     heroImages,
     updateHeroImage,
     resetHeroImage,

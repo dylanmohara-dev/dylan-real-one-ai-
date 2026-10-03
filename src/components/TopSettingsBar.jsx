@@ -10,31 +10,49 @@ import { Search, Settings2, X } from 'lucide-react'
 // live behind a small gear toggle instead of being deleted -- nothing
 // here was the only place to reach these controls became true, so
 // hiding them by default is safe rather than a loss of functionality.
-export default function TopSettingsBar({ settings, setSettings, playerStats, onOpenSearch, onOpenStats }) {
+export default function TopSettingsBar({ settings, setSettings, playerStats, xpPopups, onOpenSearch, onOpenStats }) {
   const [open, setOpen] = useState(false)
 
   return (
     <header className="top-settings-bar">
-      <button
-        type="button"
-        className="player-level-pill"
-        onClick={onOpenStats}
-        title={`Level ${playerStats.level} — ${playerStats.xpIntoLevel} / ${playerStats.xpForNextLevel} XP to next level. Click for career stats.`}
-      >
-        <span className="player-level-badge">Lv {playerStats.level}</span>
-        <span className="player-level-bar">
-          <span
-            className="player-level-bar-fill"
-            style={{
-              width: `${
-                playerStats.xpForNextLevel
-                  ? Math.min(100, (playerStats.xpIntoLevel / playerStats.xpForNextLevel) * 100)
-                  : 0
-              }%`,
-            }}
-          />
-        </span>
-      </button>
+      {/* Wrapper is just a positioning context for the floating "+N XP"
+          tags below -- they need to sit above the pill without affecting
+          its own layout, and a plain button can't be a positioned
+          ancestor for absolutely-positioned siblings cleanly. */}
+      <span className="player-level-pill-wrap">
+        <button
+          type="button"
+          className="player-level-pill"
+          onClick={onOpenStats}
+          title={`Level ${playerStats.level} — ${playerStats.xpIntoLevel} / ${playerStats.xpForNextLevel} XP to next level. Click for career stats.`}
+        >
+          <span className="player-level-badge">Lv {playerStats.level}</span>
+          <span className="player-level-bar">
+            <span
+              className="player-level-bar-fill"
+              style={{
+                width: `${
+                  playerStats.xpForNextLevel
+                    ? Math.min(100, (playerStats.xpIntoLevel / playerStats.xpForNextLevel) * 100)
+                    : 0
+                }%`,
+              }}
+            />
+          </span>
+        </button>
+
+        {/* One span per in-flight XP gain -- each carries its own fresh key
+            so its CSS animation always plays from the start, even if a
+            second award lands while the first tag is still floating up. */}
+        {(xpPopups || []).map((popup) => (
+          <span key={popup.id} className="player-level-xp-popup" aria-hidden="true">
+            +{popup.amount} XP
+          </span>
+        ))}
+        {(xpPopups || []).length > 0 && (
+          <span key={xpPopups[xpPopups.length - 1].id} className="player-level-pulse-ring" aria-hidden="true" />
+        )}
+      </span>
 
       <div className="top-settings-spacer" />
 
