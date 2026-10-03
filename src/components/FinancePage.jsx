@@ -1552,7 +1552,7 @@ function WatchlistForm({ saving, addWatchlistItem }) {
         style={{ textTransform: 'uppercase' }}
       />
       <textarea
-        placeholder="Thesis -- the real case, not 'it's going up'"
+        placeholder="Thesis (optional) -- the real case, not 'it's going up'"
         value={thesis}
         onChange={(event) => setThesis(event.target.value)}
         rows={2}
@@ -1569,7 +1569,7 @@ function WatchlistForm({ saving, addWatchlistItem }) {
           onChange={(event) => setValuation(event.target.value)}
         />
       </div>
-      <button onClick={handleAdd} disabled={saving || !ticker.trim() || !thesis.trim()}>
+      <button onClick={handleAdd} disabled={saving || !ticker.trim()}>
         <Plus size={14} strokeWidth={2.5} /> Add to watchlist
       </button>
     </div>
@@ -1609,7 +1609,11 @@ function WatchlistRow({ item, quote, saving, updateWatchlistItem, deleteWatchlis
           ))}
         </select>
       </div>
-      <p className="finance-watchlist-thesis">{item.thesis}</p>
+      {item.thesis ? (
+        <p className="finance-watchlist-thesis">{item.thesis}</p>
+      ) : (
+        <p className="finance-watchlist-thesis finance-watchlist-thesis-empty">No thesis logged -- just tracking the price.</p>
+      )}
       {item.catalyst && <p className="trading-card-line">Catalyst: {item.catalyst}</p>}
       {item.valuation && <p className="trading-card-line">Valuation: {item.valuation}</p>}
       <div className="item-meta">
@@ -1966,36 +1970,49 @@ function DailyBriefingTab() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="finance-briefing-item-top">
-                    <span className="finance-briefing-source">{article.source}</span>
-                    <span className="finance-briefing-time">{formatNewsTime(article.datetime)}</span>
-                  </div>
-                  <strong>{article.headline}</strong>
+                  <div className="finance-briefing-item-body">
+                    {article.image && (
+                      <img
+                        src={article.image}
+                        alt=""
+                        className="finance-briefing-image"
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.style.display = 'none' }}
+                      />
+                    )}
+                    <div className="finance-briefing-item-text">
+                      <div className="finance-briefing-item-top">
+                        <span className="finance-briefing-source">{article.source}</span>
+                        <span className="finance-briefing-time">{formatNewsTime(article.datetime)}</span>
+                      </div>
+                      <strong className="finance-briefing-headline">{article.headline}</strong>
 
-                  {article.related.length > 0 && (
-                    <div className="finance-briefing-tickers">
-                      {article.related.map((ticker) => (
-                        <span key={ticker} className="finance-briefing-ticker-chip">
-                          {ticker}
-                        </span>
-                      ))}
+                      {article.related.length > 0 && (
+                        <div className="finance-briefing-tickers">
+                          {article.related.map((ticker) => (
+                            <span key={ticker} className="finance-briefing-ticker-chip">
+                              {ticker}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {expanded && (
+                        <>
+                          {article.summary && <p className="finance-briefing-summary">{article.summary}</p>}
+                          <a
+                            href={article.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="finance-briefing-read-more"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Read full story <ExternalLink size={13} strokeWidth={2.25} />
+                          </a>
+                        </>
+                      )}
                     </div>
-                  )}
-
-                  {expanded && (
-                    <>
-                      {article.summary && <p className="finance-briefing-summary">{article.summary}</p>}
-                      <a
-                        href={article.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="finance-briefing-read-more"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        Read full story <ExternalLink size={13} strokeWidth={2.25} />
-                      </a>
-                    </>
-                  )}
+                  </div>
                 </div>
               )
             })}

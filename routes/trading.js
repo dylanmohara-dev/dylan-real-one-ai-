@@ -306,13 +306,18 @@ router.post('/watchlist', (req, res) => {
 
     const cleanTicker = (ticker || '').toString().trim().toUpperCase()
     if (!cleanTicker) return res.status(400).json({ error: 'ticker is required' })
-    if (!thesis?.toString().trim()) return res.status(400).json({ error: 'thesis is required' })
 
     const watchlist = loadData('trading_watchlist')
     const item = {
       id: Date.now().toString(),
       ticker: cleanTicker,
-      thesis: thesis.toString().trim(),
+      // Thesis is now optional -- Dylan asked for a quick "type a ticker,
+      // see the real-time price" add (like TradingView's watchlist), not
+      // a forced journal entry every time. The thesis-required discipline
+      // still works when he DOES write one; this just stops blocking the
+      // ticker-only case. Blank is a real state the UI shows honestly
+      // ("No thesis logged"), never defaulted to a fake placeholder string.
+      thesis: (thesis || '').toString().trim(),
       catalyst: (catalyst || '').toString().trim(),
       valuation: (valuation || '').toString().trim(),
       verdict: verdict && ['watching', 'pass', 'ready'].includes(verdict) ? verdict : 'watching',
