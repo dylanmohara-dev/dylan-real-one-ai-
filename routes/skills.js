@@ -2,6 +2,7 @@ import express, { Router } from 'express'
 import fs from 'fs'
 import path from 'path'
 import { loadData, saveData, dataDirectory } from '../lib/dataStore.js'
+import { addToTrash } from '../lib/trashStore.js'
 import { enrichSkill, computeQuests, buildHeatmap, todayKey, BASE_SESSION_XP } from '../lib/skillsEngine.js'
 
 const router = Router()
@@ -166,14 +167,28 @@ router.delete('/sessions/:id', (req, res) => {
   saveData('skill_sessions', remaining)
 
   // Undo the XP that session contributed, so deleting a bad log entry
-  // doesn't leave a permanent level/badge earned from a mistake.
+  // doesn't leave a permanent level/badge earned from a mistake. The exact
+  // amount actually removed (xpDelta, which can be less than
+  // quantity+BASE_SESSION_XP if the floor at 0 clamped it) is captured
+  // into the trash snapshot below, so a restore adds back exactly what
+  // was taken -- not a recomputed guess that could overshoot past the
+  // clamp.
   if (session) {
     const skills = loadData('skills')
     const skill = skills.find((s) => s.id === session.skillId)
+    let xpDelta = 0
     if (skill) {
-      skill.xp = Math.max(0, (skill.xp || 0) - Number(session.quantity || 0) - BASE_SESSION_XP)
+      const beforeXp = skill.xp || 0
+      skill.xp = Math.max(0, beforeXp - Number(session.quantity || 0) - BASE_SESSION_XP)
+      xpDelta = beforeXp - skill.xp
       saveData('skills', skills)
     }
+    addToTrash({
+      mode: 'skills',
+      kind: 'skill-session',
+      label: `${session.quantity} ${skill?.unit || 'reps'} logged`,
+      snapshot: { session, skillId: session.skillId, xpDelta },
+    })
   }
 
   res.json(buildPayload())

@@ -110,6 +110,24 @@ const RESTORE_HANDLERS = {
   'health-entry': (snapshot) => {
     pushIfAbsent('health', snapshot)
   },
+  // Re-adds exactly the XP amount the original delete subtracted
+  // (snapshot.xpDelta, captured at delete time -- see routes/skills.js's
+  // DELETE /sessions/:id) rather than recomputing quantity+BASE_SESSION_XP,
+  // which could overshoot if the original subtraction got clamped at 0.
+  // If the skill itself no longer exists, the session still comes back --
+  // just without an XP replay, same "never throws, best-effort" rule as
+  // every other handler here.
+  'skill-session': (snapshot) => {
+    const added = pushIfAbsent('skill_sessions', snapshot.session)
+    if (added && snapshot.xpDelta) {
+      const skills = loadData('skills')
+      const skill = skills.find((s) => s.id === snapshot.skillId)
+      if (skill) {
+        skill.xp = (skill.xp || 0) + snapshot.xpDelta
+        saveData('skills', skills)
+      }
+    }
+  },
 }
 
 router.get('/', (req, res) => {
