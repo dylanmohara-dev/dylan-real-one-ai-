@@ -2343,13 +2343,12 @@ export default function FinancePage({
     { key: 'reports', label: 'Reports', icon: BarChart3 },
     { key: 'briefing', label: 'Daily Briefing', icon: Newspaper },
   ]
-  // Macro Desk hidden from nav per Dylan's own call -- he tracks his
-  // watchlist in his broker app and never populated this in-app version
-  // (confirmed: trading_positions/trading_watchlist were both empty).
-  // Filtered here rather than removed from NAV_ITEMS/deleted from routes,
-  // so TradingTab and its backend stay fully intact and this is a
-  // one-line revert if he wants it back.
-  const VISIBLE_NAV_ITEMS = NAV_ITEMS.filter((item) => item.key !== 'trading')
+  // Macro Desk was hidden for a while (Dylan tracked his watchlist in
+  // his broker app instead) -- re-enabled per his explicit request to make
+  // Finance mode feel like a real trading app, now that real quotes/
+  // technicals are the plan. Reverting to NAV_ITEMS directly (no filter)
+  // rather than deleting the old filter logic's history here.
+  const VISIBLE_NAV_ITEMS = NAV_ITEMS
 
   return (
     <div className="page finance-page">

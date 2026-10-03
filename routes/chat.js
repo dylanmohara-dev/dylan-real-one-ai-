@@ -7,6 +7,7 @@ import { createReplyExtractor } from '../lib/streamingJson.js'
 import { todayKey } from '../lib/studyPlan.js'
 import { fetchQuotes } from '../lib/marketData.js'
 import { fetchTechnicals } from '../lib/technicals.js'
+import { getApiKey } from '../lib/apiKeys.js'
 import { enrichSkill, computeQuests } from '../lib/skillsEngine.js'
 import {
   OLLAMA_HOST,
@@ -18,7 +19,6 @@ import {
   OLLAMA_PING_TIMEOUT_MS,
   KEEP_ALIVE,
   MAX_CHAT_HISTORY_MESSAGES,
-  GROQ_API_KEY,
   GROQ_URL,
   GROQ_MODEL,
   GROQ_TIMEOUT_MS,
@@ -154,14 +154,15 @@ async function resolveAvailableModel(preferredModel, fallbackModel) {
 // `streaming` controls whether stream: true is set (memory-check wants a
 // single JSON response, the other two text paths want token-by-token SSE).
 async function runChatCompletion(buildBody, { streaming = true, preferGroq = true } = {}) {
-  if (preferGroq && GROQ_API_KEY) {
+  const groqApiKey = getApiKey('GROQ_API_KEY')
+  if (preferGroq && groqApiKey) {
     try {
       const body = buildBody(GROQ_MODEL)
       const groqResponse = await fetchWithTimeout(
         GROQ_URL,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_API_KEY}` },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
           // include_reasoning: false -- gpt-oss models can return their own
           // internal chain-of-thought in a separate `reasoning` field;
           // Dylan never asked to see that, and the main chat path's JSON
@@ -203,7 +204,7 @@ async function runChatCompletion(buildBody, { streaming = true, preferGroq = tru
   return {
     response,
     usedFallback,
-    backendNotice: GROQ_API_KEY
+    backendNotice: groqApiKey
       ? '\n\n(Groq is unreachable right now -- answered with the local model instead.)'
       : '',
   }

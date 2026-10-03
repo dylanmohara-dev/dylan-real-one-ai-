@@ -41,6 +41,7 @@ import financeJournalRouter from './routes/financeJournal.js'
 import financePsychologyRouter from './routes/financePsychology.js'
 import searchRouter from './routes/search.js'
 import heroImagesRouter from './routes/heroImages.js'
+import settingsRouter from './routes/settings.js'
 import { startModelWarmup } from './lib/ollamaWarm.js'
 import { startNotificationScheduler } from './lib/notificationScheduler.js'
 
@@ -73,6 +74,7 @@ app.use('/api/journal', journalRouter)
 app.use('/api/health', healthRouter)
 app.use('/api/calendar', calendarRouter)
 app.use('/api/finance', financeRouter)
+app.use('/api/settings', settingsRouter)
 app.use('/api/onboarding', onboardingRouter)
 app.use('/api/skills', skillsRouter)
 app.use('/api/gmail', gmailRouter)

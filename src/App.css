@@ -11883,6 +11883,71 @@ button:disabled:active {
   cursor: default;
 }
 
+/* Settings page: API keys / integrations */
+.api-key-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.api-key-status-pill {
+  margin-left: 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  font-family: var(--font-mono, monospace);
+  opacity: 0.6;
+  letter-spacing: 0.02em;
+}
+
+.api-key-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.api-key-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(9px * var(--mode-radius-scale, 1));
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.api-key-input:focus {
+  outline: none;
+  border-color: rgb(var(--mode-accent-rgb));
+}
+
+.api-key-clear-button {
+  padding: 10px 14px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(9px * var(--mode-radius-scale, 1));
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.api-key-clear-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.api-key-signup-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: rgb(var(--mode-accent-rgb));
+  white-space: nowrap;
+}
+
 /* Settings page: backup & export */
 .backup-card {
   display: flex;

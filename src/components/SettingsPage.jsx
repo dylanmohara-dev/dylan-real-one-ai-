@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Download, ShieldCheck, RotateCcw, Bell, BellOff, BellRing } from 'lucide-react'
+import { Download, ShieldCheck, RotateCcw, Bell, BellOff, BellRing, Key, ExternalLink } from 'lucide-react'
 import { DESIGN_SYSTEMS, COLOR_PALETTES, LIFE_MODES } from '../data/lifeModes.js'
 
 // See useAppData.js's API constant for why this needs the DEV check --
@@ -137,6 +137,48 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
       setMapError(err.message)
     } finally {
       setMappingMode(null)
+    }
+  }
+
+  // --- API keys / integrations ---
+  // Server-side only (never localStorage -- these are secrets, and the
+  // Node server is what actually needs them). GET on mount, PUT per key
+  // on save. A save takes effect on the very next request anywhere in the
+  // app -- lib/apiKeys.js reads fresh from disk each time, no restart.
+  const [apiKeys, setApiKeys] = useState([])
+  const [apiKeysLoading, setApiKeysLoading] = useState(true)
+  const [apiKeyDrafts, setApiKeyDrafts] = useState({})
+  const [apiKeySaving, setApiKeySaving] = useState(null)
+  const [apiKeyError, setApiKeyError] = useState('')
+  const [apiKeySavedFlash, setApiKeySavedFlash] = useState(null)
+
+  useEffect(() => {
+    fetch(`${API}/settings/api-keys`)
+      .then((r) => r.json())
+      .then((data) => setApiKeys(data.keys || []))
+      .catch(() => setApiKeyError('Could not load API key status.'))
+      .finally(() => setApiKeysLoading(false))
+  }, [])
+
+  async function saveApiKey(key, value) {
+    setApiKeySaving(key)
+    setApiKeyError('')
+    try {
+      const res = await fetch(`${API}/settings/api-keys/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Save failed')
+      setApiKeys(data.keys || [])
+      setApiKeyDrafts((prev) => ({ ...prev, [key]: '' }))
+      setApiKeySavedFlash(key)
+      setTimeout(() => setApiKeySavedFlash((cur) => (cur === key ? null : cur)), 2000)
+    } catch (err) {
+      setApiKeyError(err.message)
+    } finally {
+      setApiKeySaving(null)
     }
   }
 
@@ -787,6 +829,79 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
               </>
             )}
           </>
+        )}
+      </div>
+
+      <div className="classic-tools api-keys-section">
+        <span className="eyebrow">INTEGRATIONS &amp; API KEYS</span>
+        <p className="classic-tools-note">
+          Optional free keys that turn "not connected" into real data --
+          live stock/crypto quotes, real market headlines, a faster AI
+          model, live web search in chat. Saved here, not hand-edited into
+          a text file -- a save takes effect immediately, no restart.
+        </p>
+
+        {apiKeyError && <p className="journal-error">{apiKeyError}</p>}
+
+        {apiKeysLoading ? (
+          <p className="mode-page-note">Loading...</p>
+        ) : (
+          apiKeys.map((def) => (
+            <div className="backup-card api-key-card" key={def.key}>
+              <div className="backup-card-summary">
+                <Key size={18} strokeWidth={2} />
+                <div>
+                  <strong>
+                    {def.label}
+                    {def.isSet && (
+                      <span className="api-key-status-pill">
+                        {def.masked}{def.source === 'env' ? ' · from .env' : ''}
+                      </span>
+                    )}
+                  </strong>
+                  <p className="backup-excluded-note">{def.description}</p>
+                  {apiKeySavedFlash === def.key && <p className="backup-last-export">Saved.</p>}
+                </div>
+              </div>
+
+              <div className="api-key-input-row">
+                <input
+                  type="password"
+                  autoComplete="off"
+                  placeholder={def.isSet ? 'Replace key...' : 'Paste your key...'}
+                  value={apiKeyDrafts[def.key] || ''}
+                  onChange={(e) =>
+                    setApiKeyDrafts((prev) => ({ ...prev, [def.key]: e.target.value }))
+                  }
+                  className="api-key-input"
+                />
+                <button
+                  className="backup-download-button"
+                  onClick={() => saveApiKey(def.key, apiKeyDrafts[def.key] || '')}
+                  disabled={!apiKeyDrafts[def.key] || apiKeySaving === def.key}
+                >
+                  {apiKeySaving === def.key ? 'Saving...' : 'Save'}
+                </button>
+                {def.isSet && (
+                  <button
+                    className="api-key-clear-button"
+                    onClick={() => saveApiKey(def.key, '')}
+                    disabled={apiKeySaving === def.key}
+                  >
+                    Clear
+                  </button>
+                )}
+                <a
+                  href={def.signupUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="api-key-signup-link"
+                >
+                  Get a free key <ExternalLink size={13} strokeWidth={2.25} />
+                </a>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
