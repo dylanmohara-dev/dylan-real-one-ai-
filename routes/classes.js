@@ -88,4 +88,23 @@ router.delete('/:id', (req, res) => {
   res.json({ success: true })
 })
 
+// Restores a previously-deleted class exactly as it was (undo support in
+// SchoolPage.jsx / useAppData.js). Unlike POST / this takes the FULL
+// record, including its original id -- so a redo (re-delete) can target
+// the same id, and so this can be called before its cascaded
+// assignments/tests are restored without anything breaking.
+router.post('/restore', (req, res) => {
+  const record = req.body.class
+  if (!record?.id || !record?.name) {
+    return res.status(400).json({ error: 'A full class record with id and name is required' })
+  }
+  const classes = loadData('classes')
+  if (classes.some((c) => c.id === record.id)) {
+    return res.json({ class: record })
+  }
+  classes.push(record)
+  saveData('classes', classes)
+  res.json({ class: record })
+})
+
 export default router

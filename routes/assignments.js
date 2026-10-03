@@ -64,4 +64,32 @@ router.delete('/:id', async (req, res) => {
   res.json({ success: true })
 })
 
+// Restores a previously-deleted assignment exactly as it was, including
+// fields POST / never accepts on create (completed, grade) -- see
+// classes.js's /restore for why this needs the full record rather than
+// reusing the create route.
+router.post('/restore', async (req, res) => {
+  const record = req.body.assignment
+  if (!record?.id || !record?.title || !record?.classId) {
+    return res.status(400).json({ error: 'A full assignment record with id, title and classId is required' })
+  }
+  const assignments = loadData('assignments')
+  if (assignments.some((a) => a.id === record.id)) {
+    return res.json({ assignment: record })
+  }
+  // The snapshot was taken before delete ran clearCalendarEvent on the
+  // live record, so it still carries the OLD (now-deleted) real-calendar
+  // link. Reusing that link would make syncCalendarEvent try to update an
+  // event that no longer exists -- a silent, permanent failure (see the
+  // "stuck record" note in lib/calendarAutoSync.js). Dropping the stale
+  // link first forces a clean create instead.
+  delete record.calendarEventUrl
+  delete record.calendarEventEtag
+  delete record.calendarEventUid
+  await syncCalendarEvent(record, { title: record.title, date: record.dueDate, mode: 'school' })
+  assignments.push(record)
+  saveData('assignments', assignments)
+  res.json({ assignment: record })
+})
+
 export default router

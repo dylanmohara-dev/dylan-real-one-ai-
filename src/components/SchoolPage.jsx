@@ -3,7 +3,7 @@ import {
   Check, Flame, Swords, Shield, FileText, X, ExternalLink, Award,
   Calculator, Plus, Divide, FlaskConical, Atom, BookOpen, Landmark, Globe,
   Languages, DollarSign, Briefcase, Palette, Music, Dumbbell, Compass,
-  GraduationCap,
+  GraduationCap, Undo2, Redo2,
 } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import RadialProgress from './RadialProgress.jsx'
@@ -496,6 +496,11 @@ export default function SchoolPage({
   setActivePage,
   assistantContext,
   openChat,
+  lastSchoolDelete,
+  lastSchoolRedo,
+  undoLastSchoolDelete,
+  redoLastSchoolDelete,
+  dismissSchoolUndo,
 }) {
   const classAssignments = (classId) => assignments.filter((a) => a.classId === classId)
   const classTests = (classId) => tests.filter((t) => t.classId === classId)
@@ -780,6 +785,53 @@ export default function SchoolPage({
 
   return (
     <div className="page school-page">
+      {/* One-level undo/redo for deleted classes/assignments/tests -- modeled
+          on "Gmail Undo Send": session-only, no deep history. lastSchoolDelete
+          holds the just-deleted item (shows "Undo"); lastSchoolRedo holds the
+          just-undone item (shows "Redo" to re-delete it). Only one of the two
+          is ever set at a time. */}
+      {(lastSchoolDelete || lastSchoolRedo) && (
+        <div className="school-undo-banner" role="status">
+          {lastSchoolDelete && (
+            <>
+              <span className="school-undo-banner-text">
+                {lastSchoolDelete.label} deleted.
+              </span>
+              <button
+                type="button"
+                className="school-undo-banner-button"
+                onClick={undoLastSchoolDelete}
+              >
+                <Undo2 size={16} />
+                Undo
+              </button>
+            </>
+          )}
+          {lastSchoolRedo && (
+            <>
+              <span className="school-undo-banner-text">
+                {lastSchoolRedo.label} restored.
+              </span>
+              <button
+                type="button"
+                className="school-undo-banner-button"
+                onClick={redoLastSchoolDelete}
+              >
+                <Redo2 size={16} />
+                Redo
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            className="school-undo-banner-dismiss"
+            onClick={dismissSchoolUndo}
+            aria-label="Dismiss"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
       {/* This sub-view's header was missing the mode-hero class every other
           mode page applies (Sports, Gym, Health, etc. -- see their own
           page-header divs), which is what gives room for the full-bleed

@@ -304,6 +304,11 @@ function App() {
           deleteTest={data.deleteTest}
           generateStudyPlan={data.generateStudyPlan}
           clearStudyPlan={data.clearStudyPlan}
+          lastSchoolDelete={data.lastSchoolDelete}
+          lastSchoolRedo={data.lastSchoolRedo}
+          undoLastSchoolDelete={data.undoLastSchoolDelete}
+          redoLastSchoolDelete={data.redoLastSchoolDelete}
+          dismissSchoolUndo={data.dismissSchoolUndo}
           setActivePage={navigateTo}
           assistantContext={assistantContext}
           openChat={openChat}

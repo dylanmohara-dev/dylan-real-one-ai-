@@ -2698,6 +2698,59 @@ footer {
   font-size: 10px;
 }
 
+/* School: one-level undo/redo banner for deleted classes/assignments/tests */
+.school-undo-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: var(--mode-border-width, 1px) solid var(--border);
+  border-radius: calc(12px * var(--mode-radius-scale, 1));
+  background: rgba(var(--mode-accent-rgb), 0.1);
+}
+
+.school-undo-banner-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.school-undo-banner-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: rgba(var(--mode-accent-rgb), 0.9);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.school-undo-banner-button:hover {
+  background: rgb(var(--mode-accent-rgb));
+}
+
+.school-undo-banner-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.school-undo-banner-dismiss:hover {
+  opacity: 1;
+}
+
 /* School: GPA banner + per-item grade input */
 .school-gpa-banner {
   display: flex;

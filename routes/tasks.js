@@ -60,4 +60,29 @@ router.delete('/:id', async (req, res) => {
   res.json({ success: true })
 })
 
+// Restores a previously-deleted task exactly as it was -- used to bring
+// back a deleted test's study-plan sessions (which deleteTest cascades
+// away) as part of undoing that delete. See classes.js's /restore for why
+// this takes the full record rather than reusing the create route.
+router.post('/restore', async (req, res) => {
+  const record = req.body.task
+  if (!record?.id || !record?.title) {
+    return res.status(400).json({ error: 'A full task record with id and title is required' })
+  }
+  const tasks = loadData('tasks')
+  if (tasks.some((t) => t.id === record.id)) {
+    return res.json({ task: record })
+  }
+  // See assignments.js's /restore -- drop the stale real-calendar link
+  // from before the delete, so this creates a fresh event instead of
+  // retrying an update against one that's already gone.
+  delete record.calendarEventUrl
+  delete record.calendarEventEtag
+  delete record.calendarEventUid
+  await syncCalendarEvent(record, { title: record.title, date: record.dueDate, mode: record.category })
+  tasks.push(record)
+  saveData('tasks', tasks)
+  res.json({ task: record })
+})
+
 export default router

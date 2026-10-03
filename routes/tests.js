@@ -205,4 +205,29 @@ router.delete('/:id/study-plan', async (req, res) => {
   res.json({ success: true })
 })
 
+// Restores a previously-deleted test exactly as it was (undo support).
+// See classes.js's /restore for why this takes the full record rather
+// than reusing the create route.
+router.post('/restore', async (req, res) => {
+  const record = req.body.test
+  if (!record?.id || !record?.title || !record?.classId) {
+    return res.status(400).json({ error: 'A full test record with id, title and classId is required' })
+  }
+  const tests = loadData('tests')
+  if (tests.some((t) => t.id === record.id)) {
+    return res.json({ test: record })
+  }
+  // See assignments.js's /restore -- the snapshot predates the delete's
+  // clearCalendarEvent call, so it still points at a real event that's
+  // already gone. Drop the stale link so this re-syncs with a fresh one
+  // instead of retrying a doomed update forever.
+  delete record.calendarEventUrl
+  delete record.calendarEventEtag
+  delete record.calendarEventUid
+  await syncCalendarEvent(record, { title: record.title, date: record.date, mode: 'school' })
+  tests.push(record)
+  saveData('tests', tests)
+  res.json({ test: record })
+})
+
 export default router

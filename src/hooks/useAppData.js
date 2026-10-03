@@ -215,6 +215,20 @@ export function useAppData() {
   const [classes, setClasses] = useState([])
   const [assignments, setAssignments] = useState([])
   const [tests, setTests] = useState([])
+  // One-level undo/redo for School's three destructive deletes (class,
+  // assignment, test) -- each one can cascade-delete real child data
+  // (a class delete removes its assignments/tests/study-plan tasks; a
+  // test delete removes its study-plan tasks), so "delete" here was a
+  // genuine, unrecoverable data-loss risk with no way back. Deliberately
+  // one level deep (like Gmail's "Undo Send"), not a full history stack --
+  // this is session-only and resets on reload, which matches how every
+  // other undo-after-delete pattern in the app already works.
+  // lastSchoolDelete: { kind, label, snapshot, expiresAt } | null
+  // lastSchoolRedo: { kind, id } | null -- what undo just brought back,
+  // so redo knows what to delete again.
+  const [lastSchoolDelete, setLastSchoolDelete] = useState(null)
+  const [lastSchoolRedo, setLastSchoolRedo] = useState(null)
+  const schoolUndoTimerRef = useRef(null)
   const [selectedClassId, setSelectedClassId] = useState(null)
   const [classNameInput, setClassNameInput] = useState('')
   const [assignmentInput, setAssignmentInput] = useState('')
@@ -2542,13 +2556,27 @@ export function useAppData() {
   }
 
   async function deleteClass(id) {
+    const schoolClass = classes.find((c) => c.id === id)
+    if (!schoolClass) return
+    // Snapshot everything this delete is about to cascade away (see
+    // routes/classes.js's DELETE handler) so undo can bring all of it
+    // back exactly, not just the class itself.
+    const cascadedAssignments = assignments.filter((a) => a.classId === id)
+    const cascadedTests = tests.filter((t) => t.classId === id)
+    const cascadedTestIds = new Set(cascadedTests.map((t) => t.id))
+    const cascadedTasks = tasks.filter((t) => cascadedTestIds.has(t.studyPlanFor))
     try {
       await request(`/classes/${id}`, { method: 'DELETE' })
       if (selectedClassId === id) {
         setSelectedClassId(null)
       }
       await loadData()
-      showSuccess('Class deleted.')
+      pushSchoolUndo({
+        kind: 'class',
+        id,
+        label: `Class "${schoolClass.name}"`,
+        snapshot: { class: schoolClass, assignments: cascadedAssignments, tests: cascadedTests, tasks: cascadedTasks },
+      })
     } catch (error) {
       showError(error.message)
     }
@@ -2618,10 +2646,17 @@ export function useAppData() {
   }
 
   async function deleteAssignment(id) {
+    const assignment = assignments.find((a) => a.id === id)
+    if (!assignment) return
     try {
       await request(`/assignments/${id}`, { method: 'DELETE' })
       await loadData()
-      showSuccess('Assignment deleted.')
+      pushSchoolUndo({
+        kind: 'assignment',
+        id,
+        label: `Assignment "${assignment.title}"`,
+        snapshot: { assignment },
+      })
     } catch (error) {
       showError(error.message)
     }
@@ -2766,13 +2801,96 @@ export function useAppData() {
   }
 
   async function deleteTest(id) {
+    const test = tests.find((t) => t.id === id)
+    if (!test) return
+    // deleteTest cascades to any study-plan tasks generated for it (see
+    // routes/tests.js's DELETE handler) -- snapshot those too.
+    const cascadedTasks = tasks.filter((t) => t.studyPlanFor === id)
     try {
       await request(`/tests/${id}`, { method: 'DELETE' })
       await loadData()
-      showSuccess('Test deleted.')
+      pushSchoolUndo({
+        kind: 'test',
+        id,
+        label: `Test "${test.title}"`,
+        snapshot: { test, tasks: cascadedTasks },
+      })
     } catch (error) {
       showError(error.message)
     }
+  }
+
+  // --- undo/redo plumbing for the three deletes above ---
+
+  function pushSchoolUndo({ kind, id, label, snapshot }) {
+    if (schoolUndoTimerRef.current) clearTimeout(schoolUndoTimerRef.current)
+    setLastSchoolRedo(null) // a fresh delete invalidates any pending redo
+    setLastSchoolDelete({ kind, id, label, snapshot })
+    schoolUndoTimerRef.current = setTimeout(() => {
+      setLastSchoolDelete(null)
+      schoolUndoTimerRef.current = null
+    }, 8000)
+    showSuccess(`${label} deleted.`)
+  }
+
+  function dismissSchoolUndo() {
+    if (schoolUndoTimerRef.current) {
+      clearTimeout(schoolUndoTimerRef.current)
+      schoolUndoTimerRef.current = null
+    }
+    setLastSchoolDelete(null)
+  }
+
+  // Restores a snapshot from pushSchoolUndo verbatim -- same ids, same
+  // fields, via each resource's /restore route (routes/classes.js,
+  // assignments.js, tests.js, tasks.js) rather than the normal create
+  // routes, which intentionally don't accept most of these fields.
+  async function undoLastSchoolDelete() {
+    if (!lastSchoolDelete) return
+    const { kind, id, snapshot, label } = lastSchoolDelete
+    if (schoolUndoTimerRef.current) {
+      clearTimeout(schoolUndoTimerRef.current)
+      schoolUndoTimerRef.current = null
+    }
+    try {
+      if (kind === 'class') {
+        await request('/classes/restore', { method: 'POST', body: JSON.stringify({ class: snapshot.class }) })
+        for (const a of snapshot.assignments) {
+          await request('/assignments/restore', { method: 'POST', body: JSON.stringify({ assignment: a }) })
+        }
+        for (const t of snapshot.tests) {
+          await request('/tests/restore', { method: 'POST', body: JSON.stringify({ test: t }) })
+        }
+        for (const task of snapshot.tasks) {
+          await request('/tasks/restore', { method: 'POST', body: JSON.stringify({ task }) })
+        }
+      } else if (kind === 'assignment') {
+        await request('/assignments/restore', { method: 'POST', body: JSON.stringify({ assignment: snapshot.assignment }) })
+      } else if (kind === 'test') {
+        await request('/tests/restore', { method: 'POST', body: JSON.stringify({ test: snapshot.test }) })
+        for (const task of snapshot.tasks) {
+          await request('/tasks/restore', { method: 'POST', body: JSON.stringify({ task }) })
+        }
+      }
+      await loadData()
+      setLastSchoolDelete(null)
+      setLastSchoolRedo({ kind, id, label })
+      showSuccess('Restored.')
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  // Redo = delete the just-restored item again, by the same id -- the
+  // exact same code path as the original delete, which is why this just
+  // calls back into it rather than duplicating the DELETE calls.
+  async function redoLastSchoolDelete() {
+    if (!lastSchoolRedo) return
+    const { kind, id } = lastSchoolRedo
+    setLastSchoolRedo(null)
+    if (kind === 'class') await deleteClass(id)
+    else if (kind === 'assignment') await deleteAssignment(id)
+    else if (kind === 'test') await deleteTest(id)
   }
 
   // Generates (or regenerates, replacing any existing plan for this test)
@@ -3427,6 +3545,11 @@ export function useAppData() {
     deleteTest,
     generateStudyPlan,
     clearStudyPlan,
+    lastSchoolDelete,
+    lastSchoolRedo,
+    undoLastSchoolDelete,
+    redoLastSchoolDelete,
+    dismissSchoolUndo,
 
     // goals
     goals,
