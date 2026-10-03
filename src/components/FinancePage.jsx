@@ -25,6 +25,7 @@ import {
   DollarSign,
   ExternalLink,
   Newspaper,
+  ChevronDown,
 } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
@@ -1928,6 +1929,22 @@ function DailyBriefingTab() {
   // this gives both without forcing a tab switch just to see what a
   // headline is actually about.
   const [expandedId, setExpandedId] = useState(null)
+  // Session 42: Dylan asked for the sections themselves to be
+  // click-to-reveal -- see just the section headers first, click one and
+  // its stories appear -- rather than every section's full grid showing
+  // at once. Starts fully collapsed to match "I click the section then
+  // the stories appear" literally; a Set of expanded section keys so
+  // more than one can be open together.
+  const [expandedSections, setExpandedSections] = useState(() => new Set())
+
+  function toggleSection(key) {
+    setExpandedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   // Sectioned by Finnhub's own real category field -- any category value
   // outside the 4 known ones (shouldn't happen, but never silently drop
@@ -1978,14 +1995,30 @@ function DailyBriefingTab() {
         </div>
       )}
 
-      {sections.map((section) => (
+      {sections.map((section) => {
+        const sectionOpen = expandedSections.has(section.key)
+        return (
         <div className="finance-briefing-section" key={section.key} style={{ '--news-rgb': section.meta.rgb }}>
-          <div className="finance-briefing-section-header">
+          <div
+            className="finance-briefing-section-header"
+            onClick={() => toggleSection(section.key)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                toggleSection(section.key)
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-expanded={sectionOpen}
+          >
             <span className="finance-briefing-section-dot" />
             <strong>{section.meta.label}</strong>
             <span className="finance-briefing-section-count">{section.items.length}</span>
+            <ChevronDown size={16} strokeWidth={2.5} className={`finance-briefing-section-chevron${sectionOpen ? ' open' : ''}`} />
           </div>
 
+          {sectionOpen && (
           <div className="finance-briefing-list">
             {section.items.map((article) => {
               const expanded = expandedId === article.id
@@ -2020,9 +2053,9 @@ function DailyBriefingTab() {
                       </div>
                       <strong className="finance-briefing-headline">{article.headline}</strong>
 
-                      {article.related.length > 0 && (
+                      {article.affectedTickers.length > 0 && (
                         <div className="finance-briefing-tickers">
-                          {article.related.map((ticker) => (
+                          {article.affectedTickers.map((ticker) => (
                             <span key={ticker} className="finance-briefing-ticker-chip">
                               {ticker}
                             </span>
@@ -2050,8 +2083,10 @@ function DailyBriefingTab() {
               )
             })}
           </div>
+          )}
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
