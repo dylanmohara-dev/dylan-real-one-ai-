@@ -39,6 +39,7 @@ import ChatOverlay from './components/ChatOverlay.jsx'
 import SearchOverlay from './components/SearchOverlay.jsx'
 import StatsOverlay from './components/StatsOverlay.jsx'
 import AchievementModal from './components/AchievementModal.jsx'
+import SpellCastTransition from './components/SpellCastTransition.jsx'
 import OnboardingWizard from './components/OnboardingWizard.jsx'
 import GameToast from './components/GameToast.jsx'
 import TrashPanel from './components/TrashPanel.jsx'
@@ -902,6 +903,18 @@ function App() {
         xpPopups={data.xpPopups}
         onOpenSearch={() => setSearchOverlayOpen(true)}
         onOpenStats={() => setStatsOverlayOpen(true)}
+      />
+
+      {/* Plays BEFORE the achievement card below, only for level-up/rank-
+          unlock moments -- see useAppData's pendingPreroll/completePreroll.
+          Everything else (PR, goal, milestone, finance, task) skips this
+          and AchievementModal shows immediately as before. */}
+      <SpellCastTransition
+        active={!!data.pendingPreroll}
+        modeKey={data.pendingPreroll?.modeKey}
+        duration={2600}
+        label={data.pendingPreroll?.title === 'RANK UNLOCKED' ? 'Unlocking your next rank' : 'Leveling up'}
+        onComplete={() => data.pendingPreroll && data.completePreroll(data.pendingPreroll.id)}
       />
 
       <AchievementModal

@@ -678,7 +678,21 @@ export function useAppData() {
   // level-ups, PRs, goal completions, and streak milestones. Deliberately
   // separate from pushToast's stack: those are frequent and ambient, this
   // is meant to feel like an event worth stopping for a second.
-  const activeAchievement = achievementQueue[0] || null
+  // A 'levelup' achievement doesn't go straight to the modal -- it waits
+  // for its SpellCastTransition pre-roll (the "screen darkens, something
+  // magical happens" ask) to finish first. `prerollDoneId` tracks the id
+  // of whichever achievement has already had its pre-roll play; the head
+  // of the queue only becomes `activeAchievement` (and only then starts
+  // its own auto-dismiss timer below) once that matches. Every other kind
+  // skips this entirely and is active immediately, exactly as before.
+  const [prerollDoneId, setPrerollDoneId] = useState(null)
+  const queueHead = achievementQueue[0] || null
+  const headNeedsPreroll = queueHead?.kind === 'levelup'
+  const headPrerollReady = !headNeedsPreroll || prerollDoneId === queueHead?.id
+  const activeAchievement = headPrerollReady ? queueHead : null
+  // What App.jsx actually renders the SpellCastTransition for -- null
+  // whenever there's nothing waiting on a pre-roll.
+  const pendingPreroll = headNeedsPreroll && !headPrerollReady ? queueHead : null
 
   function pushAchievement(achievement) {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
@@ -687,6 +701,14 @@ export function useAppData() {
 
   function dismissAchievement() {
     setAchievementQueue((prev) => prev.slice(1))
+  }
+
+  // Called by App.jsx when the SpellCastTransition for `id` finishes --
+  // flips that achievement from "pending preroll" to "active", which lets
+  // the auto-dismiss effect below start its timer and AchievementModal
+  // actually render it.
+  function completePreroll(id) {
+    setPrerollDoneId(id)
   }
 
   // Auto-advances the queue after each achievement's own duration. The
@@ -3510,6 +3532,8 @@ export function useAppData() {
     dismissToast,
     activeAchievement,
     dismissAchievement,
+    pendingPreroll,
+    completePreroll,
     maybePlaySound,
     playerStats,
     xpPopups,
