@@ -4,6 +4,7 @@ import { syncCalendarEvent } from '../lib/calendarAutoSync.js'
 import { listTrash, getTrashEntry, removeFromTrash } from '../lib/trashStore.js'
 import { includeCourse } from '../lib/canvasExclusions.js'
 import { DEFAULT_WEEK_PLAN } from './gym.js'
+import { round2, recordHistorySnapshot, DEBT_TYPES } from './finance.js'
 
 const router = Router()
 
@@ -177,6 +178,41 @@ const RESTORE_HANDLERS = {
       }
     }
     if (overridesChanged) saveData('gym_week_plan_overrides', overrides)
+  },
+  'finance-account': (snapshot) => {
+    const accounts = loadData('finance_accounts')
+    if (accounts.some((a) => a.id === snapshot.id)) return
+    accounts.push(snapshot)
+    saveData('finance_accounts', accounts)
+    recordHistorySnapshot(accounts)
+  },
+  // Re-applies the exact same signed balance effect the original delete
+  // reversed (see routes/finance.js's DELETE /transactions/:id) -- not a
+  // recomputation from today's account state, so this stays correct even
+  // if the account's asset/debt type were ever to change later. If the
+  // account no longer exists (hadAccount captured false, or it's since
+  // been deleted), the transaction still comes back, just without a
+  // balance replay -- same "never throws, best-effort" rule as every
+  // other handler here.
+  'finance-transaction': (snapshot) => {
+    const { transaction, hadAccount } = snapshot
+    const transactions = loadData('finance_transactions')
+    if (transactions.some((t) => t.id === transaction.id)) return
+
+    const accounts = loadData('finance_accounts')
+    const account = accounts.find((a) => a.id === transaction.accountId)
+    if (hadAccount && account) {
+      const isDebtAccount = DEBT_TYPES.includes(account.type)
+      const direction = transaction.type === 'expense' ? -1 : 1
+      const signedDelta = isDebtAccount ? -direction * transaction.amount : direction * transaction.amount
+      account.balance = round2((Number(account.balance) || 0) + signedDelta)
+      account.updatedAt = new Date().toISOString()
+      saveData('finance_accounts', accounts)
+    }
+
+    transactions.push(transaction)
+    saveData('finance_transactions', transactions)
+    recordHistorySnapshot(accounts)
   },
 }
 

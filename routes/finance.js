@@ -1,17 +1,18 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { addToTrash } from '../lib/trashStore.js'
 
 const router = Router()
 
 const ACCOUNT_TYPES = ['checking', 'savings', 'investment', 'credit', 'loan']
-const DEBT_TYPES = ['credit', 'loan']
+export const DEBT_TYPES = ['credit', 'loan']
 
 // JS floating-point math drifts a fraction of a cent on ordinary
 // addition/subtraction (confirmed live: add then reverse a $50 expense
 // and a $20 income against a real account and the balance lands on
 // 500.54999999999995, not 500.55). Round to the cent after every
 // arithmetic step that touches a balance, not just at display time.
-function round2(value) {
+export function round2(value) {
   return Math.round((Number(value) || 0) * 100) / 100
 }
 // Bare local YYYY-MM-DD -- NOT toISOString().slice(0, 10), which reads off
@@ -49,7 +50,7 @@ export function computeNetWorth(accounts) {
   )
 }
 
-function recordHistorySnapshot(accounts) {
+export function recordHistorySnapshot(accounts) {
   const history = loadData('finance_history')
   const today = todayKeyLocal()
   const netWorth = computeNetWorth(accounts)
@@ -126,9 +127,13 @@ router.put('/accounts/:id', (req, res) => {
 
 router.delete('/accounts/:id', (req, res) => {
   const accounts = loadData('finance_accounts')
+  const deleted = accounts.find((account) => account.id === req.params.id)
   const remaining = accounts.filter((account) => account.id !== req.params.id)
   saveData('finance_accounts', remaining)
   const history = recordHistorySnapshot(remaining)
+  if (deleted) {
+    addToTrash({ mode: 'finance', kind: 'finance-account', label: `Account: ${deleted.name}`, snapshot: deleted })
+  }
   res.json({ success: true, netWorth: computeNetWorth(remaining), history })
 })
 
@@ -223,6 +228,19 @@ router.delete('/transactions/:id', (req, res) => {
     const remaining = transactions.filter((t) => t.id !== req.params.id)
     saveData('finance_transactions', remaining)
     const history = recordHistorySnapshot(accounts)
+
+    // A restore needs to re-apply the exact same signed balance effect
+    // this delete just reversed -- not recompute it from scratch, since
+    // the account's type (asset vs. debt) could theoretically change
+    // between now and a later restore. Snapshotting the transaction plus
+    // whether an account was actually found keeps restore honest: no
+    // account found here means no balance replay on restore either.
+    addToTrash({
+      mode: 'finance',
+      kind: 'finance-transaction',
+      label: `${transaction.type === 'expense' ? 'Expense' : 'Income'}: $${transaction.amount}`,
+      snapshot: { transaction, hadAccount: !!account },
+    })
 
     res.json({ success: true, netWorth: computeNetWorth(accounts), history })
   } catch (error) {
