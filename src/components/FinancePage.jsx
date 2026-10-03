@@ -778,9 +778,15 @@ function OverviewTab({ userName, accounts, netWorth, history, saving, addAccount
         <h2>Good {dayPart}{userName ? `, ${userName}` : ''}.</h2>
         <p>Here's where your money stands right now.</p>
       </div>
-      <MarketSessionStrip />
-      <RealIndexPanel indexes={DASHBOARD_INDEXES} />
-      <MarketPulsePanel />
+
+      {/* Net worth leads the page -- it's Dylan's own number, the one
+          thing a personal finance dashboard should be about first.
+          Market context (session clock, real indexes, pulse) used to
+          render above this and push it below the fold; it's now a
+          clearly secondary "market-context" zone underneath instead,
+          per Dylan's "think like the biggest CEOs" request -- the app's
+          own data should never be harder to find than general market
+          noise. */}
       <div className="finance-hero">
         <div className={`finance-hero-figure${netWorthPulse ? ' finance-hero-pulse' : ''}`}>
           <span className="finance-hero-label">NET WORTH</span>
@@ -801,6 +807,12 @@ function OverviewTab({ userName, accounts, netWorth, history, saving, addAccount
           </div>
         </div>
         <NetWorthChart history={history} />
+      </div>
+
+      <div className="finance-market-context">
+        <MarketSessionStrip />
+        <RealIndexPanel indexes={DASHBOARD_INDEXES} />
+        <MarketPulsePanel />
       </div>
 
       <div className="finance-add-row">
@@ -1747,6 +1759,15 @@ function useLiveIndices(keys) {
 function RealIndexPanel({ indexes = REAL_INDEXES }) {
   const keys = indexes.map((i) => i.key)
   const { indices, status } = useLiveIndices(keys)
+  // Yahoo's free, unofficial index endpoint (see lib/indexData.js) throttles
+  // its first few requests after a server restart before the server's own
+  // cache has anything to fall back on -- that's a normal ~10-60s cold
+  // start, not a dead feature, so it shouldn't read as a permanent failure.
+  const [isColdStart, setIsColdStart] = useState(true)
+  useEffect(() => {
+    const timeout = setTimeout(() => setIsColdStart(false), 75_000)
+    return () => clearTimeout(timeout)
+  }, [])
 
   return (
     <div className="market-pulse real-index-panel">
@@ -1789,6 +1810,8 @@ function RealIndexPanel({ indexes = REAL_INDEXES }) {
                 </>
               ) : status === 'loading' ? (
                 <span className="finance-skeleton finance-skeleton-price" aria-hidden="true" />
+              ) : isColdStart ? (
+                <span className="market-pulse-no-price">warming up...</span>
               ) : (
                 <span className="market-pulse-no-price">no live index value</span>
               )}
