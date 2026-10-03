@@ -128,6 +128,16 @@ const RESTORE_HANDLERS = {
       }
     }
   },
+  'sports-session': async (snapshot) => {
+    await restoreRecord('sports_sessions', snapshot, {
+      title: snapshot.type === 'game' ? `Game${snapshot.opponent ? ` vs ${snapshot.opponent}` : ''}` : 'Sports practice',
+      date: snapshot.date,
+      mode: 'sports',
+    })
+  },
+  'sports-recurring-event': (snapshot) => {
+    pushIfAbsent('sports_recurring_events', snapshot)
+  },
 }
 
 router.get('/', (req, res) => {

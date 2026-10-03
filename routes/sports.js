@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
 import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.js'
+import { addToTrash } from '../lib/trashStore.js'
 
 const router = Router()
 
@@ -130,6 +131,10 @@ router.delete('/sessions/:id', async (req, res) => {
   if (session) await clearCalendarEvent(session)
   const remaining = sessions.filter((s) => s.id !== req.params.id)
   saveData('sports_sessions', remaining)
+  if (session) {
+    const label = session.type === 'game' ? `Game vs ${session.opponent || 'opponent'}` : 'Practice'
+    addToTrash({ mode: 'sports', kind: 'sports-session', label, snapshot: session })
+  }
   res.json({ success: true })
 })
 
@@ -178,8 +183,12 @@ router.post('/recurring-events', (req, res) => {
 
 router.delete('/recurring-events/:id', (req, res) => {
   const recurringEvents = loadData('sports_recurring_events')
+  const deleted = recurringEvents.find((e) => e.id === req.params.id)
   const remaining = recurringEvents.filter((e) => e.id !== req.params.id)
   saveData('sports_recurring_events', remaining)
+  if (deleted) {
+    addToTrash({ mode: 'sports', kind: 'sports-recurring-event', label: `Recurring: ${deleted.label}`, snapshot: deleted })
+  }
   res.json({ success: true })
 })
 
