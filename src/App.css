@@ -15322,10 +15322,17 @@ button:disabled:active {
   cursor: default;
 }
 
+/* Session 42: Dylan called the single full-width vertical stack of cards
+   "clunky/boring" and asked for a different shape -- a responsive grid
+   of tiles instead, same as the news-feed layout in apps like ESPN's,
+   rather than one long scroll of full-width rows. auto-fill collapses
+   to a single column on its own at narrow widths, no separate breakpoint
+   needed. */
 .finance-briefing-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
 .finance-briefing-item {
@@ -15375,7 +15382,7 @@ button:disabled:active {
 .finance-briefing-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   animation: briefingSectionIn calc(0.4s * var(--celebrate-speed, 1)) ease both;
 }
 
@@ -15539,14 +15546,14 @@ button:disabled:active {
 }
 
 .finance-briefing-section-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
 }
 
 .finance-skeleton-briefing-item {
   width: 100%;
-  height: 64px;
+  height: 96px;
   border-radius: 12px;
 }
 

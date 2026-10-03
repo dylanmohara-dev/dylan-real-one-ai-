@@ -1908,17 +1908,17 @@ function formatNewsTime(ms) {
 }
 
 // Real category -> label/color map, matching Finnhub's own `category`
-// param exactly (general/forex/crypto/merger) -- "sectioning by news type"
-// means sectioning by the real param we fetched with, never a guessed
-// label. 'general' is shown as "Top News" since that's what it actually
-// is (Finnhub's main headline feed), not a separate, made-up "top" tier.
+// param exactly -- "sectioning by news type" means sectioning by the real
+// param we fetched with, never a guessed label. 'general' is shown as
+// "Top News" since that's what it actually is (Finnhub's main headline
+// feed), not a separate, made-up "top" tier. Forex and Crypto cut per
+// Dylan (session 42) -- he trades stocks, not currency or crypto, and
+// lib/marketNews.js no longer fetches either category at all.
 const NEWS_SECTION_META = {
   general: { label: 'Top News', rgb: '245, 183, 46' },
-  forex: { label: 'Forex', rgb: '56, 189, 248' },
-  crypto: { label: 'Crypto', rgb: '168, 85, 247' },
   merger: { label: 'M&A', rgb: '52, 211, 153' },
 }
-const NEWS_SECTION_ORDER = ['general', 'forex', 'crypto', 'merger']
+const NEWS_SECTION_ORDER = ['general', 'merger']
 
 function DailyBriefingTab() {
   const { articles, status, reason, refresh } = useMarketNews()
@@ -1972,7 +1972,7 @@ function DailyBriefingTab() {
 
       {status === 'loading' && articles.length === 0 && (
         <div className="finance-briefing-section-skeleton" aria-hidden="true">
-          {[0, 1, 2].map((i) => (
+          {[0, 1, 2, 3, 4, 5].map((i) => (
             <div className="finance-skeleton finance-skeleton-briefing-item" key={i} />
           ))}
         </div>
