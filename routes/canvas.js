@@ -8,6 +8,7 @@ import {
 } from '../lib/canvas.js'
 import { syncCalendarEvent } from '../lib/calendarAutoSync.js'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { isExcluded } from '../lib/canvasExclusions.js'
 
 const router = Router()
 
@@ -104,6 +105,10 @@ router.post('/sync-classes', async (req, res) => {
     for (const course of courses) {
       const alreadyLinked = classes.some((c) => c.canvasCourseId === course.id)
       if (alreadyLinked) continue
+      // Dylan deliberately deleted the class for this course -- don't
+      // resurrect it just because it's still active in Canvas. See
+      // lib/canvasExclusions.js for how a class gets on/off this list.
+      if (isExcluded(course.id)) continue
 
       const courseNorm = normalizeClassName(course.name)
       const match = classes.find((c) => !c.canvasCourseId && normalizeClassName(c.name) === courseNorm)

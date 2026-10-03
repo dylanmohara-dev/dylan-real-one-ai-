@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
 import { syncCalendarEvent } from '../lib/calendarAutoSync.js'
 import { listTrash, getTrashEntry, removeFromTrash } from '../lib/trashStore.js'
+import { includeCourse } from '../lib/canvasExclusions.js'
 
 const router = Router()
 
@@ -60,6 +61,11 @@ async function restoreRecord(collection, record, { title, date, mode }) {
 const RESTORE_HANDLERS = {
   class: async (snapshot) => {
     pushIfAbsent('classes', snapshot.class)
+    // See routes/classes.js's DELETE handler -- undoes the exclusion
+    // that keeps /sync-classes from recreating this course on its own.
+    if (snapshot.class?.canvasCourseId !== undefined) {
+      includeCourse(snapshot.class.canvasCourseId)
+    }
     for (const a of snapshot.assignments || []) {
       await restoreRecord('assignments', a, { title: a.title, date: a.dueDate, mode: 'school' })
     }

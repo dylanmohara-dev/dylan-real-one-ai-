@@ -99,7 +99,7 @@ export default function TrashPanel({ modeKey }) {
         title="Recently deleted"
         aria-label="Recently deleted"
       >
-        <DoorOpen size={18} strokeWidth={2} />
+        <DoorOpen size={24} strokeWidth={2} />
       </button>
 
       {open && (

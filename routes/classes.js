@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
 import { addToTrash } from '../lib/trashStore.js'
+import { excludeCourse, includeCourse } from '../lib/canvasExclusions.js'
 
 const router = Router()
 
@@ -101,6 +102,13 @@ router.delete('/:id', (req, res) => {
       label: `Class: ${deletedClass.name}`,
       snapshot: { class: deletedClass, assignments: deletedAssignments, tests: deletedTests, tasks: deletedTasks },
     })
+    // Canvas-linked class -- without this, routes/canvas.js's
+    // /sync-classes (run on every page load) would see this course has
+    // no local class anymore and recreate it right back, which is
+    // exactly the "I deleted it and it came back on refresh" bug.
+    if (deletedClass.canvasCourseId !== undefined) {
+      excludeCourse(deletedClass.canvasCourseId)
+    }
   }
 
   res.json({ success: true })
@@ -117,11 +125,13 @@ router.post('/restore', (req, res) => {
     return res.status(400).json({ error: 'A full class record with id and name is required' })
   }
   const classes = loadData('classes')
-  if (classes.some((c) => c.id === record.id)) {
-    return res.json({ class: record })
+  if (!classes.some((c) => c.id === record.id)) {
+    classes.push(record)
+    saveData('classes', classes)
   }
-  classes.push(record)
-  saveData('classes', classes)
+  if (record.canvasCourseId !== undefined) {
+    includeCourse(record.canvasCourseId)
+  }
   res.json({ class: record })
 })
 
