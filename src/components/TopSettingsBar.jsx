@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, Settings2, X } from 'lucide-react'
+import { LIFE_MODES } from '../data/lifeModes.js'
 
 // Beginner-facing top bar: the level/XP pill always shows (it's the one
 // piece of at-a-glance feedback everyone wants), but the four display
@@ -43,12 +44,23 @@ export default function TopSettingsBar({ settings, setSettings, playerStats, xpP
 
         {/* One span per in-flight XP gain -- each carries its own fresh key
             so its CSS animation always plays from the start, even if a
-            second award lands while the first tag is still floating up. */}
-        {(xpPopups || []).map((popup) => (
-          <span key={popup.id} className="player-level-xp-popup" aria-hidden="true">
-            +{popup.amount} XP
-          </span>
-        ))}
+            second award lands while the first tag is still floating up.
+            Tagged with the life mode it came from (when there is one) so
+            the one app-wide bar still reads as "tied to what you just
+            did" instead of a generic, anonymous number going up. */}
+        {(xpPopups || []).map((popup) => {
+          const mode = LIFE_MODES.find((item) => item.key === popup.modeKey)
+          return (
+            <span
+              key={popup.id}
+              className="player-level-xp-popup"
+              style={mode ? { '--xp-popup-rgb': mode.rgb } : undefined}
+              aria-hidden="true"
+            >
+              +{popup.amount} XP{mode ? <em>{mode.title}</em> : null}
+            </span>
+          )
+        })}
         {(xpPopups || []).length > 0 && (
           <span key={xpPopups[xpPopups.length - 1].id} className="player-level-pulse-ring" aria-hidden="true" />
         )}

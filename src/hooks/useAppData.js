@@ -844,9 +844,9 @@ export function useAppData() {
   // Fires a transient "+N XP" tag next to the persistent level pill --
   // auto-removes itself after its own animation finishes. `amount` is
   // always the real XP delta the server just granted, never a guess.
-  function pushXpPopup(amount) {
+  function pushXpPopup(amount, modeKey) {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-    setXpPopups((prev) => [...prev, { id, amount }])
+    setXpPopups((prev) => [...prev, { id, amount, modeKey }])
     setTimeout(() => {
       setXpPopups((prev) => prev.filter((item) => item.id !== id))
     }, 1150)
@@ -867,7 +867,7 @@ export function useAppData() {
       // it, so this is the real amount the server just granted, not a
       // guess from the reason string.
       const gained = result.xp - playerStats.xp
-      if (gained > 0) pushXpPopup(gained)
+      if (gained > 0) pushXpPopup(gained, modeKey)
       setPlayerStats(result)
       if (result.leveledUp) {
         // Upgraded from a corner toast to the full Achievement unlock --
