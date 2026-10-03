@@ -41,6 +41,7 @@ import StatsOverlay from './components/StatsOverlay.jsx'
 import AchievementModal from './components/AchievementModal.jsx'
 import OnboardingWizard from './components/OnboardingWizard.jsx'
 import GameToast from './components/GameToast.jsx'
+import TrashPanel from './components/TrashPanel.jsx'
 
 function App() {
   const data = useAppData()
@@ -867,6 +868,13 @@ function App() {
           the filtered element, is what makes position:fixed behave like
           fixed-to-viewport actually mean that. */}
       <GameToast toasts={toasts} dismissToast={dismissToast} />
+
+      {/* Door/key "Recently deleted" corner panel -- one per life mode,
+          same reasoning as GameToast above for living outside .app-shell.
+          Only renders inside an actual life mode (School, Gym, ...), not
+          on Overview/Chat/Settings/etc., since those don't have a trash
+          of their own. */}
+      {LIFE_MODES.some((m) => m.key === activePage) && <TrashPanel modeKey={activePage} />}
 
       {settings.signatureTransitions && settings.enterAnimation === 'zoom' && zoomTransition && (
         <ZoomTransition

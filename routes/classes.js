@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { addToTrash } from '../lib/trashStore.js'
 
 const router = Router()
 
@@ -67,22 +68,39 @@ router.put('/:id', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   const classes = loadData('classes')
+  const deletedClass = classes.find((c) => c.id === req.params.id)
   const remaining = classes.filter((c) => c.id !== req.params.id)
   saveData('classes', remaining)
-  const assignments = loadData('assignments').filter((a) => a.classId !== req.params.id)
-  saveData('assignments', assignments)
+
+  const allAssignments = loadData('assignments')
+  const deletedAssignments = allAssignments.filter((a) => a.classId === req.params.id)
+  saveData('assignments', allAssignments.filter((a) => a.classId !== req.params.id))
 
   const allTests = loadData('tests')
-  const deletedTestIds = new Set(allTests.filter((t) => t.classId === req.params.id).map((t) => t.id))
-  const tests = allTests.filter((t) => t.classId !== req.params.id)
-  saveData('tests', tests)
+  const deletedTests = allTests.filter((t) => t.classId === req.params.id)
+  const deletedTestIds = new Set(deletedTests.map((t) => t.id))
+  saveData('tests', allTests.filter((t) => t.classId !== req.params.id))
 
   // Deleting a class cascades to its tests -- and any study-plan tasks
   // generated for those tests would otherwise be left pointing at a test
   // that no longer exists.
+  let deletedTasks = []
   if (deletedTestIds.size) {
-    const tasks = loadData('tasks').filter((t) => !deletedTestIds.has(t.studyPlanFor))
-    saveData('tasks', tasks)
+    const allTasks = loadData('tasks')
+    deletedTasks = allTasks.filter((t) => deletedTestIds.has(t.studyPlanFor))
+    saveData('tasks', allTasks.filter((t) => !deletedTestIds.has(t.studyPlanFor)))
+  }
+
+  // Feeds the door/key "Recently Deleted" panel (TrashPanel.jsx) -- see
+  // lib/trashStore.js and routes/trash.js's 'class' restore handler for
+  // the matching shape this snapshot needs.
+  if (deletedClass) {
+    addToTrash({
+      mode: 'school',
+      kind: 'class',
+      label: `Class: ${deletedClass.name}`,
+      snapshot: { class: deletedClass, assignments: deletedAssignments, tests: deletedTests, tasks: deletedTasks },
+    })
   }
 
   res.json({ success: true })

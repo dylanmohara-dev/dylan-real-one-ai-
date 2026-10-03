@@ -10,6 +10,7 @@ import goalsRouter from './routes/goals.js'
 import notesRouter from './routes/notes.js'
 import memoriesRouter from './routes/memories.js'
 import classesRouter from './routes/classes.js'
+import trashRouter from './routes/trash.js'
 import assignmentsRouter from './routes/assignments.js'
 import testsRouter from './routes/tests.js'
 import chatRouter from './routes/chat.js'
@@ -64,6 +65,7 @@ app.use('/api/goals', goalsRouter)
 app.use('/api/notes', notesRouter)
 app.use('/api/memories', memoriesRouter)
 app.use('/api/classes', classesRouter)
+app.use('/api/trash', trashRouter)
 app.use('/api/assignments', assignmentsRouter)
 app.use('/api/tests', testsRouter)
 app.use('/api', chatRouter)

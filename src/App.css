@@ -8709,6 +8709,197 @@ footer {
    feedback on actions (XP bars filling, level-up flashes, unlock toasts),
    not a visual re-skin (that's the separate design-system layer below). */
 
+/* ============ TRASH PANEL (per-mode "Recently deleted") ============
+   Bottom-right on purpose: GameToast owns top-right, TopSettingsBar owns
+   the full top strip, and the sidebar owns the left edge on desktop /
+   the entire bottom edge on mobile (see MOBILE BOTTOM NAV below) -- this
+   is the one corner nothing else claims on either layout. */
+.trash-panel-trigger {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1800;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface-strong);
+  color: var(--text-secondary);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.trash-panel-trigger:hover {
+  color: rgb(var(--mode-accent-rgb));
+  border-color: rgba(var(--mode-accent-rgb), 0.5);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 720px) {
+  .trash-panel-trigger {
+    bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+}
+
+.trash-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2050;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 720px) {
+  .trash-panel-backdrop {
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+.trash-panel {
+  width: 340px;
+  max-width: calc(100vw - 40px);
+  max-height: min(60vh, 480px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  border-radius: calc(14px * var(--mode-radius-scale, 1));
+  background: var(--surface-strong);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  margin-bottom: calc(42px + 14px);
+}
+
+@media (max-width: 720px) {
+  .trash-panel {
+    width: 100%;
+    max-width: 100%;
+    border-radius: calc(14px * var(--mode-radius-scale, 1)) calc(14px * var(--mode-radius-scale, 1)) 0 0;
+    margin-bottom: 0;
+  }
+}
+
+.trash-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.trash-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.trash-panel-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.trash-panel-close:hover {
+  opacity: 1;
+}
+
+.trash-panel-error {
+  margin: 10px 16px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 114, 114, 0.1);
+  border: 1px solid rgba(255, 114, 114, 0.35);
+  color: #ff9a9a;
+  font-size: 0.75rem;
+}
+
+.trash-panel-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.trash-panel-list {
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.trash-panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: calc(9px * var(--mode-radius-scale, 1));
+}
+
+.trash-panel-row:hover {
+  background: rgba(var(--mode-accent-rgb), 0.08);
+}
+
+.trash-panel-row-text {
+  min-width: 0;
+}
+
+.trash-panel-row-label {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trash-panel-row-when {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  opacity: 0.65;
+  margin-top: 1px;
+}
+
+.trash-panel-restore {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: calc(8px * var(--mode-radius-scale, 1));
+  background: rgba(var(--mode-accent-rgb), 0.9);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trash-panel-restore:hover {
+  background: rgb(var(--mode-accent-rgb));
+}
+
+.trash-panel-restore:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .game-toast-stack {
   position: fixed;
   top: 22px;

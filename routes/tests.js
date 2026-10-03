@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
 import { buildStudySessions } from '../lib/studyPlan.js'
 import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.js'
+import { addToTrash } from '../lib/trashStore.js'
 
 const router = Router()
 
@@ -63,15 +64,20 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const tests = loadData('tests')
   const test = tests.find((t) => t.id === req.params.id)
-  if (test) await clearCalendarEvent(test)
-  const remaining = tests.filter((t) => t.id !== req.params.id)
-  saveData('tests', remaining)
   // Any study-plan tasks generated for this test are now pointing at
   // nothing -- clean them (and their own real calendar events, if any)
   // up in the same request rather than leaving orphaned "study for X"
   // tasks -- or orphaned calendar entries -- behind forever.
   const allTasks = loadData('tasks')
   const orphaned = allTasks.filter((t) => t.studyPlanFor === req.params.id)
+
+  if (test) {
+    addToTrash({ mode: 'school', kind: 'test', label: `Test: ${test.title}`, snapshot: { test, tasks: orphaned } })
+    await clearCalendarEvent(test)
+  }
+
+  const remaining = tests.filter((t) => t.id !== req.params.id)
+  saveData('tests', remaining)
   for (const orphan of orphaned) await clearCalendarEvent(orphan)
   const tasks = allTasks.filter((t) => t.studyPlanFor !== req.params.id)
   saveData('tasks', tasks)

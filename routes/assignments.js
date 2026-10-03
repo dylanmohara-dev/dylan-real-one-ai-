@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
 import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.js'
+import { addToTrash } from '../lib/trashStore.js'
 
 const router = Router()
 
@@ -58,7 +59,10 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const assignments = loadData('assignments')
   const assignment = assignments.find((a) => a.id === req.params.id)
-  if (assignment) await clearCalendarEvent(assignment)
+  if (assignment) {
+    addToTrash({ mode: 'school', kind: 'assignment', label: `Assignment: ${assignment.title}`, snapshot: assignment })
+    await clearCalendarEvent(assignment)
+  }
   const remaining = assignments.filter((a) => a.id !== req.params.id)
   saveData('assignments', remaining)
   res.json({ success: true })
