@@ -86,6 +86,30 @@ const RESTORE_HANDLERS = {
       await restoreRecord('tasks', task, { title: task.title, date: task.dueDate, mode: task.category })
     }
   },
+  'family-member': (snapshot) => {
+    pushIfAbsent('family_members', snapshot)
+  },
+  'family-log': (snapshot) => {
+    pushIfAbsent('family_log', snapshot)
+  },
+  'reading-book': (snapshot) => {
+    pushIfAbsent('reading_books', snapshot.book)
+    for (const session of snapshot.sessions || []) {
+      pushIfAbsent('reading_sessions', session)
+    }
+  },
+  'reading-session': (snapshot) => {
+    pushIfAbsent('reading_sessions', snapshot)
+  },
+  'mind-habit': (snapshot) => {
+    pushIfAbsent('mind_habits', snapshot.habit)
+    for (const completion of snapshot.completions || []) {
+      pushIfAbsent('mind_completions', completion)
+    }
+  },
+  'health-entry': (snapshot) => {
+    pushIfAbsent('health', snapshot)
+  },
 }
 
 router.get('/', (req, res) => {

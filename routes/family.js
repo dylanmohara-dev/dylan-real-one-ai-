@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { addToTrash } from '../lib/trashStore.js'
 
 const router = Router()
 
@@ -31,8 +32,12 @@ router.post('/members', (req, res) => {
 
 router.delete('/members/:id', (req, res) => {
   const members = loadData('family_members')
+  const deleted = members.find((m) => m.id === req.params.id)
   const remaining = members.filter((m) => m.id !== req.params.id)
   saveData('family_members', remaining)
+  if (deleted) {
+    addToTrash({ mode: 'family', kind: 'family-member', label: `${deleted.name}`, snapshot: deleted })
+  }
   // Deleting a person doesn't erase the memory of time already spent with
   // them -- past log entries keep the (now-orphaned) memberId rather than
   // getting deleted, same reasoning as Mind archiving over deleting.
@@ -94,8 +99,13 @@ router.post('/log', (req, res) => {
 
 router.delete('/log/:id', (req, res) => {
   const log = loadData('family_log')
+  const deleted = log.find((entry) => entry.id === req.params.id)
   const remaining = log.filter((entry) => entry.id !== req.params.id)
   saveData('family_log', remaining)
+  if (deleted) {
+    const label = deleted.type === 'faith' ? 'Faith entry' : 'Check-in'
+    addToTrash({ mode: 'family', kind: 'family-log', label, snapshot: deleted })
+  }
   res.json({ success: true })
 })
 

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { addToTrash } from '../lib/trashStore.js'
 
 const router = Router()
 
@@ -72,14 +73,24 @@ router.put('/books/:id', (req, res) => {
 
 router.delete('/books/:id', (req, res) => {
   const books = loadData('reading_books')
+  const deletedBook = books.find((b) => b.id === req.params.id)
   const remaining = books.filter((b) => b.id !== req.params.id)
   saveData('reading_books', remaining)
   // A book's own reading sessions are cleaned up too -- otherwise deleting
   // a book leaves orphaned session rows that reference an id nothing can
   // find or show again, quietly inflating "pages read" totals forever.
   const sessions = loadData('reading_sessions')
+  const deletedSessions = sessions.filter((s) => s.bookId === req.params.id)
   const remainingSessions = sessions.filter((s) => s.bookId !== req.params.id)
   saveData('reading_sessions', remainingSessions)
+  if (deletedBook) {
+    addToTrash({
+      mode: 'reading',
+      kind: 'reading-book',
+      label: `Book: ${deletedBook.title}`,
+      snapshot: { book: deletedBook, sessions: deletedSessions },
+    })
+  }
   res.json({ success: true })
 })
 
@@ -137,8 +148,12 @@ router.post('/sessions', (req, res) => {
 
 router.delete('/sessions/:id', (req, res) => {
   const sessions = loadData('reading_sessions')
+  const deleted = sessions.find((s) => s.id === req.params.id)
   const remaining = sessions.filter((s) => s.id !== req.params.id)
   saveData('reading_sessions', remaining)
+  if (deleted) {
+    addToTrash({ mode: 'reading', kind: 'reading-session', label: `${deleted.pagesRead} pages logged`, snapshot: deleted })
+  }
   res.json({ success: true })
 })
 

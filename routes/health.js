@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { addToTrash } from '../lib/trashStore.js'
 
 const router = Router()
 const CATEGORIES = ['sleep', 'food', 'water', 'activity']
@@ -60,8 +61,12 @@ router.post('/', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   const entries = loadData('health')
+  const deleted = entries.find((entry) => entry.id === req.params.id)
   const remaining = entries.filter((entry) => entry.id !== req.params.id)
   saveData('health', remaining)
+  if (deleted) {
+    addToTrash({ mode: 'health', kind: 'health-entry', label: `${deleted.category}: ${deleted.value}`, snapshot: deleted })
+  }
   res.json({ success: true })
 })
 

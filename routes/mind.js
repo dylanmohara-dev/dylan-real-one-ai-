@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { addToTrash } from '../lib/trashStore.js'
 
 const router = Router()
 
@@ -73,11 +74,21 @@ router.put('/habits/:id', (req, res) => {
 
 router.delete('/habits/:id', (req, res) => {
   const habits = loadData('mind_habits')
+  const deletedHabit = habits.find((h) => h.id === req.params.id)
   const remaining = habits.filter((h) => h.id !== req.params.id)
   saveData('mind_habits', remaining)
   const completions = loadData('mind_completions')
+  const deletedCompletions = completions.filter((c) => c.habitId === req.params.id)
   const remainingCompletions = completions.filter((c) => c.habitId !== req.params.id)
   saveData('mind_completions', remainingCompletions)
+  if (deletedHabit) {
+    addToTrash({
+      mode: 'mind',
+      kind: 'mind-habit',
+      label: `Habit: ${deletedHabit.name}`,
+      snapshot: { habit: deletedHabit, completions: deletedCompletions },
+    })
+  }
   res.json({ success: true })
 })
 
