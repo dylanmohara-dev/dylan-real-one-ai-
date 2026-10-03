@@ -24,6 +24,7 @@ import {
   BarChart3,
   DollarSign,
   ExternalLink,
+  Newspaper,
 } from 'lucide-react'
 import ModeChatLauncher from './ModeChatLauncher.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
@@ -340,14 +341,72 @@ function NetWorthChart({ history }) {
   )
 }
 
-function AccountRow({ account, onUpdateBalance, onDelete, saving }) {
+// Tiny per-account trend line, built from the SAME history snapshots the
+// big NetWorthChart uses (routes/finance.js's recordHistorySnapshot now
+// stores each account's balance alongside the aggregate net worth). Real
+// data only: fewer than 2 days of history for this specific account means
+// no chart at all, not a faked flat line or interpolated guess.
+function AccountSparkline({ accountId, history, debt }) {
+  const points = (history || [])
+    .filter((point) => Array.isArray(point.accounts))
+    .map((point) => {
+      const match = point.accounts.find((a) => a.id === accountId)
+      return match ? { date: point.date, balance: Number(match.balance) || 0 } : null
+    })
+    .filter(Boolean)
+
+  if (points.length < 2) return null
+
+  const values = points.map((p) => p.balance)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  const width = 64
+  const height = 22
+  const step = width / (points.length - 1)
+  const coords = values.map((v, i) => `${(i * step).toFixed(1)},${(height - ((v - min) / range) * (height - 4) - 2).toFixed(1)}`)
+
+  // A debt account going UP is bad news (owing more), so the color logic
+  // flips for debts rather than always reading "up = green".
+  const rising = values[values.length - 1] >= values[0]
+  const good = debt ? !rising : rising
+
+  return (
+    <svg className="finance-account-sparkline" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+      <polyline
+        points={coords.join(' ')}
+        fill="none"
+        stroke={good ? 'var(--finance-trend-up, #22c55e)' : 'var(--finance-trend-down, #ef4444)'}
+        strokeWidth="2"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function AccountRow({ account, onUpdateBalance, onDelete, saving, history }) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(account.balance)
   const meta = TYPE_META[account.type]
   const Icon = meta.icon
 
+  // Brief glow when THIS account's balance actually changes (manual edit
+  // or a transaction) -- skipped on first mount (prevBalance ref starts
+  // equal) so loading the page never looks like something just happened.
+  const [pulse, setPulse] = useState(false)
+  const prevBalanceRef = useRef(account.balance)
+  useEffect(() => {
+    if (prevBalanceRef.current !== account.balance) {
+      prevBalanceRef.current = account.balance
+      setPulse(true)
+      const timeout = setTimeout(() => setPulse(false), 700)
+      return () => clearTimeout(timeout)
+    }
+  }, [account.balance])
+
   return (
-    <div className="finance-row">
+    <div className={`finance-row${pulse ? ' finance-row-pulse' : ''}`}>
       <div className="finance-row-identity">
         <Icon size={15} strokeWidth={2} />
         <div>
@@ -355,6 +414,8 @@ function AccountRow({ account, onUpdateBalance, onDelete, saving }) {
           <span>{meta.label}</span>
         </div>
       </div>
+
+      <AccountSparkline accountId={account.id} history={history} debt={meta.debt} />
 
       {editing ? (
         <div className="finance-row-edit">
@@ -653,6 +714,20 @@ function OverviewTab({ userName, accounts, netWorth, history, saving, addAccount
   const weekDelta = weekAgoNetWorth === null ? null : netWorth - weekAgoNetWorth
   const displayedNetWorth = useCountUp(netWorth)
 
+  // Brief glow on the net worth tile when it actually changes (a logged
+  // transaction, an edited balance) -- skipped on first mount so loading
+  // the Dashboard never looks like something just happened.
+  const [netWorthPulse, setNetWorthPulse] = useState(false)
+  const prevNetWorthRef = useRef(netWorth)
+  useEffect(() => {
+    if (prevNetWorthRef.current !== netWorth) {
+      prevNetWorthRef.current = netWorth
+      setNetWorthPulse(true)
+      const timeout = setTimeout(() => setNetWorthPulse(false), 700)
+      return () => clearTimeout(timeout)
+    }
+  }, [netWorth])
+
   // A real clock read, not a canned line -- the same "Good morning/afternoon/
   // evening" logic as the rest of the app's WELCOME_GREETINGS, just local to
   // Finance's own dashboard header.
@@ -669,7 +744,7 @@ function OverviewTab({ userName, accounts, netWorth, history, saving, addAccount
       <RealIndexPanel />
       <MarketPulsePanel />
       <div className="finance-hero">
-        <div className="finance-hero-figure">
+        <div className={`finance-hero-figure${netWorthPulse ? ' finance-hero-pulse' : ''}`}>
           <span className="finance-hero-label">NET WORTH</span>
           <strong>{formatMoney(Math.round(displayedNetWorth))}</strong>
           <div className="finance-hero-deltas">
@@ -738,6 +813,7 @@ function OverviewTab({ userName, accounts, netWorth, history, saving, addAccount
                   onUpdateBalance={updateBalance}
                   onDelete={deleteAccount}
                   saving={saving}
+                  history={history}
                 />
               ))
             ) : (
@@ -755,6 +831,7 @@ function OverviewTab({ userName, accounts, netWorth, history, saving, addAccount
                   onUpdateBalance={updateBalance}
                   onDelete={deleteAccount}
                   saving={saving}
+                  history={history}
                 />
               ))
             ) : (
@@ -1703,6 +1780,122 @@ function useTechnicals(symbols) {
   return { technicals, status }
 }
 
+// Daily Briefing tab -- real headlines via Finnhub (routes/trading.js's
+// /news, backed by lib/marketNews.js). Polls far less often than quotes:
+// headlines don't move on a 60s clock, and the server already caches for
+// 15 min, so polling every 15 min here just means "always fetch a fresh
+// cache entry" without hammering the endpoint for no reason.
+function useMarketNews() {
+  const [articles, setArticles] = useState([])
+  const [status, setStatus] = useState('idle')
+  const [reason, setReason] = useState('')
+  // Bumping this re-runs the effect below on demand -- how the manual
+  // "Refresh" button re-polls without duplicating the fetch logic outside
+  // the effect (same shape as useTechnicals/useLiveQuotes's own `key`
+  // dependency above, just driven by a click instead of a prop change).
+  const [refreshTick, setRefreshTick] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function poll() {
+      try {
+        const response = await fetch('/api/trading/news')
+        const data = await response.json()
+        if (cancelled) return
+        setArticles(data.articles || [])
+        if (data.ok) {
+          setStatus('ok')
+        } else {
+          setStatus(data.reason === 'no_key' ? 'no_key' : 'error')
+          setReason(data.reason || '')
+        }
+      } catch {
+        if (!cancelled) {
+          setStatus('error')
+          setReason('Could not reach the server')
+        }
+      }
+    }
+
+    poll()
+    const interval = setInterval(poll, 15 * 60 * 1000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [refreshTick])
+
+  return { articles, status, reason, refresh: () => setRefreshTick((t) => t + 1) }
+}
+
+function formatNewsTime(ms) {
+  if (!ms) return ''
+  const diffMinutes = Math.round((Date.now() - ms) / 60000)
+  if (diffMinutes < 1) return 'just now'
+  if (diffMinutes < 60) return `${diffMinutes}m ago`
+  const diffHours = Math.round(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.round(diffHours / 24)
+  return `${diffDays}d ago`
+}
+
+function DailyBriefingTab() {
+  const { articles, status, reason, refresh } = useMarketNews()
+
+  return (
+    <div className="finance-briefing">
+      <div className="finance-briefing-header">
+        <div>
+          <span className="eyebrow">Daily Briefing</span>
+          <span className="market-pulse-sub">Real headlines only -- no AI-written "news", no summaries Dylan AI made up</span>
+        </div>
+        <button type="button" className="finance-briefing-refresh" onClick={refresh} disabled={status === 'idle'}>
+          Refresh
+        </button>
+      </div>
+
+      {status === 'no_key' && (
+        <div className="trading-live-price-hint">
+          Daily news isn't wired up yet -- get a free API key at finnhub.io, add{' '}
+          <code>FINNHUB_API_KEY=your_key_here</code> to the app's <code>.env</code> file, and restart the server.
+        </div>
+      )}
+
+      {status === 'error' && (
+        <div className="trading-live-price-hint">
+          Couldn't reach the news feed just now{reason ? ` (${reason})` : ''} -- this refreshes automatically, try again shortly.
+        </div>
+      )}
+
+      {status === 'ok' && articles.length === 0 && (
+        <p className="finance-ledger-empty">No headlines came back just now. Try refreshing in a bit.</p>
+      )}
+
+      {articles.length > 0 && (
+        <div className="finance-briefing-list">
+          {articles.map((article) => (
+            <a
+              key={article.id}
+              href={article.url}
+              target="_blank"
+              rel="noreferrer"
+              className="finance-briefing-item"
+            >
+              <div className="finance-briefing-item-top">
+                <span className="finance-briefing-source">{article.source}</span>
+                <span className="finance-briefing-time">{formatNewsTime(article.datetime)}</span>
+              </div>
+              <strong>{article.headline}</strong>
+              {article.summary && <p>{article.summary}</p>}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // The Macro Desk bias cards -- HybridTrader's "AI Macro Desk" reimagined
 // with real math instead of a fabricated bearish/bullish call and a made-up
 // confidence score. RSI(14) and a 10-day/30-day trend read, computed
@@ -2148,7 +2341,15 @@ export default function FinancePage({
     { key: 'psychology', label: 'Psychology', icon: Brain },
     { key: 'transactions', label: 'Transactions', icon: Receipt },
     { key: 'reports', label: 'Reports', icon: BarChart3 },
+    { key: 'briefing', label: 'Daily Briefing', icon: Newspaper },
   ]
+  // Macro Desk hidden from nav per Dylan's own call -- he tracks his
+  // watchlist in his broker app and never populated this in-app version
+  // (confirmed: trading_positions/trading_watchlist were both empty).
+  // Filtered here rather than removed from NAV_ITEMS/deleted from routes,
+  // so TradingTab and its backend stay fully intact and this is a
+  // one-line revert if he wants it back.
+  const VISIBLE_NAV_ITEMS = NAV_ITEMS.filter((item) => item.key !== 'trading')
 
   return (
     <div className="page finance-page">
@@ -2173,7 +2374,7 @@ export default function FinancePage({
 
       <div className="finance-body">
         <nav className="finance-nav">
-          {NAV_ITEMS.map((item) => {
+          {VISIBLE_NAV_ITEMS.map((item) => {
             const Icon = item.icon
             return (
               <button
@@ -2243,6 +2444,8 @@ export default function FinancePage({
               updateTradingSettings={updateTradingSettings}
             />
           )}
+
+          {activeTab === 'briefing' && <DailyBriefingTab />}
 
           {activeTab === 'journal' && (
             <JournalTab

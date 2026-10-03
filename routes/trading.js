@@ -3,6 +3,7 @@ import { loadData, saveData } from '../lib/dataStore.js'
 import { fetchQuotes } from '../lib/marketData.js'
 import { fetchTechnicals } from '../lib/technicals.js'
 import { fetchIndices, INDEX_DEFS } from '../lib/indexData.js'
+import { fetchMarketNews } from '../lib/marketNews.js'
 
 const router = Router()
 
@@ -157,6 +158,19 @@ router.get('/indices', async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ ok: false, reason: 'Could not fetch indices', indices: {} })
+  }
+})
+
+// Daily Briefing tab -- real headlines via Finnhub, never AI-generated
+// "news". No key or a provider error just means an honest empty state,
+// same house rule as /quotes and /technicals above.
+router.get('/news', async (req, res) => {
+  try {
+    const result = await fetchMarketNews()
+    res.json(result)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ ok: false, reason: 'Could not fetch news', articles: [] })
   }
 })
 

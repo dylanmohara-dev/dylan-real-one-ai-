@@ -54,12 +54,17 @@ export function recordHistorySnapshot(accounts) {
   const history = loadData('finance_history')
   const today = todayKeyLocal()
   const netWorth = computeNetWorth(accounts)
+  // Per-account balances alongside the aggregate net worth -- added so the
+  // per-account sparkline on the Dashboard has real history to draw from,
+  // not just the one combined number. Older entries simply won't have this
+  // field; every reader treats it as optional.
+  const accountBalances = (accounts || []).map((account) => ({ id: account.id, balance: account.balance }))
 
   const existingIndex = history.findIndex((point) => point.date === today)
   if (existingIndex >= 0) {
-    history[existingIndex] = { date: today, netWorth }
+    history[existingIndex] = { date: today, netWorth, accounts: accountBalances }
   } else {
-    history.push({ date: today, netWorth })
+    history.push({ date: today, netWorth, accounts: accountBalances })
   }
 
   saveData('finance_history', history)
