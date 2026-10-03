@@ -15342,15 +15342,97 @@ button:disabled:active {
   line-height: 1.4;
 }
 
-.finance-briefing-item p {
-  font-size: 12px;
+/* Daily Briefing: sectioned-by-category redesign */
+.finance-briefing-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.finance-briefing-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.finance-briefing-section-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgb(var(--news-rgb));
+  box-shadow: 0 0 0 3px rgba(var(--news-rgb), 0.18);
+  flex-shrink: 0;
+}
+
+.finance-briefing-section-header strong {
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  color: rgb(var(--news-rgb));
+}
+
+.finance-briefing-section-count {
+  font-size: 11px;
   color: var(--text-muted);
-  line-height: 1.5;
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.finance-briefing-item {
+  border-left: 3px solid rgba(var(--news-rgb), 0.5);
+  cursor: pointer;
+}
+
+.finance-briefing-item.expanded {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  border-left-color: rgb(var(--news-rgb));
+}
+
+.finance-briefing-tickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.finance-briefing-ticker-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(var(--news-rgb), 0.14);
+  color: rgb(var(--news-rgb));
+}
+
+.finance-briefing-summary {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 2px 0 0;
+}
+
+.finance-briefing-summary-empty {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.finance-briefing-read-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(var(--news-rgb));
+  text-decoration: none;
+  width: fit-content;
+}
+
+.finance-briefing-read-more:hover {
+  text-decoration: underline;
 }
 
 @media (prefers-reduced-motion: reduce) {

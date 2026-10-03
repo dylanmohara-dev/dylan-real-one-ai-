@@ -589,6 +589,13 @@ const REAL_INDEXES = [
   { key: 'VIX', label: 'VIX (Volatility Index)' },
 ]
 
+// Dashboard asked for just the 3 majors -- S&P 500, Dow Jones, and "the
+// Nasdaq" (its Composite index, the one actually quoted in headlines, not
+// the narrower Nasdaq 100). REAL_INDEXES above stays the full 6 in case
+// Macro Desk or anywhere else ever wants the rest -- this is a view-level
+// filter, not a data-level deletion.
+const DASHBOARD_INDEXES = REAL_INDEXES.filter((i) => ['SPX', 'DJI', 'IXIC'].includes(i.key))
+
 function formatPulsePrice(symbol, price) {
   if (symbol === 'EURUSD' || symbol === 'USDJPY') return price.toFixed(4)
   return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -741,7 +748,7 @@ function OverviewTab({ userName, accounts, netWorth, history, saving, addAccount
         <p>Here's where your money stands right now.</p>
       </div>
       <MarketSessionStrip />
-      <RealIndexPanel />
+      <RealIndexPanel indexes={DASHBOARD_INDEXES} />
       <MarketPulsePanel />
       <div className="finance-hero">
         <div className={`finance-hero-figure${netWorthPulse ? ' finance-hero-pulse' : ''}`}>
@@ -1683,8 +1690,8 @@ function useLiveIndices(keys) {
   return { indices, status }
 }
 
-function RealIndexPanel() {
-  const keys = REAL_INDEXES.map((i) => i.key)
+function RealIndexPanel({ indexes = REAL_INDEXES }) {
+  const keys = indexes.map((i) => i.key)
   const { indices, status } = useLiveIndices(keys)
 
   return (
@@ -1699,7 +1706,7 @@ function RealIndexPanel() {
         </div>
       )}
       <div className="market-pulse-grid">
-        {REAL_INDEXES.map(({ key, label }) => {
+        {indexes.map(({ key, label }) => {
           const point = indices[key]
           const hasLive = point && Number.isFinite(point.price)
           const up = hasLive && point.changePercent >= 0
@@ -1840,8 +1847,39 @@ function formatNewsTime(ms) {
   return `${diffDays}d ago`
 }
 
+// Real category -> label/color map, matching Finnhub's own `category`
+// param exactly (general/forex/crypto/merger) -- "sectioning by news type"
+// means sectioning by the real param we fetched with, never a guessed
+// label. 'general' is shown as "Top News" since that's what it actually
+// is (Finnhub's main headline feed), not a separate, made-up "top" tier.
+const NEWS_SECTION_META = {
+  general: { label: 'Top News', rgb: '245, 183, 46' },
+  forex: { label: 'Forex', rgb: '56, 189, 248' },
+  crypto: { label: 'Crypto', rgb: '168, 85, 247' },
+  merger: { label: 'M&A', rgb: '52, 211, 153' },
+}
+const NEWS_SECTION_ORDER = ['general', 'forex', 'crypto', 'merger']
+
 function DailyBriefingTab() {
   const { articles, status, reason, refresh } = useMarketNews()
+  // Clicking a story expands it in place (summary + an explicit "read
+  // full story" link) instead of immediately navigating away -- Dylan
+  // asked for either a link to the full thing or a description on click;
+  // this gives both without forcing a tab switch just to see what a
+  // headline is actually about.
+  const [expandedId, setExpandedId] = useState(null)
+
+  // Sectioned by Finnhub's own real category field -- any category value
+  // outside the 4 known ones (shouldn't happen, but never silently drop
+  // real fetched articles) falls into a plain "Other" section rather than
+  // vanishing.
+  const knownSections = NEWS_SECTION_ORDER
+    .map((key) => ({ key, meta: NEWS_SECTION_META[key], items: articles.filter((a) => a.category === key) }))
+    .filter((section) => section.items.length > 0)
+  const otherItems = articles.filter((a) => !NEWS_SECTION_ORDER.includes(a.category))
+  const sections = otherItems.length
+    ? [...knownSections, { key: 'other', meta: { label: 'Other', rgb: '148, 163, 184' }, items: otherItems }]
+    : knownSections
 
   return (
     <div className="finance-briefing">
@@ -1857,8 +1895,8 @@ function DailyBriefingTab() {
 
       {status === 'no_key' && (
         <div className="trading-live-price-hint">
-          Daily news isn't wired up yet -- get a free API key at finnhub.io, add{' '}
-          <code>FINNHUB_API_KEY=your_key_here</code> to the app's <code>.env</code> file, and restart the server.
+          Daily news isn't wired up yet -- get a free API key at finnhub.io, add it in Settings &gt;
+          Integrations &amp; API Keys.
         </div>
       )}
 
@@ -1872,26 +1910,73 @@ function DailyBriefingTab() {
         <p className="finance-ledger-empty">No headlines came back just now. Try refreshing in a bit.</p>
       )}
 
-      {articles.length > 0 && (
-        <div className="finance-briefing-list">
-          {articles.map((article) => (
-            <a
-              key={article.id}
-              href={article.url}
-              target="_blank"
-              rel="noreferrer"
-              className="finance-briefing-item"
-            >
-              <div className="finance-briefing-item-top">
-                <span className="finance-briefing-source">{article.source}</span>
-                <span className="finance-briefing-time">{formatNewsTime(article.datetime)}</span>
-              </div>
-              <strong>{article.headline}</strong>
-              {article.summary && <p>{article.summary}</p>}
-            </a>
-          ))}
+      {sections.map((section) => (
+        <div className="finance-briefing-section" key={section.key} style={{ '--news-rgb': section.meta.rgb }}>
+          <div className="finance-briefing-section-header">
+            <span className="finance-briefing-section-dot" />
+            <strong>{section.meta.label}</strong>
+            <span className="finance-briefing-section-count">{section.items.length}</span>
+          </div>
+
+          <div className="finance-briefing-list">
+            {section.items.map((article) => {
+              const expanded = expandedId === article.id
+              return (
+                <div
+                  key={article.id}
+                  className={`finance-briefing-item${expanded ? ' expanded' : ''}`}
+                  onClick={() => setExpandedId(expanded ? null : article.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setExpandedId(expanded ? null : article.id)
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="finance-briefing-item-top">
+                    <span className="finance-briefing-source">{article.source}</span>
+                    <span className="finance-briefing-time">{formatNewsTime(article.datetime)}</span>
+                  </div>
+                  <strong>{article.headline}</strong>
+
+                  {article.related.length > 0 && (
+                    <div className="finance-briefing-tickers">
+                      {article.related.map((ticker) => (
+                        <span key={ticker} className="finance-briefing-ticker-chip">
+                          {ticker}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {expanded && (
+                    <>
+                      {article.summary ? (
+                        <p className="finance-briefing-summary">{article.summary}</p>
+                      ) : (
+                        <p className="finance-briefing-summary finance-briefing-summary-empty">
+                          Finnhub didn't send a summary for this one -- the full story has it.
+                        </p>
+                      )}
+                      <a
+                        href={article.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="finance-briefing-read-more"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Read full story <ExternalLink size={13} strokeWidth={2.25} />
+                      </a>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
-      )}
+      ))}
     </div>
   )
 }
