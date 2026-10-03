@@ -3,6 +3,7 @@ import { loadData, saveData } from '../lib/dataStore.js'
 import { syncCalendarEvent } from '../lib/calendarAutoSync.js'
 import { listTrash, getTrashEntry, removeFromTrash } from '../lib/trashStore.js'
 import { includeCourse } from '../lib/canvasExclusions.js'
+import { DEFAULT_WEEK_PLAN } from './gym.js'
 
 const router = Router()
 
@@ -137,6 +138,45 @@ const RESTORE_HANDLERS = {
   },
   'sports-recurring-event': (snapshot) => {
     pushIfAbsent('sports_recurring_events', snapshot)
+  },
+  'gym-exercise': (snapshot) => {
+    pushIfAbsent('gym_exercises', snapshot)
+  },
+  'gym-session': async (snapshot) => {
+    await restoreRecord('gym_sessions', snapshot, { title: 'Gym session', date: snapshot.date, mode: 'gym' })
+  },
+  'gym-recurring-event': (snapshot) => {
+    pushIfAbsent('gym_recurring_events', snapshot)
+  },
+  'gym-log': (snapshot) => {
+    pushIfAbsent('gym_logs', snapshot)
+  },
+  // Puts the routine back, then reinstates its week-plan day assignments
+  // and date overrides ONLY where that slot is still unset -- if Dylan
+  // picked a different routine for a day in the meantime, this restore
+  // must not clobber that newer choice.
+  'gym-routine': (snapshot) => {
+    pushIfAbsent('gym_routines', snapshot.routine)
+
+    const weekPlan = loadData('gym_week_plan', DEFAULT_WEEK_PLAN)
+    let weekPlanChanged = false
+    for (const day of snapshot.weekDays || []) {
+      if (!weekPlan[day]) {
+        weekPlan[day] = snapshot.routine.id
+        weekPlanChanged = true
+      }
+    }
+    if (weekPlanChanged) saveData('gym_week_plan', weekPlan)
+
+    const overrides = loadData('gym_week_plan_overrides', {})
+    let overridesChanged = false
+    for (const date of Object.keys(snapshot.overrides || {})) {
+      if (!overrides[date]) {
+        overrides[date] = snapshot.overrides[date]
+        overridesChanged = true
+      }
+    }
+    if (overridesChanged) saveData('gym_week_plan_overrides', overrides)
   },
 }
 

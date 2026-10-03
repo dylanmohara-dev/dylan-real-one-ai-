@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
 import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.js'
+import { addToTrash } from '../lib/trashStore.js'
 
 const router = Router()
 
@@ -46,11 +47,15 @@ router.post('/exercises', (req, res) => {
 
 router.delete('/exercises/:id', (req, res) => {
   const exercises = loadData('gym_exercises')
+  const deleted = exercises.find((e) => e.id === req.params.id)
   const remaining = exercises.filter((e) => e.id !== req.params.id)
   saveData('gym_exercises', remaining)
   // Logs for a deleted exercise are left alone deliberately -- they're
   // still real history of a workout that happened, even if the exercise
   // itself is no longer in the active library.
+  if (deleted) {
+    addToTrash({ mode: 'gym', kind: 'gym-exercise', label: `Exercise: ${deleted.name}`, snapshot: deleted })
+  }
   res.json({ success: true })
 })
 
@@ -111,6 +116,9 @@ router.delete('/sessions/:id', async (req, res) => {
   if (session) await clearCalendarEvent(session)
   const remaining = sessions.filter((s) => s.id !== req.params.id)
   saveData('gym_sessions', remaining)
+  if (session) {
+    addToTrash({ mode: 'gym', kind: 'gym-session', label: `Gym session: ${session.date}`, snapshot: session })
+  }
   res.json({ success: true })
 })
 
@@ -158,8 +166,12 @@ router.post('/recurring-events', (req, res) => {
 
 router.delete('/recurring-events/:id', (req, res) => {
   const recurringEvents = loadData('gym_recurring_events')
+  const deleted = recurringEvents.find((e) => e.id === req.params.id)
   const remaining = recurringEvents.filter((e) => e.id !== req.params.id)
   saveData('gym_recurring_events', remaining)
+  if (deleted) {
+    addToTrash({ mode: 'gym', kind: 'gym-recurring-event', label: `Recurring: ${deleted.label}`, snapshot: deleted })
+  }
   res.json({ success: true })
 })
 
@@ -212,8 +224,12 @@ router.put('/logs/:id', (req, res) => {
 
 router.delete('/logs/:id', (req, res) => {
   const logs = loadData('gym_logs')
+  const deleted = logs.find((l) => l.id === req.params.id)
   const remaining = logs.filter((l) => l.id !== req.params.id)
   saveData('gym_logs', remaining)
+  if (deleted) {
+    addToTrash({ mode: 'gym', kind: 'gym-log', label: `Log: ${deleted.date}`, snapshot: deleted })
+  }
   res.json({ success: true })
 })
 
@@ -261,32 +277,49 @@ router.put('/routines/:id', (req, res) => {
 
 router.delete('/routines/:id', (req, res) => {
   const routines = loadData('gym_routines')
+  const deleted = routines.find((r) => r.id === req.params.id)
   const remaining = routines.filter((r) => r.id !== req.params.id)
   saveData('gym_routines', remaining)
 
   // A day still pointing at a routine that no longer exists would silently
   // break the "today's workout" view -- clear it out of the week plan
   // wherever it was assigned, in the same request that deletes it. Same
-  // cleanup for any per-date override pointing at it.
+  // cleanup for any per-date override pointing at it. Which days/dates got
+  // cleared is captured into the trash snapshot below so a restore can put
+  // the routine back exactly where it was scheduled -- not just the bare
+  // routine record.
   const weekPlan = loadData('gym_week_plan', DEFAULT_WEEK_PLAN)
+  const clearedWeekDays = []
   let changed = false
   for (const day of WEEKDAYS) {
     if (weekPlan[day] === req.params.id) {
       weekPlan[day] = null
+      clearedWeekDays.push(day)
       changed = true
     }
   }
   if (changed) saveData('gym_week_plan', weekPlan)
 
   const overrides = loadData('gym_week_plan_overrides', {})
+  const clearedOverrides = {}
   let overridesChanged = false
   for (const date of Object.keys(overrides)) {
     if (overrides[date] === req.params.id) {
+      clearedOverrides[date] = req.params.id
       delete overrides[date]
       overridesChanged = true
     }
   }
   if (overridesChanged) saveData('gym_week_plan_overrides', overrides)
+
+  if (deleted) {
+    addToTrash({
+      mode: 'gym',
+      kind: 'gym-routine',
+      label: `Routine: ${deleted.name}`,
+      snapshot: { routine: deleted, weekDays: clearedWeekDays, overrides: clearedOverrides },
+    })
+  }
 
   res.json({ success: true })
 })
