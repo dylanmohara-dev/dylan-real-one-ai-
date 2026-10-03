@@ -15508,6 +15508,57 @@ button:disabled:active {
   text-decoration: underline;
 }
 
+/* Session: Dylan opened Finance mode and saw "no live price"/"no live
+   index value" during the real (usually sub-2s) gap between the page
+   mounting and the first fetch resolving -- indistinguishable from an
+   actual failure. These skeletons fill that exact gap across every live
+   card (Market Pulse, indices, Macro Desk, positions, watchlist, Daily
+   Briefing) so "still loading" reads as loading, not broken. */
+.finance-skeleton {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--mode-accent-rgb), 0.08) 25%,
+    rgba(var(--mode-accent-rgb), 0.18) 37%,
+    rgba(var(--mode-accent-rgb), 0.08) 63%
+  );
+  background-size: 200% 100%;
+  animation: financeSkeletonShimmer 1.4s ease-in-out infinite;
+}
+
+.finance-skeleton-price {
+  width: 64px;
+  height: 15px;
+}
+
+.finance-skeleton-tag {
+  width: 46px;
+  height: 18px;
+  border-radius: 20px;
+}
+
+.finance-briefing-section-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.finance-skeleton-briefing-item {
+  width: 100%;
+  height: 64px;
+  border-radius: 12px;
+}
+
+@keyframes financeSkeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .finance-briefing-section,
   .finance-briefing-item {
@@ -15515,6 +15566,10 @@ button:disabled:active {
   }
   .finance-briefing-item:hover {
     transform: none;
+  }
+  .finance-skeleton {
+    animation: none;
+    background: rgba(var(--mode-accent-rgb), 0.12);
   }
 }
 

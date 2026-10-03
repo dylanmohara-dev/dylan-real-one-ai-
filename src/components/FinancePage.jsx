@@ -700,6 +700,8 @@ function MarketPulsePanel() {
                     {Math.abs(quote.changePercent).toFixed(2)}%
                   </span>
                 </>
+              ) : status === 'loading' ? (
+                <span className="finance-skeleton finance-skeleton-price" aria-hidden="true" />
               ) : (
                 <span className="market-pulse-no-price">no live price</span>
               )}
@@ -1389,7 +1391,7 @@ function PositionForm({ saving, addPosition, draft }) {
   )
 }
 
-function PositionRow({ position, sizing, quote, saving, closePosition, deletePosition }) {
+function PositionRow({ position, sizing, quote, quoteStatus, saving, closePosition, deletePosition }) {
   const [closing, setClosing] = useState(false)
   const [exitPrice, setExitPrice] = useState('')
   const [lesson, setLesson] = useState('')
@@ -1427,6 +1429,8 @@ function PositionRow({ position, sizing, quote, saving, closePosition, deletePos
                 {Math.abs(quote.changePercent).toFixed(2)}%
               </span>
             </>
+          ) : quoteStatus === 'loading' ? (
+            <span className="finance-skeleton finance-skeleton-price" aria-hidden="true" />
           ) : (
             <span className="trading-card-no-price">no live price</span>
           )}
@@ -1576,7 +1580,7 @@ function WatchlistForm({ saving, addWatchlistItem }) {
   )
 }
 
-function WatchlistRow({ item, quote, saving, updateWatchlistItem, deleteWatchlistItem, onPromote }) {
+function WatchlistRow({ item, quote, quoteStatus, saving, updateWatchlistItem, deleteWatchlistItem, onPromote }) {
   const stale = isStale(item.updatedAt || item.addedAt)
   const hasLive = quote && Number.isFinite(quote.price)
   return (
@@ -1595,6 +1599,8 @@ function WatchlistRow({ item, quote, saving, updateWatchlistItem, deleteWatchlis
               {Math.abs(quote.changePercent).toFixed(2)}%
             </span>
           </div>
+        ) : quoteStatus === 'loading' ? (
+          <span className="finance-skeleton finance-skeleton-price" aria-hidden="true" />
         ) : (
           <span className="trading-card-no-price">no live price</span>
         )}
@@ -1650,6 +1656,20 @@ function useLiveQuotes(symbols) {
     let cancelled = false
 
     async function poll() {
+      // Session: Dylan opened Finance mode and saw "no live price" on
+      // every card for the brief real gap between mount and the first
+      // fetch resolving -- that text is meant for a genuine failure/no-key
+      // state, not "still loading," so it read as broken even though the
+      // real request was about to succeed. A dedicated 'loading' status
+      // lets the UI show a skeleton instead. Only set it if we don't
+      // already have real data up (a background 60s re-poll shouldn't
+      // flash the cards back to a loading state Dylan has to wait through
+      // again). Set from inside this async function rather than the
+      // effect body directly -- same synchronous timing (this line still
+      // runs immediately, before the first await), just structured the
+      // way this codebase's lint rules want an effect's own setState
+      // calls written.
+      setStatus((prev) => (prev === 'ok' ? prev : 'loading'))
       try {
         const response = await fetch(`/api/trading/quotes?symbols=${encodeURIComponent(key)}`)
         const data = await response.json()
@@ -1696,6 +1716,7 @@ function useLiveIndices(keys) {
     let cancelled = false
 
     async function poll() {
+      setStatus((prev) => (prev === 'ok' ? prev : 'loading'))
       try {
         const response = await fetch(`/api/trading/indices?symbols=${encodeURIComponent(key)}`)
         const data = await response.json()
@@ -1765,6 +1786,8 @@ function RealIndexPanel({ indexes = REAL_INDEXES }) {
                     </span>
                   )}
                 </>
+              ) : status === 'loading' ? (
+                <span className="finance-skeleton finance-skeleton-price" aria-hidden="true" />
               ) : (
                 <span className="market-pulse-no-price">no live index value</span>
               )}
@@ -1796,6 +1819,7 @@ function useTechnicals(symbols) {
     let cancelled = false
 
     async function poll() {
+      setStatus((prev) => (prev === 'ok' ? prev : 'loading'))
       try {
         const response = await fetch(`/api/trading/technicals?symbols=${encodeURIComponent(key)}`)
         const data = await response.json()
@@ -1841,6 +1865,7 @@ function useMarketNews() {
     let cancelled = false
 
     async function poll() {
+      setStatus((prev) => (prev === 'ok' ? prev : 'loading'))
       try {
         const response = await fetch('/api/trading/news')
         const data = await response.json()
@@ -1923,7 +1948,7 @@ function DailyBriefingTab() {
           <span className="eyebrow">Daily Briefing</span>
           <span className="market-pulse-sub">Real headlines only -- no AI-written "news", no summaries Dylan AI made up</span>
         </div>
-        <button type="button" className="finance-briefing-refresh" onClick={refresh} disabled={status === 'idle'}>
+        <button type="button" className="finance-briefing-refresh" onClick={refresh} disabled={status === 'idle' || status === 'loading'}>
           Refresh
         </button>
       </div>
@@ -1943,6 +1968,14 @@ function DailyBriefingTab() {
 
       {status === 'ok' && articles.length === 0 && (
         <p className="finance-ledger-empty">No headlines came back just now. Try refreshing in a bit.</p>
+      )}
+
+      {status === 'loading' && articles.length === 0 && (
+        <div className="finance-briefing-section-skeleton" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <div className="finance-skeleton finance-skeleton-briefing-item" key={i} />
+          ))}
+        </div>
       )}
 
       {sections.map((section) => (
@@ -2056,6 +2089,8 @@ function MacroDeskPanel() {
                 <TradingViewLink symbol={symbol} />
                 {data?.bias ? (
                   <span className={`macro-desk-bias ${data.bias}`}>{data.bias}</span>
+                ) : status === 'loading' ? (
+                  <span className="finance-skeleton finance-skeleton-tag" aria-hidden="true" />
                 ) : (
                   <span className="trading-card-no-price">no signal yet</span>
                 )}
@@ -2154,6 +2189,7 @@ function TradingTab({
                 position={position}
                 sizing={stats?.bySizing?.[position.id]}
                 quote={quotes[position.ticker]}
+                quoteStatus={quoteStatus}
                 saving={saving}
                 closePosition={closePosition}
                 deletePosition={deletePosition}
@@ -2191,6 +2227,7 @@ function TradingTab({
               key={item.id}
               item={item}
               quote={quotes[item.ticker]}
+              quoteStatus={quoteStatus}
               saving={saving}
               updateWatchlistItem={updateWatchlistItem}
               deleteWatchlistItem={deleteWatchlistItem}
