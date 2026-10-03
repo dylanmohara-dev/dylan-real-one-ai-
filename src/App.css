@@ -8329,6 +8329,20 @@ footer {
   font-variant-numeric: tabular-nums;
 }
 
+.market-pulse-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.index-sparkline {
+  width: 72px;
+  height: 26px;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
 .market-pulse-change {
   display: inline-flex;
   align-items: center;
@@ -15412,11 +15426,6 @@ button:disabled:active {
   color: var(--text-muted);
   line-height: 1.55;
   margin: 2px 0 0;
-}
-
-.finance-briefing-summary-empty {
-  font-style: italic;
-  opacity: 0.7;
 }
 
 .finance-briefing-read-more {

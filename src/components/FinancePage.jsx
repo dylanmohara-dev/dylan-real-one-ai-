@@ -589,12 +589,40 @@ const REAL_INDEXES = [
   { key: 'VIX', label: 'VIX (Volatility Index)' },
 ]
 
-// Dashboard asked for just the 3 majors -- S&P 500, Dow Jones, and "the
-// Nasdaq" (its Composite index, the one actually quoted in headlines, not
-// the narrower Nasdaq 100). REAL_INDEXES above stays the full 6 in case
-// Macro Desk or anywhere else ever wants the rest -- this is a view-level
-// filter, not a data-level deletion.
-const DASHBOARD_INDEXES = REAL_INDEXES.filter((i) => ['SPX', 'DJI', 'IXIC'].includes(i.key))
+// Dashboard asked for just the 3 majors -- S&P 500, Dow Jones, and
+// Nasdaq 100 (Dylan's explicit correction: NDX, not the Composite).
+// REAL_INDEXES above stays the full 6 in case Macro Desk or anywhere else
+// ever wants the rest -- this is a view-level filter, not a data-level
+// deletion.
+const DASHBOARD_INDEXES = REAL_INDEXES.filter((i) => ['SPX', 'DJI', 'NDX'].includes(i.key))
+
+// Same real-data-only sparkline math as AccountSparkline above, just fed
+// by Yahoo's actual daily closes (lib/indexData.js) instead of account
+// balance history. No chart at all below 2 points -- same house rule.
+function IndexSparkline({ closes }) {
+  if (!Array.isArray(closes) || closes.length < 2) return null
+  const min = Math.min(...closes)
+  const max = Math.max(...closes)
+  const range = max - min || 1
+  const width = 72
+  const height = 26
+  const step = width / (closes.length - 1)
+  const coords = closes.map((v, i) => `${(i * step).toFixed(1)},${(height - ((v - min) / range) * (height - 4) - 2).toFixed(1)}`)
+  const rising = closes[closes.length - 1] >= closes[0]
+
+  return (
+    <svg className="index-sparkline" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+      <polyline
+        points={coords.join(' ')}
+        fill="none"
+        stroke={rising ? 'var(--finance-trend-up, #22c55e)' : 'var(--finance-trend-down, #ef4444)'}
+        strokeWidth="2"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
 
 function formatPulsePrice(symbol, price) {
   if (symbol === 'EURUSD' || symbol === 'USDJPY') return price.toFixed(4)
@@ -1719,7 +1747,10 @@ function RealIndexPanel({ indexes = REAL_INDEXES }) {
               </div>
               {hasLive ? (
                 <>
-                  <span className="market-pulse-price">{formatIndexPrice(point.price)}</span>
+                  <div className="market-pulse-price-row">
+                    <span className="market-pulse-price">{formatIndexPrice(point.price)}</span>
+                    <IndexSparkline closes={point.closes} />
+                  </div>
                   <span className={`market-pulse-change ${up ? 'up' : 'down'}`}>
                     {up ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />}
                     {Math.abs(point.changePercent).toFixed(2)}%
@@ -1953,13 +1984,7 @@ function DailyBriefingTab() {
 
                   {expanded && (
                     <>
-                      {article.summary ? (
-                        <p className="finance-briefing-summary">{article.summary}</p>
-                      ) : (
-                        <p className="finance-briefing-summary finance-briefing-summary-empty">
-                          Finnhub didn't send a summary for this one -- the full story has it.
-                        </p>
-                      )}
+                      {article.summary && <p className="finance-briefing-summary">{article.summary}</p>}
                       <a
                         href={article.url}
                         target="_blank"
