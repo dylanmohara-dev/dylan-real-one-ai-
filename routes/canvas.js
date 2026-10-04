@@ -53,27 +53,47 @@ router.get('/courses', async (req, res) => {
 // to everything else Dylan already sees on his phone's calendar. Links are
 // keyed by Canvas assignment id and persisted so a repeat sync UPDATES the
 // same real event instead of creating a duplicate every time it runs.
+//
+// Session 43 bugfix: the frontend already serializes its own calls
+// (src/hooks/useCanvas.js), but that guard only covers one browser tab's
+// JS runtime -- this server process can be hit by multiple tabs/devices at
+// once, and two truly concurrent requests here would each loadData() the
+// SAME pre-sync etags, race to PUT against iCloud, and the loser would hit
+// a stale-etag conflict whose documented fallback is "create a new event"
+// -- the exact mechanism that duplicated hundreds of real events onto
+// Dylan's calendar over time. inFlight below serializes every caller
+// through the one in-progress run instead of starting a second one, closing
+// the race at the one place (this single Node process) every caller
+// actually goes through, regardless of which tab or device sent it.
+let inFlight = null
 router.post('/sync-calendar', async (req, res) => {
-  try {
-    const assignments = await getUpcomingAssignments()
-    const links = loadData('canvas_calendar_links', {})
-    let synced = 0
-    for (const item of assignments) {
-      const date = item.dueAt ? item.dueAt.slice(0, 10) : null
-      if (!date) continue
-      const record = links[item.id] ? { ...links[item.id] } : {}
-      await syncCalendarEvent(record, {
-        title: `${item.title} (${item.courseName})`,
-        date,
-        mode: 'school',
-      })
-      if (record.calendarEventUrl) {
-        links[item.id] = record
-        synced += 1
+  if (!inFlight) {
+    inFlight = (async () => {
+      const assignments = await getUpcomingAssignments()
+      const links = loadData('canvas_calendar_links', {})
+      let synced = 0
+      for (const item of assignments) {
+        const date = item.dueAt ? item.dueAt.slice(0, 10) : null
+        if (!date) continue
+        const record = links[item.id] ? { ...links[item.id] } : {}
+        await syncCalendarEvent(record, {
+          title: `${item.title} (${item.courseName})`,
+          date,
+          mode: 'school',
+        })
+        if (record.calendarEventUrl) {
+          links[item.id] = record
+          synced += 1
+        }
       }
-    }
-    saveData('canvas_calendar_links', links)
-    res.json({ success: true, synced })
+      saveData('canvas_calendar_links', links)
+      return { success: true, synced }
+    })().finally(() => {
+      inFlight = null
+    })
+  }
+  try {
+    res.json(await inFlight)
   } catch (error) {
     res.status(400).json({ error: error.message })
   }
