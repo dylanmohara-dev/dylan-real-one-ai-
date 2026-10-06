@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
 import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.js'
+import { effortFieldsForCreate, effortFieldsForUpdate, EffortEstimateValidationError } from '../lib/effortEstimate.js'
 
 const router = Router()
 
@@ -24,6 +25,7 @@ router.post('/', async (req, res) => {
       category: category || 'general',
       completed: Boolean(completed),
       createdAt: new Date().toISOString(),
+      ...effortFieldsForCreate(req.body),
     }
     // Best-effort real-calendar write -- see lib/calendarAutoSync.js.
     // Mutates `task` in place with the link fields before it's saved below.
@@ -32,23 +34,36 @@ router.post('/', async (req, res) => {
     saveData('tasks', tasks)
     res.json({ task })
   } catch (error) {
+    if (error instanceof EffortEstimateValidationError) return res.status(400).json({ error: error.message })
     console.error(error)
     res.status(500).json({ error: 'Could not save task' })
   }
 })
 
 router.put('/:id', async (req, res) => {
-  const tasks = loadData('tasks')
-  const index = tasks.findIndex((task) => task.id === req.params.id)
-  if (index === -1) {
-    return res.status(404).json({ error: 'Task not found' })
+  try {
+    const { fields, clear } = effortFieldsForUpdate(req.body)
+    const tasks = loadData('tasks')
+    const index = tasks.findIndex((task) => task.id === req.params.id)
+    if (index === -1) return res.status(404).json({ error: 'Task not found' })
+    tasks[index] = { ...tasks[index], ...fields, id: tasks[index].id }
+    if (clear) {
+      delete tasks[index].estimatedEffortMinutes
+      delete tasks[index].estimatedEffortProvenance
+    }
+    // Effort changes describe work, not the all-day calendar event. Avoid
+    // rewriting that external event when effort is the only edited field.
+    const effortOnly = Object.keys(req.body).length === 1 && Object.hasOwn(req.body, 'estimatedEffortMinutes')
+    if (!effortOnly) {
+      await syncCalendarEvent(tasks[index], { title: tasks[index].title, date: tasks[index].dueDate, mode: tasks[index].category })
+    }
+    saveData('tasks', tasks)
+    res.json({ task: tasks[index] })
+  } catch (error) {
+    if (error instanceof EffortEstimateValidationError) return res.status(400).json({ error: error.message })
+    console.error(error)
+    res.status(500).json({ error: 'Could not update task' })
   }
-  tasks[index] = { ...tasks[index], ...req.body, id: tasks[index].id }
-  // Keeps the real calendar event in sync with whatever just changed --
-  // a new due date, a renamed task, or a due date cleared entirely.
-  await syncCalendarEvent(tasks[index], { title: tasks[index].title, date: tasks[index].dueDate, mode: tasks[index].category })
-  saveData('tasks', tasks)
-  res.json({ task: tasks[index] })
 })
 
 router.delete('/:id', async (req, res) => {

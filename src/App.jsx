@@ -152,6 +152,8 @@ function App() {
           modesCount={LIFE_MODES.length}
           setUpCount={data.setUpCount}
           overviewCards={data.overviewCards}
+          decisionBrief={data.decisionBrief}
+          dailyFocus={data.dailyFocus}
           setActivePage={navigateTo}
           openChat={openChat}
           saving={data.saving}
@@ -184,13 +186,15 @@ function App() {
           loading={loading}
           streamingText={data.streamingText}
           memorySuggestion={data.memorySuggestion}
+          memorySuggestionMeta={data.memorySuggestionMeta}
           saveMemory={data.saveMemory}
           setMemorySuggestion={data.setMemorySuggestion}
+          clearMemorySuggestion={data.clearMemorySuggestion}
           message={message}
           setMessage={setMessage}
           sendMessage={sendMessage}
-          confirmPendingEvent={data.confirmPendingEvent}
-          cancelPendingEvent={data.cancelPendingEvent}
+          confirmPendingAction={data.confirmPendingAction}
+          cancelPendingAction={data.cancelPendingAction}
         />
       )
     }
@@ -205,12 +209,15 @@ function App() {
           setTaskPriority={data.setTaskPriority}
           taskDueDate={data.taskDueDate}
           setTaskDueDate={data.setTaskDueDate}
+          taskEstimatedEffortMinutes={data.taskEstimatedEffortMinutes}
+          setTaskEstimatedEffortMinutes={data.setTaskEstimatedEffortMinutes}
           taskReminder={data.taskReminder}
           setTaskReminder={data.setTaskReminder}
           saving={data.saving}
           addTask={data.addTask}
           toggleTask={data.toggleTask}
           updateTaskPriority={data.updateTaskPriority}
+          updateTaskEffort={data.updateTaskEffort}
           deleteTask={data.deleteTask}
         />
       )
@@ -272,6 +279,7 @@ function App() {
           canvasCompletions={data.canvasCompletions}
           toggleCanvasAssignment={data.toggleCanvasAssignment}
           setCanvasAssignmentCategory={data.setCanvasAssignmentCategory}
+          setCanvasAssignmentEffort={data.setCanvasAssignmentEffort}
           schoolGradeLevel={data.settings.schoolGradeLevel}
           schoolLabelStyle={data.settings.schoolLabelStyle}
           tasks={data.tasks}
@@ -284,12 +292,16 @@ function App() {
           setAssignmentInput={data.setAssignmentInput}
           assignmentDueDate={data.assignmentDueDate}
           setAssignmentDueDate={data.setAssignmentDueDate}
+          assignmentEstimatedEffortMinutes={data.assignmentEstimatedEffortMinutes}
+          setAssignmentEstimatedEffortMinutes={data.setAssignmentEstimatedEffortMinutes}
           testInput={data.testInput}
           setTestInput={data.setTestInput}
           testDate={data.testDate}
           setTestDate={data.setTestDate}
           testTopics={data.testTopics}
           setTestTopics={data.setTestTopics}
+          testEstimatedEffortMinutes={data.testEstimatedEffortMinutes}
+          setTestEstimatedEffortMinutes={data.setTestEstimatedEffortMinutes}
           saving={data.saving}
           addClass={data.addClass}
           deleteClass={data.deleteClass}
@@ -297,11 +309,13 @@ function App() {
           addAssignment={data.addAssignment}
           toggleAssignment={data.toggleAssignment}
           setAssignmentGrade={data.setAssignmentGrade}
+          setAssignmentEffort={data.setAssignmentEffort}
           setAssignmentCategory={data.setAssignmentCategory}
           deleteAssignment={data.deleteAssignment}
           addTest={data.addTest}
           toggleTest={data.toggleTest}
           setTestGrade={data.setTestGrade}
+          setTestEffort={data.setTestEffort}
           setTestCategory={data.setTestCategory}
           deleteTest={data.deleteTest}
           generateStudyPlan={data.generateStudyPlan}
@@ -326,6 +340,8 @@ function App() {
           setActivePage={navigateTo}
           openChat={openChat}
           calendar={calendar}
+          workAvailability={data.workAvailability}
+          saveWorkAvailability={data.saveWorkAvailability}
         />
       )
     }
@@ -570,6 +586,7 @@ function App() {
         modesCount={LIFE_MODES.length}
         setUpCount={data.setUpCount}
         overviewCards={data.overviewCards}
+        decisionBrief={data.decisionBrief}
         dailyFocus={data.dailyFocus}
         setActivePage={navigateTo}
         openChat={openChat}
@@ -1025,13 +1042,15 @@ function App() {
           loading={loading}
           streamingText={data.streamingText}
           memorySuggestion={data.memorySuggestion}
+          memorySuggestionMeta={data.memorySuggestionMeta}
           saveMemory={data.saveMemory}
           setMemorySuggestion={data.setMemorySuggestion}
+          clearMemorySuggestion={data.clearMemorySuggestion}
           message={message}
           setMessage={setMessage}
           sendMessage={sendMessage}
-          confirmPendingEvent={data.confirmPendingEvent}
-          cancelPendingEvent={data.cancelPendingEvent}
+          confirmPendingAction={data.confirmPendingAction}
+          cancelPendingAction={data.cancelPendingAction}
         />
 
         <SearchOverlay

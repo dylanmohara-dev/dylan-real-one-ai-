@@ -1,27 +1,24 @@
 import { Router } from 'express'
 import { loadData } from '../lib/dataStore.js'
+import { getPersonalContext } from '../lib/personalContext.js'
+import { buildDecisionBrief, formatDecisionBrief, isDecisionQuestion } from '../lib/decisionEngine.js'
 import { detectCommand, executeAction, looksLikeContentRequest, looksLikeLiveDataRequest } from '../lib/assistant.js'
+import { executeActionWithPolicy, confirmPendingAction, cancelPendingAction } from '../lib/actionExecutor.js'
+import { createEvent } from '../lib/appleCalendar.js'
+import { getCalendarScheduleSource } from '../lib/calendarScheduleSource.js'
+import { getUpcomingAssignments, isConnected as isCanvasConnected } from '../lib/canvas.js'
 import { webSearch } from '../lib/webSearch.js'
 import { getLiveContextBlock } from '../lib/liveContext.js'
 import { createReplyExtractor } from '../lib/streamingJson.js'
 import { todayKey } from '../lib/studyPlan.js'
 import { fetchQuotes } from '../lib/marketData.js'
 import { fetchTechnicals } from '../lib/technicals.js'
-import { getApiKey } from '../lib/apiKeys.js'
-import { enrichSkill, computeQuests } from '../lib/skillsEngine.js'
+import { checkModel, complete, streamTokens } from '../lib/aiGateway.js'
 import {
-  OLLAMA_HOST,
-  OLLAMA_URL,
   MODEL,
   FALLBACK_MODEL,
   VISION_MODEL,
-  OLLAMA_TIMEOUT_MS,
-  OLLAMA_PING_TIMEOUT_MS,
-  KEEP_ALIVE,
   MAX_CHAT_HISTORY_MESSAGES,
-  GROQ_URL,
-  GROQ_MODEL,
-  GROQ_TIMEOUT_MS,
 } from '../lib/aiConfig.js'
 
 const router = Router()
@@ -36,110 +33,6 @@ const router = Router()
 // hang is strictly worse than an error — an error at least tells you what to
 // fix. Everything below is now bounded.
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = OLLAMA_TIMEOUT_MS, label = 'The local AI') {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(url, { ...options, signal: controller.signal })
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error(
-        `${label} did not respond within ${Math.round(timeoutMs / 1000)}s. ` +
-        `Ollama may be loading the model, stuck, or not running — check it with \`ollama list\`, ` +
-        `and restart it with \`ollama serve\` if needed.`
-      )
-    }
-    throw error
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-// Both this and resolveAvailableModel() below used to independently ping
-// Ollama's /api/tags on every single call -- meaning a normal chat message
-// could trigger it twice (once here or in resolveAvailableModel, again in
-// the /memory-check that follows), and a back-and-forth conversation paid
-// that extra local round trip before every message with zero benefit --
-// which model is pulled essentially never changes mid-conversation.
-// Cached for a short window so it's skipped for the overwhelmingly common
-// case (several messages in quick succession) while still noticing a real
-// `ollama pull`/`ollama rm` within seconds, not requiring a server
-// restart.
-const MODEL_LIST_CACHE_MS = 15000
-let modelListCache = { at: 0, models: null }
-
-async function getInstalledModels() {
-  if (modelListCache.models && Date.now() - modelListCache.at < MODEL_LIST_CACHE_MS) {
-    return modelListCache.models
-  }
-
-  let installedModels = []
-  try {
-    const tagsResponse = await fetchWithTimeout(`${OLLAMA_HOST}/api/tags`, {}, OLLAMA_PING_TIMEOUT_MS, 'Ollama')
-    if (tagsResponse.ok) {
-      const tagsData = await tagsResponse.json()
-      installedModels = (tagsData.models || []).map((m) => m.name)
-    }
-  } catch {
-    // Deliberately NOT cached -- a transient failure to reach Ollama
-    // shouldn't get remembered as "nothing is installed" for the next 15s.
-    throw new Error(
-      `Could not reach Ollama at all (${OLLAMA_HOST}). Is it running? Try \`ollama serve\` ` + 'or open the Ollama app, then try again.'
-    )
-  }
-
-  modelListCache = { at: Date.now(), models: installedModels }
-  return installedModels
-}
-
-// Checks whether a given model name is actually pulled in Ollama BEFORE
-// spending a request on it -- this is what turns "some HTTP error came
-// back" into an unmistakable, specific instruction ("run ollama pull X").
-// Originally only the vision path did this; pulled out here so the main
-// and content-request paths can do the same check now that MODEL is no
-// longer guaranteed to already be installed (see lib/aiConfig.js -- Dylan
-// chose a bigger, smarter, NOT-yet-pulled model over the previous default).
-async function checkModelInstalled(modelName) {
-  const installedModels = await getInstalledModels()
-
-  const isInstalled = installedModels.some((name) => name === modelName || name.startsWith(`${modelName}:`))
-  if (!isInstalled) {
-    throw new Error(
-      `Dylan AI is set to use "${modelName}", but it isn't pulled yet. \`ollama list\` shows: ` +
-        `${installedModels.length ? installedModels.join(', ') : '(nothing installed at all)'}. ` +
-        `Run \`ollama pull ${modelName}\` in a terminal on this Mac, then try again -- it only needs to be done once.`
-    )
-  }
-}
-
-// Like checkModelInstalled, but for the everyday text paths (content-request
-// and main) that have a known-good fallback to drop back to: if the
-// preferred MODEL isn't pulled yet but FALLBACK_MODEL is, use the fallback
-// for THIS request instead of hard-blocking every single message on a
-// one-time setup step Dylan hasn't gotten to yet. Real example that
-// prompted this: Dylan switched MODEL to llama3.1:8b, hadn't run
-// `ollama pull` yet, and every message failed outright until he did --
-// this keeps chat usable in the meantime, at the smaller model's quality,
-// while still telling him plainly (see callers below) that he's on the
-// fallback and what to run to get the better one.
-async function resolveAvailableModel(preferredModel, fallbackModel) {
-  const installedModels = await getInstalledModels()
-
-  const isModelInstalled = (name) => installedModels.some((m) => m === name || m.startsWith(`${name}:`))
-
-  if (isModelInstalled(preferredModel)) {
-    return { model: preferredModel, usedFallback: false }
-  }
-  if (fallbackModel && isModelInstalled(fallbackModel)) {
-    return { model: fallbackModel, usedFallback: true }
-  }
-  throw new Error(
-    `Dylan AI is set to use "${preferredModel}", but it isn't pulled yet` +
-      `${fallbackModel ? ` (and neither is the fallback, "${fallbackModel}")` : ''}. ` +
-      `\`ollama list\` shows: ${installedModels.length ? installedModels.join(', ') : '(nothing installed at all)'}. ` +
-      `Run \`ollama pull ${preferredModel}\` in a terminal on this Mac, then try again -- it only needs to be done once.`
-  )
-}
 
 // Runs one non-vision chat completion. Prefers Groq (see aiConfig.js for
 // why -- llama3.2:3b's speed AND quality ceiling on this Mac can't both be
@@ -149,65 +42,11 @@ async function resolveAvailableModel(preferredModel, fallbackModel) {
 // dependency, so the app keeps working exactly as it always did if it's
 // unreachable. Every call site hands this a buildBody(model) function that
 // returns the OpenAI-compatible request body for whichever model gets
-// resolved (Groq's fixed GROQ_MODEL, or Ollama's resolved MODEL/
 // FALLBACK_MODEL) -- callers never need their own Groq-vs-Ollama branching.
 // `streaming` controls whether stream: true is set (memory-check wants a
 // single JSON response, the other two text paths want token-by-token SSE).
 async function runChatCompletion(buildBody, { streaming = true, preferGroq = true } = {}) {
-  const groqApiKey = getApiKey('GROQ_API_KEY')
-  if (preferGroq && groqApiKey) {
-    try {
-      const body = buildBody(GROQ_MODEL)
-      const groqResponse = await fetchWithTimeout(
-        GROQ_URL,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqApiKey}` },
-          // include_reasoning: false -- gpt-oss models can return their own
-          // internal chain-of-thought in a separate `reasoning` field;
-          // Dylan never asked to see that, and the main chat path's JSON
-          // action-contract parsing has no use for it either, so it's
-          // turned off at the source rather than filtered client-side.
-          body: JSON.stringify({ ...body, stream: streaming, include_reasoning: false }),
-        },
-        GROQ_TIMEOUT_MS,
-        'Groq'
-      )
-      if (!groqResponse.ok) {
-        // Session 39: the old `throw new Error('Groq returned 400')` told
-        // us THAT it failed but never WHY -- a 400 is Groq rejecting the
-        // request body itself (as opposed to a network/rate-limit/outage
-        // problem), and the actual reason lives in the response body we
-        // were discarding. Reading it here is the whole difference between
-        // guessing at the fix and knowing it.
-        const errorBody = await groqResponse.text().catch(() => '(could not read response body)')
-        throw new Error(`Groq returned ${groqResponse.status}: ${errorBody}`)
-      }
-      return { response: groqResponse, usedFallback: false, backendNotice: '' }
-    } catch (groqError) {
-      // Deliberately swallowed here, not re-thrown -- falling through to
-      // Ollama below is the whole point of this catch. Logged so a real,
-      // recurring Groq problem (a bad key, a dead free-tier account) is
-      // still visible in the server log instead of silently invisible.
-      console.error('Groq request failed, falling back to local Ollama:', groqError.message)
-    }
-  }
-
-  const { model: resolvedModel, usedFallback } = await resolveAvailableModel(MODEL, FALLBACK_MODEL)
-  const body = buildBody(resolvedModel)
-  const response = await fetchWithTimeout(OLLAMA_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...body, keep_alive: KEEP_ALIVE, stream: streaming }),
-  })
-  if (!response.ok) throw new Error(`Local AI returned ${response.status}`)
-  return {
-    response,
-    usedFallback,
-    backendNotice: groqApiKey
-      ? '\n\n(Groq is unreachable right now -- answered with the local model instead.)'
-      : '',
-  }
+  return complete(buildBody, { streaming, preferCloud: preferGroq })
 }
 
 // One-line, low-noise heads-up appended to a reply when the fallback model
@@ -335,13 +174,13 @@ Dylan is a BEGINNER investor currently focused on stocks and ETFs. You are his r
 // in Skills mode -- same reasoning as FINANCE_MENTOR_RULES: turn "The
 // Mentor" persona into concrete deliberate-practice coaching behavior
 // instead of a vibe, grounded in Dylan's REAL level/streak/quest data
-// (injected below via skillsContext), never a guess.
+// (assembled in the personal context below), never a guess.
 const SKILLS_MENTOR_RULES = `
 You coach deliberate practice, not generic encouragement. Follow these rules without exception:
-- You have REAL live level, XP, streak, and weekly quest data for every skill Dylan tracks -- shown below under SKILLS PROGRESS. Use those numbers as fact, always read the figure given, never estimate or round from memory.
+- You have current level, XP, streak, and weekly quest data for active skills in the relevant mode context below. Use only the figures supplied there; never estimate or round from memory.
 - Never say just "good job" or "keep practicing." Every real answer gives one concrete, specific next action for TODAY's session -- what to focus on, a target quantity, or a specific weak point to drill -- grounded in what he actually told you he practiced.
 - If a streak broke, say so plainly and matter-of-factly (not a lecture), then immediately pivot to today: "the streak reset, here's the one thing that gets a new one started today."
-- If a weekly quest (shown below) is close to completion, point it out -- "you're N reps away from Cross-Train this week" is exactly the kind of concrete nudge this mode exists for.
+- If a weekly quest (shown in the relevant mode context) is close to completion, point it out -- use only its supplied progress and target.
 - Call out when effort is spread too thin (many skills logged once, none with real reps) versus genuine progress (consistent reps on fewer skills) -- deliberate practice rewards focus and repetition, not breadth for its own sake.
 - Deliberate practice, not just volume: push for a specific sub-skill or weak point to isolate and drill, not just "do more reps" -- ask what felt hardest in today's session if he hasn't said.
 `
@@ -576,6 +415,7 @@ router.post('/chat', async (req, res) => {
 
   try {
     const latestMessage = messages[messages.length - 1]?.content || ''
+    const decisionQuestion = isDecisionQuestion(latestMessage)
 
     // Image-attached messages are a completely separate path — isolated the
     // same way content requests are, so this new (and currently unverified,
@@ -584,37 +424,23 @@ router.post('/chat', async (req, res) => {
     if (image) {
       // Check what's actually installed BEFORE spending a request on a model
       // that isn't there -- see checkModelInstalled above.
-      await checkModelInstalled(VISION_MODEL)
+      await checkModel(VISION_MODEL)
 
       const modeLabelForImage = mode && mode !== 'general' ? mode : null
       const visionPersona = personaFraming(modeLabelForImage)
       const visionSystemPrompt = `You are Dylan AI. Dylan sent an image${modeLabelForImage ? ` while in his "${modeLabelForImage}" area` : ''}. ${visionPersona ? `${visionPersona} ` : ''}Describe what's relevant in it and answer his message about it directly and plainly. No JSON, no code fences.`
 
-      const visionResponse = await fetchWithTimeout(OLLAMA_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { response: visionResponse } = await complete(
+        () => ({
           model: VISION_MODEL,
-          keep_alive: KEEP_ALIVE,
-          stream: true,
           messages: [
             { role: 'system', content: visionSystemPrompt },
             {
               role: 'user',
               content: [
                 { type: 'text', text: latestMessage || 'What do you see in this image?' },
-                // Session 40: this was `image_url: { url: image }` -- the
-                // OpenAI API's own shape, and what every generic example
-                // online shows. Confirmed against Ollama's actual current
-                // docs (docs.ollama.com/api/openai-compatibility) that its
-                // OpenAI-COMPATIBLE endpoint does NOT mirror that: it wants
-                // image_url as the bare base64 data-URL string itself, not
-                // nested under a `url` key. The wrong shape doesn't error --
-                // Ollama still returns 200 and the model still replies, it
-                // just never actually received the image, so the model
-                // answers as if nothing was attached. That's exactly "I sent
-                // a picture and the AI couldn't read it" with no visible
-                // error anywhere -- a silently-ignored field, not a crash.
+                // Ollama's OpenAI-compatible endpoint expects image_url as the
+                // bare base64 data-URL string, not { url: image }.
                 { type: 'image_url', image_url: image },
               ],
             },
@@ -622,7 +448,13 @@ router.post('/chat', async (req, res) => {
           temperature: 0.4,
           max_tokens: 700,
         }),
-      })
+        {
+          streaming: true,
+          preferCloud: false,
+          forceLocal: true,
+          modelOverride: VISION_MODEL,
+        }
+      )
 
       if (!visionResponse.ok) {
         const bodyText = await visionResponse.text().catch(() => '')
@@ -632,11 +464,8 @@ router.post('/chat', async (req, res) => {
         )
       }
 
-      // No JSON wrapper on this path (the vision prompt above explicitly asks
-      // for plain text), so every delta is shown to Dylan as-is, no
-      // extraction needed.
       let visionReplyText = ''
-      await pumpOllamaStream(visionResponse, (delta) => {
+      await streamTokens(visionResponse, (delta) => {
         visionReplyText += delta
         writeSSE(res, 'token', { text: delta })
       })
@@ -650,11 +479,16 @@ router.post('/chat', async (req, res) => {
     if (directAction) {
       // No model call on this path at all -- it never had a "thinking" delay
       // to fix, so it just reports done immediately with no token frames.
-      const actionResult = executeAction(directAction)
+      const actionResult = await executeActionWithPolicy(directAction, {
+        actionsEnabled: req.body?.settings?.allowActions !== false,
+        explicitlyRequested: directAction.type === 'save_memory',
+        executionContext: { modeScope: mode || 'general' },
+      })
       return sendDone({
         reply: actionResult.message || 'Command could not be completed.',
         actionPerformed: actionResult.performed,
         skipMemoryCheck: true,
+        pendingAction: actionResult.pendingAction || null,
       })
     }
 
@@ -751,7 +585,7 @@ ${sourcesBlock || '(no detailed results, just the quick answer above)'}
     // so it has no format to hallucinate a fake multi-turn "completing tasks"
     // sequence into. This is the actual fix for that failure mode; the
     // instruction in the main system prompt below is a backstop, not the fix.
-    if (looksLikeContentRequest(latestMessage)) {
+    if (looksLikeContentRequest(latestMessage) && !decisionQuestion) {
       const contentSystemPrompt = `
 You are Dylan AI, Dylan's personal AI operating system.
 ${modeLabel ? `You are currently in Dylan's "${modeLabel}" area — keep it relevant to ${modeLabel} unless Dylan clearly asks about something else.
@@ -784,70 +618,29 @@ Dylan asked you to write, draft, plan, explain, or brainstorm something. Write t
       })
     }
 
-    const memories = loadData('memories').slice(-50)
-    const allTasks = loadData('tasks')
-    const openTasks = allTasks.filter((t) => !t.completed)
-    const goals = loadData('goals')
-    const notes = loadData('notes').slice(-50)
-    const liveContext = await getLiveContextBlock()
-
-    // Session 40: this system prompt used to cover ONLY tasks/goals/notes/
-    // memories, so any question about a specific life area -- "how many
-    // classes do I have," anything about workouts, reading, habits, family,
-    // accounts -- had zero real data behind it. The model didn't refuse or
-    // hedge, it just guessed and stated the guess as fact (a real, confirmed
-    // case: asked "how many classes," told 2, actual answer 9). This block
-    // gives it real counts and names for every area covered elsewhere in
-    // the app, so a gap becomes an honest "I don't have that specific
-    // detail" instead of an invented number. Kept to counts/names, not full
-    // records, to avoid ballooning every single message's prompt size on
-    // top of an already-real speed problem.
-    const snapshotClasses = loadData('classes')
-    const snapshotAssignments = loadData('assignments')
-    const snapshotTests = loadData('tests')
-    const snapshotOpenAssignments = snapshotAssignments.filter((a) => !a.completed).length
-    const snapshotOpenTests = snapshotTests.filter((t) => !t.completed).length
-    const snapshotSportsSessions = loadData('sports_sessions')
-    const snapshotGymSessions = loadData('gym_sessions')
-    const snapshotGymRoutines = loadData('gym_routines')
-    const snapshotToday = todayKey()
-    // health.json is inconsistent -- older rows never got a `date` field at
-    // all, only `createdAt` (an ISO timestamp). Filtering on `.date` alone
-    // silently dropped every entry that predates when `date` was added,
-    // which would have made this snapshot say "0 entries today" even on a
-    // day with real entries logged -- a false negative that's just as much
-    // a lie as the hallucinated numbers this whole feature exists to stop.
-    // Falling back to createdAt's LOCAL calendar date (same y/m/d approach
-    // todayKey() itself uses, not a UTC string slice) covers both shapes.
-    const localDateKeyFromISO = (iso) => {
-      const d = new Date(iso)
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    let calendarSource = { events: [], status: { source: 'apple_calendar', state: 'unknown', eventCount: null } }
+    let canvasAssignments = []
+    if (decisionQuestion) {
+      calendarSource = await getCalendarScheduleSource()
+      if (isCanvasConnected()) {
+        try {
+          canvasAssignments = await getUpcomingAssignments()
+        } catch (error) {
+          console.warn('Could not load Canvas work for decision brief:', error?.message || error)
+        }
+      }
     }
-    const snapshotHealthToday = loadData('health').filter(
-      (e) => (e.date || (e.createdAt && localDateKeyFromISO(e.createdAt))) === snapshotToday
-    )
-    const snapshotFinanceAccounts = loadData('finance_accounts')
-    const snapshotNetWorth = snapshotFinanceAccounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0)
-    const snapshotSkills = loadData('skills').filter((s) => s.active !== false)
-    const snapshotBooks = loadData('reading_books').filter((b) => b.status !== 'finished' && b.status !== 'dropped')
-    const snapshotHabits = loadData('mind_habits').filter((h) => h.active !== false)
-    const snapshotFamily = loadData('family_members')
-
-    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
-    const pluralY = (n, singular, pluralForm) => `${n} ${n === 1 ? singular : pluralForm}`
-
-    const lifeAreasSnapshot = `
-LIFE AREAS SNAPSHOT (real counts and names, not estimates -- if Dylan asks about a life area and the detail he wants isn't listed here, say plainly that you don't have that specific detail rather than guessing a number):
-- School: ${pluralY(snapshotClasses.length, 'class', 'classes')}${snapshotClasses.length ? ` (${snapshotClasses.map((c) => c.name).join('; ')})` : ''}, ${plural(snapshotOpenAssignments, 'open assignment')} and ${plural(snapshotOpenTests, 'open test')} tracked locally (this does NOT include Canvas-synced assignments/tests -- say you don't have live access to that list if Dylan asks specifically about Canvas items)
-- Sports: ${plural(snapshotSportsSessions.length, 'session')} logged
-- Gym: ${plural(snapshotGymSessions.length, 'session')} logged, ${plural(snapshotGymRoutines.length, 'routine')} saved
-- Health: ${pluralY(snapshotHealthToday.length, 'entry', 'entries')} logged today
-- Finance: ${plural(snapshotFinanceAccounts.length, 'account')}${snapshotFinanceAccounts.length ? `, net worth $${snapshotNetWorth.toLocaleString()}` : ''}
-- Skills: ${plural(snapshotSkills.length, 'active skill')}${snapshotSkills.length ? ` (${snapshotSkills.map((s) => s.name).join(', ')})` : ''}
-- Reading: ${plural(snapshotBooks.length, 'book')} in progress${snapshotBooks.length ? ` (${snapshotBooks.map((b) => `${b.title}: ${b.currentPage}/${b.totalPages || '?'} pages`).join(', ')})` : ''}
-- Mind: ${plural(snapshotHabits.length, 'active habit')}${snapshotHabits.length ? ` (${snapshotHabits.map((h) => h.name).join(', ')})` : ''}
-- Family: ${plural(snapshotFamily.length, 'member')}${snapshotFamily.length ? ` (${snapshotFamily.map((m) => m.name).join(', ')})` : ''}
-`
+    const personalContext = getPersonalContext({
+      mode: mode || 'general',
+      conversationContext: latestMessage,
+      preferences: req.body?.settings,
+      includeCommitments: decisionQuestion,
+      calendarEvents: calendarSource.events,
+      calendarStatus: calendarSource.status,
+      canvasAssignments,
+    })
+    const decisionBrief = decisionQuestion ? buildDecisionBrief(personalContext) : null
+    const liveContext = await getLiveContextBlock()
 
     // Only pulled in Finance mode -- keeps the prompt short everywhere else,
     // same reasoning as GMAIL/SLACK sections only appearing when connected.
@@ -882,59 +675,26 @@ LIFE AREAS SNAPSHOT (real counts and names, not estimates -- if Dylan asks about
         const q = quotes[ticker]
         const t = technicals[ticker]
         const parts = []
-        if (q) parts.push(`$${q.price.toFixed(2)} (${q.changePercent >= 0 ? '+' : ''}${q.changePercent.toFixed(2)}% today)`)
-        if (t && t.rsi !== null) parts.push(`RSI(14) ${t.rsi}, trend ${t.trend || 'unknown'}, bias ${t.bias || 'unknown'}`)
-        return parts.length ? ` | LIVE: ${parts.join(', ')}` : ' | LIVE: no data for this ticker (not covered by Twelve Data free tier, or key missing/invalid)'
+        if (q) parts.push(`external market quote $${q.price.toFixed(2)} (${q.changePercent >= 0 ? '+' : ''}${q.changePercent.toFixed(2)}% today)`)
+        if (t && t.rsi !== null) parts.push(`external technical data RSI(14) ${t.rsi}, trend ${t.trend || 'unknown'}, bias ${t.bias || 'unknown'}`)
+        return parts.length ? ` | LIVE: ${parts.join(', ')}` : ' | LIVE: no external data for this ticker (not covered by Twelve Data free tier, or key missing/invalid)'
       }
 
       return `
-OPEN TRADING POSITIONS:
+CURRENT STRUCTURED TRADING RECORDS — open positions:
 ${openPositions.map((p) => `- ${p.ticker}: ${p.shares} sh @ $${p.avgCost} | Thesis: ${p.thesis} | Invalidation: ${p.invalidation}${liveLine(p.ticker)}`).join('\n') || '- None'}
 
-WATCHLIST (ideas being screened, not yet positions):
+CURRENT STRUCTURED TRADING RECORDS — watchlist (ideas being screened, not yet positions):
 ${watchlist.map((w) => `- ${w.ticker} (${w.verdict}): ${w.thesis}${liveLine(w.ticker)}`).join('\n') || '- None'}
-`
-    })() : ''
-
-    // Only pulled in Skills mode -- real level/XP/streak/quest data so
-    // "The Mentor" can reference Dylan's actual progress instead of
-    // coaching in the abstract. Reuses the exact same lib/skillsEngine.js
-    // math the Skills page itself renders from (enrichSkill, computeQuests)
-    // so the chat can never disagree with what's on screen.
-    const skillsContext = modeLabel === 'skills' ? (() => {
-      const rawSkills = loadData('skills').filter((s) => s.active)
-      if (!rawSkills.length) return ''
-      const allSessions = loadData('skill_sessions')
-      const enriched = rawSkills.map((skill) => enrichSkill(skill, allSessions))
-      const { quests } = computeQuests(enriched, allSessions)
-
-      return `
-SKILLS PROGRESS (real data, not estimates):
-${enriched.map((s) => `- ${s.name}: Level ${s.level} (${s.tier}), ${s.xpIntoLevel}/${s.xpForNextLevel} XP to next level, ${s.streak}-day current streak (best ${s.maxStreak}), ${s.todayQuantity} ${s.unit} logged today`).join('\n')}
-
-THIS WEEK'S QUESTS:
-${quests.map((q) => `- ${q.title}: ${q.description} -- ${q.progress}/${q.target}${q.completed ? ' (COMPLETE)' : ''}`).join('\n')}
 `
     })() : ''
 
     const context = `
 CURRENT DYLAN AI DATA
-
-MEMORIES:
-${memories.map((m) => `- ${m.content}`).join('\n') || '- None'}
-
-OPEN TASKS (completed tasks are hidden here to keep this short -- they still exist and can still be found/managed by name):
-${openTasks.map((t) => `- ${t.title} | Priority: ${t.priority}`).join('\n') || '- None open'}
-
-GOALS:
-${goals.map((g) => `- ${g.title} | ${g.progress}% complete`).join('\n') || '- None'}
-
-NOTES:
-${notes.map((n) => `- ${n.content}`).join('\n') || '- None'}
-${lifeAreasSnapshot}
+${personalContext.prompt}
+${decisionBrief ? formatDecisionBrief(decisionBrief) : ''}
 ${tradingContext}
-${skillsContext}
-${liveContext}
+${liveContext ? `EXTERNAL DATA — connected integrations; use only the content actually provided below\n${liveContext}` : ''}
 `
 
     // Needed so the model can correctly resolve relative dates Dylan
@@ -952,6 +712,8 @@ ${liveContext}
 You are Dylan AI, Dylan's personal AI operating system.
 Today's date is ${todayForModel} (${weekdayForModel}), current local time is roughly ${nowForModel}. Use this to resolve any relative date or time Dylan mentions ("tomorrow," "next Friday," "in two weeks") into an actual calendar date -- never guess or leave it vague.
 ${modeLabel ? `\nYou are currently in Dylan's "${modeLabel}" area — keep your focus and suggestions relevant to ${modeLabel} unless Dylan clearly asks about something else.\n${personaFraming(modeLabel) ? `${personaFraming(modeLabel)}\n` : ''}${modeStyle ? `Style for this area: ${modeStyle}\n` : ''}${modeLabel === 'finance' ? FINANCE_MENTOR_RULES : ''}${modeLabel === 'skills' ? SKILLS_MENTOR_RULES : ''}` : ''}
+PROVENANCE AND CLAIMS: Treat current structured records/settings in CURRENT DYLAN AI DATA as facts about the recorded state. Treat stored memories and notes as user-provided content that may be historical. Values labeled calculated/derived are summaries computed from source records, not independently recorded facts. Treat external data as facts only to the extent the supplied source content supports them. Never invent missing facts about Dylan. AI-GENERATED INFERENCE / RECOMMENDATION: Any inference or recommendation you produce is generated analysis, not a stored or known user fact. Label inferences as tentative and explain which supplied facts they rely on; phrase recommendations as suggestions (for example, "One option you could consider is…").
+${decisionBrief ? 'DECISION REQUEST: The DECISION BRIEF is read-only evidence, not a command or complete plan. Recommend only among its actual candidates, cite their supplied evidence, state uncertainty when ranking is weak, and label your choice as an AI recommendation. Historical memories and derived summaries are context only and do not prove a current obligation. Do not create or change records for this request; return "action": null.' : ''}
 You have access to Dylan's tasks, goals, notes, and memories, plus live data from any of Gmail, Google Drive, and Slack that Dylan has connected (shown below under CURRENT DYLAN AI DATA when connected). If a section like GMAIL or SLACK is missing entirely, that integration is not connected — say so plainly rather than guessing at its contents.
 
 Be concise, useful, organized and action-oriented.
@@ -1069,19 +831,21 @@ ${context}
       parsed = { reply: fallbackReply || raw, action: null }
     }
 
-    // create_event is deliberately never handed to executeAction: every
-    // other action here is a same-process, instantly-reversible write to a
-    // local JSON file, while this one is a real, one-way write to Dylan's
-    // actual Apple/iCloud calendar -- Dylan explicitly chose (session 23)
-    // that a 3B model proposing one is not enough on its own, it must be
-    // confirmed first. So this branch never touches the calendar; it just
-    // hands the proposed fields back to the frontend as `pendingEvent`,
-    // which renders Confirm/Cancel and only calls the real
-    // POST /calendar/events route (already used by the Calendar page's own
-    // manual "add event" form) once Dylan actually clicks Confirm.
+    // All returned actions pass through the same server policy boundary.
+    // create_event remains an explicit-confirmation proposal and is adapted
+    // to the existing pendingEvent response consumed by the current UI.
     let pendingEvent = null
-    if (parsed.action?.type === 'create_event') {
-      const { title, start, end, allDay, location, mode: eventMode } = parsed.action
+    const actionResult = await executeActionWithPolicy(parsed.action, {
+      actionsEnabled: req.body?.settings?.allowActions !== false,
+      // detectCommand runs before the model call and handles explicit
+      // "remember ..." requests; a model-generated action is never proof.
+      explicitlyRequested: false,
+      executionContext: { modeScope: mode || 'general' },
+    })
+    let pendingAction = actionResult.pendingAction || null
+
+    if (pendingAction?.type === 'create_event') {
+      const { title, start, end, allDay, location, mode: eventMode } = pendingAction.action
       if (title?.trim() && start) {
         pendingEvent = {
           title: title.trim(),
@@ -1092,20 +856,18 @@ ${context}
           mode: eventMode || modeLabel || null,
         }
       }
-      // Missing title/start: treat as no action at all rather than showing
-      // a broken confirm button with nothing to confirm. The system prompt
-      // already tells the model to ask a clarifying question instead of
-      // proposing an incomplete event, so parsed.reply should already read
-      // like a question in this case.
-      parsed.action = null
+      // Do not expose an incomplete calendar proposal.
+      if (!pendingEvent) pendingAction = null
     }
-
-    const actionResult = pendingEvent ? { performed: false, message: '' } : executeAction(parsed.action)
     let finalReply = parsed.reply || raw
 
     if (actionResult.performed) {
       finalReply = actionResult.message
-    } else if (parsed.action && actionResult.message) {
+    } else if (pendingAction && pendingEvent) {
+      // Keep the model's proposed wording alongside the existing calendar
+      // confirmation card.
+      finalReply = parsed.reply || actionResult.message
+    } else if (actionResult.message) {
       finalReply = actionResult.message
     }
 
@@ -1117,8 +879,9 @@ ${context}
     sendDone({
       reply: (finalReply || 'No response from Dylan AI.') + fallbackNotice(usedFallback) + backendNotice,
       actionPerformed: actionResult.performed,
-      skipMemoryCheck: actionResult.performed,
+      skipMemoryCheck: Boolean(parsed.action),
       pendingEvent,
+      pendingAction,
     })
   } catch (error) {
     // This was the other half of the "real errors reach Dylan" fix from a
@@ -1135,9 +898,44 @@ ${context}
   }
 })
 
+router.post('/chat/confirm-action', async (req, res) => {
+  const id = req.body?.id
+  if (typeof id !== 'string' || !id) {
+    return res.status(400).json({ error: 'Action confirmation token is required.' })
+  }
+
+  try {
+    const result = await confirmPendingAction(id, {
+      execute: async (action) => {
+        if (action.type === 'create_event') {
+          await createEvent(action)
+          return { performed: true, message: `Added ${action.title} to your calendar.` }
+        }
+        return executeAction(action)
+      },
+    })
+    if (result.status !== 'executed') {
+      return res.status(result.status === 'expired' ? 410 : 400).json({ error: result.message })
+    }
+    return res.json({ success: true, reply: result.message })
+  } catch (error) {
+    console.error('Action confirmation failed:', error)
+    return res.status(400).json({ error: error?.message || 'Could not perform the confirmed action.' })
+  }
+})
+
+router.post('/chat/cancel-action', (req, res) => {
+  const id = req.body?.id
+  if (typeof id !== 'string' || !id) {
+    return res.status(400).json({ error: 'Action confirmation token is required.' })
+  }
+  cancelPendingAction(id)
+  return res.json({ success: true })
+})
+
 router.post('/memory-check', async (req, res) => {
   try {
-    const { message } = req.body
+    const { message, mode } = req.body
     if (!message?.trim()) {
       return res.status(400).json({ error: 'Message is required' })
     }
@@ -1200,7 +998,17 @@ NONE
     if (raw.toUpperCase().startsWith('MEMORY:')) {
       const memory = raw.replace(/^MEMORY:\s*/i, '').trim()
       if (memory) {
-        return res.json({ shouldSuggest: true, memory })
+        const modeScope = ['general', 'school', 'sports', 'gym', 'health', 'finance', 'skills', 'reading', 'mind', 'family'].includes(mode) ? mode : 'general'
+        return res.json({
+          shouldSuggest: true,
+          memory,
+          metadata: {
+            source: 'suggestion',
+            modeScope,
+            sharingPermission: modeScope === 'general' ? 'all_modes' : 'mode_only',
+            sensitivity: ['health', 'finance'].includes(modeScope) ? 'sensitive' : 'normal',
+          },
+        })
       }
     }
 

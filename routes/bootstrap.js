@@ -1,5 +1,11 @@
 import { Router } from 'express'
-import { loadData } from '../lib/dataStore.js'
+import { loadData, loadDataIfExists } from '../lib/dataStore.js'
+import { getPersonalContext } from '../lib/personalContext.js'
+import { buildDecisionBrief } from '../lib/decisionEngine.js'
+import { getCalendarScheduleSource } from '../lib/calendarScheduleSource.js'
+import { DEFAULT_WORK_AVAILABILITY, validateWorkAvailability } from '../lib/scheduleCapacity.js'
+import { getUpcomingAssignments, isConnected as isCanvasConnected } from '../lib/canvas.js'
+import { listMemories } from '../lib/memoryService.js'
 import { buildPayload as buildSkillsPayload } from './skills.js'
 import { computeNetWorth } from './finance.js'
 import { computeTradingStats, DEFAULT_TRADING_SETTINGS } from './trading.js'
@@ -11,6 +17,54 @@ import { MOOD_OPTIONS as FINANCE_MOOD_OPTIONS } from './financePsychology.js'
 import { getHeroImages } from './heroImages.js'
 
 const router = Router()
+
+function getWorkAvailability() {
+  try {
+    return validateWorkAvailability(loadDataIfExists('work_availability', DEFAULT_WORK_AVAILABILITY))
+  } catch {
+    return DEFAULT_WORK_AVAILABILITY
+  }
+}
+
+// Separate read-only endpoint for the Overview's current focus section.
+// It reuses PersonalContext and the decision engine without changing the
+// existing /bootstrap payload contract.
+router.get('/decision-brief', async (req, res) => {
+  try {
+    // Tests can supply an isolated event list through app.locals. Normal app
+    // requests read the already-connected calendar integration, read-only.
+    const suppliedCalendarEvents = req.app?.locals?.decisionCalendarEvents
+    const calendarSource = Array.isArray(suppliedCalendarEvents)
+      ? {
+          events: suppliedCalendarEvents,
+          status: req.app?.locals?.decisionCalendarStatus || {
+            source: 'apple_calendar', state: 'available', eventCount: suppliedCalendarEvents.length,
+          },
+        }
+      : await getCalendarScheduleSource()
+    let canvasAssignments = req.app?.locals?.decisionCanvasAssignments
+    if (!Array.isArray(canvasAssignments)) canvasAssignments = []
+    if (!Array.isArray(req.app?.locals?.decisionCanvasAssignments) && isCanvasConnected()) {
+      try {
+        canvasAssignments = await getUpcomingAssignments()
+      } catch (error) {
+        console.warn('Could not load Canvas assignments for decision brief:', error?.message || error)
+      }
+    }
+    const context = getPersonalContext({
+      mode: 'general',
+      conversationContext: 'What should I focus on today?',
+      includeCommitments: true,
+      calendarEvents: calendarSource.events,
+      calendarStatus: calendarSource.status,
+      canvasAssignments,
+    })
+    res.json(buildDecisionBrief(context))
+  } catch (error) {
+    console.error('Could not build decision brief:', error)
+    res.status(500).json({ error: 'Could not build decision brief' })
+  }
+})
 
 // One combined read for the app's entire initial/refresh load, instead of
 // the ~22 separate GET requests useAppData.js's loadData() used to fire in
@@ -40,10 +94,11 @@ router.get('/bootstrap', (req, res) => {
 
     res.json({
       heroImages: getHeroImages(),
+      workAvailability: getWorkAvailability(),
       tasks: loadData('tasks'),
       goals: loadData('goals'),
       notes: loadData('notes'),
-      memories: loadData('memories'),
+      memories: listMemories(),
       classes: loadData('classes'),
       assignments: loadData('assignments'),
       tests: loadData('tests'),

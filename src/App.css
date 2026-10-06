@@ -2271,6 +2271,81 @@ footer {
   font-size: 13px;
 }
 
+.overview-decision-focus {
+  border-color: rgba(var(--chrome-rgb), 0.3);
+}
+
+.overview-decision-label {
+  color: var(--accent, var(--text-muted));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.overview-decision-recommendation h2 {
+  margin: 5px 0 4px;
+  color: var(--text-primary);
+  font-size: 17px;
+}
+
+.overview-decision-recommendation p,
+.overview-decision-empty p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.overview-decision-evidence {
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.overview-decision-evidence > span {
+  font-weight: 650;
+}
+
+.overview-decision-evidence ul,
+.overview-decision-uncertainty {
+  display: grid;
+  gap: 5px;
+  margin: 6px 0 0;
+  padding-left: 17px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.overview-decision-evidence li small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.overview-decision-open {
+  margin-top: 11px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  background: rgba(var(--chrome-rgb), 0.08);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.overview-decision-open:hover {
+  background: rgba(var(--chrome-rgb), 0.14);
+}
+
+.overview-decision-disclaimer {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
 /* Session 40: the Home-screen "click it off THIS WEEK" widget Dylan
    explicitly asked for -- same .overview-focus card treatment as the
    Daily Focus panel right above it, same real .deadline-item rows
@@ -4309,6 +4384,59 @@ footer {
 .pending-event-error {
   font-size: 11px;
   color: #ff8080;
+}
+
+.pending-action-card {
+  padding: 13px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid rgba(var(--mode-accent-rgb), 0.28);
+  border-radius: 13px;
+  background: rgba(var(--mode-accent-rgb), 0.07);
+  animation: fadeUp 0.2s ease;
+}
+
+.pending-action-card.pending-action-confirmed {
+  border-color: rgba(64, 230, 154, 0.3);
+  background: rgba(64, 230, 154, 0.07);
+}
+
+.pending-action-card.pending-action-cancelled,
+.pending-action-card.pending-action-error {
+  opacity: 0.7;
+}
+
+.pending-action-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text-primary);
+}
+
+.pending-action-heading strong,
+.pending-action-heading span {
+  display: block;
+}
+
+.pending-action-heading strong {
+  font-size: 12.5px;
+}
+
+.pending-action-heading span,
+.pending-action-details {
+  color: var(--text-secondary);
+  font-size: 11.5px;
+}
+
+.pending-action-heading span {
+  margin-top: 2px;
+}
+
+.pending-action-details {
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
 }
 
 .chat-image-file-input {

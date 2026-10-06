@@ -122,6 +122,8 @@ export function useAppData() {
   const [successMessage, setSuccessMessage] = useState('')
 
   const [tasks, setTasks] = useState([])
+  const [decisionBrief, setDecisionBrief] = useState(null)
+  const [workAvailability, setWorkAvailability] = useState({ weeklyWindows: [], dateOverrides: [] })
   const [chatThreads, setChatThreads] = useState({ general: [] })
   const [goals, setGoals] = useState([])
   const [notes, setNotes] = useState([])
@@ -209,6 +211,7 @@ export function useAppData() {
   const [taskInput, setTaskInput] = useState('')
   const [taskPriority, setTaskPriority] = useState('medium')
   const [taskDueDate, setTaskDueDate] = useState('')
+  const [taskEstimatedEffortMinutes, setTaskEstimatedEffortMinutes] = useState('')
   const [taskReminder, setTaskReminder] = useState('none')
 
   // NOTE: schoolInput/schoolDueDate/addSchoolTask are dead code carried over
@@ -239,15 +242,18 @@ export function useAppData() {
   const [classNameInput, setClassNameInput] = useState('')
   const [assignmentInput, setAssignmentInput] = useState('')
   const [assignmentDueDate, setAssignmentDueDate] = useState('')
+  const [assignmentEstimatedEffortMinutes, setAssignmentEstimatedEffortMinutes] = useState('')
   const [testInput, setTestInput] = useState('')
   const [testDate, setTestDate] = useState('')
   const [testTopics, setTestTopics] = useState('')
+  const [testEstimatedEffortMinutes, setTestEstimatedEffortMinutes] = useState('')
 
   const [goalInput, setGoalInput] = useState('')
   const [goalDueDate, setGoalDueDate] = useState('')
   const [noteInput, setNoteInput] = useState('')
   const [memoryInput, setMemoryInput] = useState('')
   const [memorySuggestion, setMemorySuggestion] = useState('')
+  const [memorySuggestionMeta, setMemorySuggestionMeta] = useState(null)
 
   const [settings, setSettings] = useState(() => {
     try {
@@ -496,7 +502,16 @@ export function useAppData() {
   // step changed from 22 round trips to 1.
   async function loadData() {
     try {
-      const data = await request('/bootstrap')
+      const [data, currentDecisionBrief] = await Promise.all([
+        request('/bootstrap'),
+        request('/decision-brief').catch((error) => {
+          console.error('Decision brief load failed:', error)
+          return null
+        }),
+      ])
+
+      setDecisionBrief(currentDecisionBrief)
+      setWorkAvailability(data.workAvailability || { weeklyWindows: [], dateOverrides: [] })
 
       setTasks(data.tasks || [])
       setGoals(data.goals || [])
@@ -590,6 +605,20 @@ export function useAppData() {
       setErrorMessage(error.message)
       return null
     }
+  }
+
+  async function saveWorkAvailability(availability) {
+    const result = await request('/availability', {
+      method: 'PUT',
+      body: JSON.stringify(availability),
+    })
+    setWorkAvailability(result.availability)
+    try {
+      setDecisionBrief(await request('/decision-brief'))
+    } catch (error) {
+      console.error('Decision brief refresh failed after availability update:', error)
+    }
+    return result.availability
   }
 
   // Lets Dylan swap any life area's hero photo for his own (a Gemini
@@ -1791,6 +1820,7 @@ export function useAppData() {
     setMessage('')
     setLoading(true)
     setMemorySuggestion('')
+    setMemorySuggestionMeta(null)
 
     setStreamingText('')
 
@@ -1799,6 +1829,8 @@ export function useAppData() {
         messages: [...priorMessages, userMessage],
         settings: {
           allowActions: settings.aiActions,
+          userName: settings.userName,
+          schoolGradeLevel: settings.schoolGradeLevel,
         },
         mode: threadKey,
         image: imageDataUrl || undefined,
@@ -1813,10 +1845,9 @@ export function useAppData() {
             content: chatResult.reply || 'No response from Dylan AI.',
             // Measured server-side, so it reflects real model work.
             thinkingMs: chatResult.thinkingMs,
-            // A proposed real calendar event awaiting Dylan's explicit
-            // confirm/cancel -- see confirmPendingEvent/cancelPendingEvent
-            // below. null on every message that isn't a create_event
-            // proposal.
+            pendingAction: chatResult.pendingAction
+              ? { ...chatResult.pendingAction, status: 'pending', error: null }
+              : null,
             pendingEvent: chatResult.pendingEvent
               ? { ...chatResult.pendingEvent, status: 'pending', error: null }
               : null,
@@ -1862,11 +1893,12 @@ export function useAppData() {
       if (settings.memorySuggestions && !chatResult.skipMemoryCheck) {
         request('/memory-check', {
           method: 'POST',
-          body: JSON.stringify({ message: trimmed }),
+          body: JSON.stringify({ message: trimmed, mode: threadKey }),
         })
           .then((memoryResult) => {
             if (memoryResult?.shouldSuggest) {
               setMemorySuggestion(memoryResult.memory || '')
+              setMemorySuggestionMeta(memoryResult.metadata || null)
             }
           })
           .catch(() => {
@@ -1899,67 +1931,90 @@ export function useAppData() {
     }
   }
 
-  /*
-    create_event is the one action type the chat route never performs on
-    its own (see routes/chat.js) -- it's a real, one-way write to Dylan's
-    actual Apple/iCloud calendar, so Dylan (session 23) chose to require an
-    explicit confirm click before anything actually gets written. These two
-    functions are that confirm/cancel step. `index` addresses a message by
-    its position in chatThreads[threadKey] -- safe here because messages are
-    only ever appended, never reordered or removed, matching the `key={index}`
-    already used to render them in ChatPage.
-  */
-  async function confirmPendingEvent(index) {
+  // All AI action approvals return a server-issued, one-time token. The
+  // server retains the proposed payload and executes that exact snapshot.
+  async function confirmPendingAction(index) {
     const threadKey = currentThreadKey
-    const pending = chatThreads[threadKey]?.[index]?.pendingEvent
-    if (!pending || pending.status === 'confirming' || pending.status === 'confirmed') return
+    const pendingAction = chatThreads[threadKey]?.[index]?.pendingAction
+    const pendingEvent = chatThreads[threadKey]?.[index]?.pendingEvent
+    if (pendingAction?.status !== 'pending') return
+    if (!pendingAction.id) {
+      const error = 'This older proposal expired. Ask again to create a fresh proposal.'
+      showError(error)
+      if (pendingEvent) {
+        setChatThreads((prev) => {
+          const thread = prev[threadKey] || []
+          const target = thread[index]
+          if (!target?.pendingEvent) return prev
+          const updated = [...thread]
+          updated[index] = { ...target, pendingEvent: { ...target.pendingEvent, status: 'error', error } }
+          return { ...prev, [threadKey]: updated }
+        })
+      }
+      return
+    }
 
-    function patchPendingEvent(patch) {
+    function patchPending(patch) {
       setChatThreads((prev) => {
         const thread = prev[threadKey] || []
         const target = thread[index]
-        if (!target?.pendingEvent) return prev
+        if (!target?.pendingAction) return prev
         const updated = [...thread]
-        updated[index] = { ...target, pendingEvent: { ...target.pendingEvent, ...patch } }
+        updated[index] = {
+          ...target,
+          pendingAction: { ...target.pendingAction, ...patch },
+          pendingEvent: target.pendingEvent
+            ? { ...target.pendingEvent, ...patch }
+            : null,
+        }
         return { ...prev, [threadKey]: updated }
       })
     }
 
-    patchPendingEvent({ status: 'confirming', error: null })
+    patchPending({ status: 'confirming', error: null })
 
     try {
-      // Reuses the exact same real-calendar-write endpoint the Calendar
-      // page's own manual "add event" form already uses (useCalendar.js's
-      // createEvent -> POST /calendar/events) -- this is not a second,
-      // parallel way of writing events, just a second caller of the one
-      // that already exists and is already trusted with Dylan's real
-      // iCloud calendar.
-      await request('/calendar/events', {
+      await request('/chat/confirm-action', {
         method: 'POST',
-        body: JSON.stringify({
-          title: pending.title,
-          start: pending.start,
-          end: pending.end,
-          allDay: pending.allDay,
-          location: pending.location,
-          mode: pending.mode,
-        }),
+        body: JSON.stringify({ id: pendingAction.id }),
       })
-      patchPendingEvent({ status: 'confirmed', error: null })
+      patchPending({ status: 'confirmed', error: null })
+      await loadData()
     } catch (error) {
       showError(error.message)
-      patchPendingEvent({ status: 'pending', error: error.message })
+      // The token is consumed before execution, so do not offer a retry that
+      // could duplicate an external write with an uncertain outcome.
+      patchPending({ status: 'error', error: error.message })
     }
   }
 
-  function cancelPendingEvent(index) {
+  async function cancelPendingAction(index) {
     const threadKey = currentThreadKey
+    const pendingAction = chatThreads[threadKey]?.[index]?.pendingAction
+    if (pendingAction?.id) {
+      try {
+        await request('/chat/cancel-action', {
+          method: 'POST',
+          body: JSON.stringify({ id: pendingAction.id }),
+        })
+      } catch (error) {
+        showError(error.message)
+      }
+    }
     setChatThreads((prev) => {
       const thread = prev[threadKey] || []
       const target = thread[index]
-      if (!target?.pendingEvent) return prev
+      if (!target?.pendingAction && !target?.pendingEvent) return prev
       const updated = [...thread]
-      updated[index] = { ...target, pendingEvent: { ...target.pendingEvent, status: 'cancelled' } }
+      updated[index] = {
+        ...target,
+        pendingAction: target.pendingAction
+          ? { ...target.pendingAction, status: 'cancelled' }
+          : null,
+        pendingEvent: target.pendingEvent
+          ? { ...target.pendingEvent, status: 'cancelled' }
+          : null,
+      }
       return { ...prev, [threadKey]: updated }
     })
   }
@@ -2497,7 +2552,7 @@ export function useAppData() {
     }
   }
 
-  async function saveMemory(content = memoryInput) {
+  async function saveMemory(content = memoryInput, metadata = null) {
     if (!content.trim()) return
 
     setSaving(true)
@@ -2505,11 +2560,12 @@ export function useAppData() {
     try {
       await request('/memories', {
         method: 'POST',
-        body: JSON.stringify({ content: content.trim() }),
+        body: JSON.stringify({ content: content.trim(), metadata: metadata || undefined }),
       })
 
       setMemoryInput('')
       setMemorySuggestion('')
+      setMemorySuggestionMeta(null)
 
       await loadData()
 
@@ -2547,11 +2603,13 @@ export function useAppData() {
           dueDate: taskDueDate,
           reminder: taskReminder,
           completed: false,
+          estimatedEffortMinutes: taskEstimatedEffortMinutes,
         }),
       })
 
       setTaskInput('')
       setTaskDueDate('')
+      setTaskEstimatedEffortMinutes('')
       setTaskReminder('none')
 
       await loadData()
@@ -2666,10 +2724,12 @@ export function useAppData() {
           classId: selectedClassId,
           title: assignmentInput.trim(),
           dueDate: assignmentDueDate,
+          estimatedEffortMinutes: assignmentEstimatedEffortMinutes,
         }),
       })
       setAssignmentInput('')
       setAssignmentDueDate('')
+      setAssignmentEstimatedEffortMinutes('')
       await loadData()
       showSuccess('Assignment added.')
     } catch (error) {
@@ -2729,6 +2789,18 @@ export function useAppData() {
       await request(`/assignments/${assignment.id}`, {
         method: 'PUT',
         body: JSON.stringify({ grade: grade === '' ? null : Number(grade) }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function setAssignmentEffort(assignment, estimatedEffortMinutes) {
+    try {
+      await request(`/assignments/${assignment.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ estimatedEffortMinutes: estimatedEffortMinutes === '' ? null : estimatedEffortMinutes }),
       })
       await loadData()
     } catch (error) {
@@ -2796,6 +2868,18 @@ export function useAppData() {
     }
   }
 
+  async function setCanvasAssignmentEffort(canvasAssignment, estimatedEffortMinutes) {
+    try {
+      await request(`/canvas-completions/${canvasAssignment.id}/effort`, {
+        method: 'PUT',
+        body: JSON.stringify({ estimatedEffortMinutes: estimatedEffortMinutes === '' ? null : estimatedEffortMinutes }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
   async function addTest() {
     if (!testInput.trim() || !selectedClassId) return
     setSaving(true)
@@ -2807,11 +2891,13 @@ export function useAppData() {
           title: testInput.trim(),
           date: testDate,
           topics: testTopics.trim(),
+          estimatedEffortMinutes: testEstimatedEffortMinutes,
         }),
       })
       setTestInput('')
       setTestDate('')
       setTestTopics('')
+      setTestEstimatedEffortMinutes('')
       await loadData()
       showSuccess('Test added.')
     } catch (error) {
@@ -2830,6 +2916,18 @@ export function useAppData() {
       await request(`/tests/${test.id}`, {
         method: 'PUT',
         body: JSON.stringify({ topics: (topics || '').trim() }),
+      })
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function setTestEffort(test, estimatedEffortMinutes) {
+    try {
+      await request(`/tests/${test.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ estimatedEffortMinutes: estimatedEffortMinutes === '' ? null : estimatedEffortMinutes }),
       })
       await loadData()
     } catch (error) {
@@ -3054,6 +3152,18 @@ export function useAppData() {
         body: JSON.stringify({ priority }),
       })
 
+      await loadData()
+    } catch (error) {
+      showError(error.message)
+    }
+  }
+
+  async function updateTaskEffort(task, estimatedEffortMinutes) {
+    try {
+      await request(`/tasks/${task.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ estimatedEffortMinutes: estimatedEffortMinutes === '' ? null : estimatedEffortMinutes }),
+      })
       await loadData()
     } catch (error) {
       showError(error.message)
@@ -3523,6 +3633,11 @@ export function useAppData() {
     sendMessage,
     memorySuggestion,
     setMemorySuggestion,
+    memorySuggestionMeta,
+    clearMemorySuggestion() {
+      setMemorySuggestion('')
+      setMemorySuggestionMeta(null)
+    },
 
     // search
     searchAll,
@@ -3553,11 +3668,14 @@ export function useAppData() {
     setTaskPriority,
     taskDueDate,
     setTaskDueDate,
+    taskEstimatedEffortMinutes,
+    setTaskEstimatedEffortMinutes,
     taskReminder,
     setTaskReminder,
     addTask,
     toggleTask,
     updateTaskPriority,
+    updateTaskEffort,
     deleteTask,
 
     // school (dead code kept for fidelity)
@@ -3582,12 +3700,16 @@ export function useAppData() {
     setAssignmentInput,
     assignmentDueDate,
     setAssignmentDueDate,
+    assignmentEstimatedEffortMinutes,
+    setAssignmentEstimatedEffortMinutes,
     testInput,
     setTestInput,
     testDate,
     setTestDate,
     testTopics,
     setTestTopics,
+    testEstimatedEffortMinutes,
+    setTestEstimatedEffortMinutes,
     setTestTopicsValue,
     addClass,
     deleteClass,
@@ -3595,13 +3717,16 @@ export function useAppData() {
     addAssignment,
     toggleAssignment,
     setAssignmentGrade,
+    setAssignmentEffort,
     setAssignmentCategory,
     deleteAssignment,
     toggleCanvasAssignment,
     setCanvasAssignmentCategory,
+    setCanvasAssignmentEffort,
     addTest,
     toggleTest,
     setTestGrade,
+    setTestEffort,
     setTestCategory,
     deleteTest,
     generateStudyPlan,
@@ -3768,14 +3893,17 @@ export function useAppData() {
     streamingText,
 
     // chat: real-calendar-event proposals
-    confirmPendingEvent,
-    cancelPendingEvent,
+    confirmPendingAction,
+    cancelPendingAction,
 
     // overview
     overviewCards,
     setUpCount,
     overviewEyebrow,
     dailyFocus,
+    decisionBrief,
+    workAvailability,
+    saveWorkAvailability,
 
     // Exposed so App.jsx's own top-level Canvas init effect can force a
     // full refresh after Canvas creates/links classes server-side

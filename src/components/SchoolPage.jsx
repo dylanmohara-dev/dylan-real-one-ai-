@@ -460,6 +460,7 @@ export default function SchoolPage({
   canvasCompletions,
   toggleCanvasAssignment,
   setCanvasAssignmentCategory,
+  setCanvasAssignmentEffort,
   schoolGradeLevel,
   schoolLabelStyle,
   selectedClassId,
@@ -470,12 +471,16 @@ export default function SchoolPage({
   setAssignmentInput,
   assignmentDueDate,
   setAssignmentDueDate,
+  assignmentEstimatedEffortMinutes,
+  setAssignmentEstimatedEffortMinutes,
   testInput,
   setTestInput,
   testDate,
   setTestDate,
   testTopics,
   setTestTopics,
+  testEstimatedEffortMinutes,
+  setTestEstimatedEffortMinutes,
   setTestTopicsValue,
   saving,
   addClass,
@@ -484,11 +489,13 @@ export default function SchoolPage({
   addAssignment,
   toggleAssignment,
   setAssignmentGrade,
+  setAssignmentEffort,
   setAssignmentCategory,
   deleteAssignment,
   addTest,
   toggleTest,
   setTestGrade,
+  setTestEffort,
   setTestCategory,
   deleteTest,
   generateStudyPlan,
@@ -957,6 +964,17 @@ export default function SchoolPage({
               value={assignmentDueDate}
               onChange={(event) => setAssignmentDueDate(event.target.value)}
             />
+            <label>
+              Estimated effort (minutes)
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={assignmentEstimatedEffortMinutes}
+                onChange={(event) => setAssignmentEstimatedEffortMinutes(event.target.value)}
+                placeholder="Optional"
+              />
+            </label>
             <button onClick={addAssignment} disabled={saving || !assignmentInput.trim()}>
               + Add
             </button>
@@ -1020,6 +1038,20 @@ export default function SchoolPage({
                         }
                       }}
                     />
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      className="grade-input"
+                      aria-label={`Estimated effort in minutes for ${assignment.title}`}
+                      title="Estimated effort (minutes)"
+                      placeholder="Effort min"
+                      defaultValue={assignment.estimatedEffortMinutes ?? ''}
+                      onBlur={(event) => {
+                        const value = event.target.value
+                        if (value !== String(assignment.estimatedEffortMinutes ?? '')) setAssignmentEffort(assignment, value)
+                      }}
+                    />
                     <button className="delete-button" onClick={() => deleteAssignment(assignment.id)}>
                       ×
                     </button>
@@ -1061,6 +1093,20 @@ export default function SchoolPage({
                             Due {c.dueAt.slice(0, 10)} ({weekdayForDateKey(c.dueAt.slice(0, 10))}) &middot; Canvas
                           </span>
                         </div>
+                        <label className="canvas-effort-local">
+                          Estimated effort (minutes) — local
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            aria-label={`Local estimated effort in minutes for ${c.title}`}
+                            defaultValue={completionRecord?.estimatedEffortMinutes ?? ''}
+                            onBlur={(event) => {
+                              const value = event.target.value
+                              if (value !== String(completionRecord?.estimatedEffortMinutes ?? '')) setCanvasAssignmentEffort(c, value)
+                            }}
+                          />
+                        </label>
                       </div>
                       <span className="school-item-xp">+{xpForCategory(completionRecord || {}, 'homework')} XP</span>
                       <select
@@ -1113,6 +1159,17 @@ export default function SchoolPage({
               onChange={(event) => setTestTopics(event.target.value)}
               placeholder="Topics covered, comma-separated (optional -- makes the study plan specific)"
             />
+            <label>
+              Estimated effort (minutes)
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={testEstimatedEffortMinutes}
+                onChange={(event) => setTestEstimatedEffortMinutes(event.target.value)}
+                placeholder="Optional"
+              />
+            </label>
             <button onClick={addTest} disabled={saving || !testInput.trim()}>
               + Add
             </button>
@@ -1168,6 +1225,21 @@ export default function SchoolPage({
                         ×
                       </button>
                     </div>
+
+                    <label className="school-test-effort">
+                      Estimated effort (minutes)
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        aria-label={`Estimated effort in minutes for ${test.title}`}
+                        defaultValue={test.estimatedEffortMinutes ?? ''}
+                        onBlur={(event) => {
+                          const value = event.target.value
+                          if (value !== String(test.estimatedEffortMinutes ?? '')) setTestEffort(test, value)
+                        }}
+                      />
+                    </label>
 
                     {!test.completed && (
                       <div

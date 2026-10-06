@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Image as ImageIcon, X, Sparkles, Mic, MicOff, CalendarPlus, Check } from 'lucide-react'
+import { Image as ImageIcon, X, Sparkles, Mic, MicOff, CalendarPlus, Check, ShieldCheck } from 'lucide-react'
 import { LIFE_MODES } from '../data/lifeModes.js'
 
 // Deliberately generic rather than written per-mode (9 modes x N phrases
@@ -17,18 +17,47 @@ const THINKING_PHRASES = [
   'is putting it together',
 ]
 
+const ACTION_LABELS = {
+  create_goal: 'Create a goal',
+  delete_task: 'Delete a task',
+  forget_memory: 'Remove a memory',
+  log_health: 'Log health information',
+  log_skill_practice: 'Log skill practice',
+  log_sports_session: 'Log a sports session',
+  log_gym_set: 'Log a gym set',
+  complete_habit: 'Complete a habit',
+  log_transaction: 'Log a transaction',
+  set_budget: 'Change a budget',
+  log_family_entry: 'Log a family entry',
+  log_reading_session: 'Log a reading session',
+  complete_assignment: 'Complete an assignment',
+}
+
+function describePendingAction(action = {}) {
+  return Object.entries(action)
+    .filter(([key, value]) => key !== 'type' && value !== '' && value !== null && value !== undefined)
+    .map(([key, value]) => {
+      const label = key.replace(/[A-Z]/g, (letter) => ` ${letter.toLowerCase()}`)
+      const display = Array.isArray(value) || typeof value === 'object' ? JSON.stringify(value) : String(value)
+      return `${label}: ${display}`
+    })
+    .join(' · ')
+}
+
 export default function ChatPage({
   chatMessages,
   loading,
   streamingText,
   memorySuggestion,
+  memorySuggestionMeta,
   saveMemory,
   setMemorySuggestion,
+  clearMemorySuggestion,
   message,
   setMessage,
   sendMessage,
-  confirmPendingEvent,
-  cancelPendingEvent,
+  confirmPendingAction,
+  cancelPendingAction,
   assistantContext,
   modeKey,
 }) {
@@ -341,14 +370,14 @@ export default function ChatPage({
                       <button
                         type="button"
                         className="pending-event-confirm"
-                        onClick={() => confirmPendingEvent(index)}
+                        onClick={() => confirmPendingAction(index)}
                       >
                         Add to calendar
                       </button>
                       <button
                         type="button"
                         className="pending-event-cancel"
-                        onClick={() => cancelPendingEvent(index)}
+                        onClick={() => cancelPendingAction(index)}
                       >
                         Don't add
                       </button>
@@ -371,6 +400,57 @@ export default function ChatPage({
 
                   {chat.pendingEvent.error && (
                     <span className="pending-event-error">{chat.pendingEvent.error}</span>
+                  )}
+                </div>
+              )}
+
+              {chat.pendingAction && !chat.pendingEvent && (
+                <div className={`pending-action-card pending-action-${chat.pendingAction.status}`}>
+                  <div className="pending-action-heading">
+                    <ShieldCheck size={15} strokeWidth={2.25} />
+                    <div>
+                      <strong>{ACTION_LABELS[chat.pendingAction.type] || 'Review this action'}</strong>
+                      <span>{chat.pendingAction.requiresExplicitAuthorization
+                        ? 'Your explicit approval is required'
+                        : 'Please review before it is saved'}</span>
+                    </div>
+                  </div>
+                  {describePendingAction(chat.pendingAction.action) && (
+                    <p className="pending-action-details">{describePendingAction(chat.pendingAction.action)}</p>
+                  )}
+
+                  {chat.pendingAction.status === 'pending' && (
+                    <div className="pending-event-actions">
+                      <button
+                        type="button"
+                        className="pending-event-confirm"
+                        onClick={() => confirmPendingAction(index)}
+                      >
+                        {chat.pendingAction.requiresExplicitAuthorization ? 'Authorize & continue' : 'Approve'}
+                      </button>
+                      <button
+                        type="button"
+                        className="pending-event-cancel"
+                        onClick={() => cancelPendingAction(index)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+
+                  {chat.pendingAction.status === 'confirming' && (
+                    <span className="pending-event-status">Applying approved action…</span>
+                  )}
+                  {chat.pendingAction.status === 'confirmed' && (
+                    <span className="pending-event-status pending-event-status-ok">
+                      <Check size={13} strokeWidth={2.5} /> Approved and completed
+                    </span>
+                  )}
+                  {chat.pendingAction.status === 'cancelled' && (
+                    <span className="pending-event-status">Cancelled</span>
+                  )}
+                  {chat.pendingAction.error && (
+                    <span className="pending-event-error">{chat.pendingAction.error}</span>
                   )}
                 </div>
               )}
@@ -420,9 +500,9 @@ export default function ChatPage({
           </div>
 
           <div className="memory-actions">
-            <button onClick={() => saveMemory(memorySuggestion)}>Save</button>
+            <button onClick={() => saveMemory(memorySuggestion, memorySuggestionMeta)}>Save</button>
 
-            <button onClick={() => setMemorySuggestion('')}>Dismiss</button>
+            <button onClick={clearMemorySuggestion || (() => setMemorySuggestion(''))}>Dismiss</button>
           </div>
         </div>
       )}

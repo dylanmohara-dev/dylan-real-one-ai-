@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
+import { effortFieldsForUpdate, EffortEstimateValidationError } from '../lib/effortEstimate.js'
 
 const router = Router()
 
@@ -33,6 +34,7 @@ router.put('/:canvasId', (req, res) => {
     if (completed) {
       if (!classId) return res.status(400).json({ error: 'classId is required to mark a Canvas item done' })
       completions[canvasId] = {
+        ...completions[canvasId],
         classId,
         title: title || completions[canvasId]?.title || '',
         category: CATEGORIES.includes(category) ? category : completions[canvasId]?.category || 'homework',
@@ -65,6 +67,7 @@ router.put('/:canvasId/category', (req, res) => {
     }
     const completions = loadData('canvas_completions', {})
     completions[canvasId] = {
+      ...completions[canvasId],
       classId: classId || completions[canvasId]?.classId,
       title: title || completions[canvasId]?.title || '',
       category,
@@ -76,6 +79,29 @@ router.put('/:canvasId/category', (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Could not save that.' })
+  }
+})
+
+router.put('/:canvasId/effort', (req, res) => {
+  try {
+    const { fields, clear } = effortFieldsForUpdate({ estimatedEffortMinutes: req.body.estimatedEffortMinutes })
+    const completions = loadData('canvas_completions', {})
+    const existing = completions[req.params.canvasId] || {}
+    const updated = { ...existing }
+    if (clear) {
+      delete updated.estimatedEffortMinutes
+      delete updated.estimatedEffortProvenance
+    } else {
+      updated.estimatedEffortMinutes = fields.estimatedEffortMinutes
+      updated.estimatedEffortProvenance = 'user_recorded'
+    }
+    completions[req.params.canvasId] = updated
+    saveData('canvas_completions', completions)
+    res.json({ canvasCompletions: completions })
+  } catch (error) {
+    if (error instanceof EffortEstimateValidationError) return res.status(400).json({ error: error.message })
+    console.error(error)
+    res.status(500).json({ error: 'Could not save that estimate.' })
   }
 })
 

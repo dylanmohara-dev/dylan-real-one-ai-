@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
-import { OLLAMA_URL, MODEL } from '../lib/aiConfig.js'
+import { hasMemory, saveMemory as saveMemoryRecord } from '../lib/memoryService.js'
+import { complete } from '../lib/aiGateway.js'
 
 const router = Router()
 
@@ -17,23 +18,17 @@ function uid(offset = 0) {
   return `${Date.now()}-${offset}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-function saveMemory(content) {
+function saveMemory(content, modeScope) {
   const trimmed = content.trim()
   if (!trimmed) return false
-  const memories = loadData('memories')
-  const exists = memories.some((m) => m.content.toLowerCase() === trimmed.toLowerCase())
-  if (exists) return false
-  memories.push({ id: uid(), content: trimmed, createdAt: new Date().toISOString() })
-  saveData('memories', memories)
-  return true
+  const exists = hasMemory(trimmed)
+  const saved = saveMemoryRecord(trimmed, { source: 'onboarding', modeScope, sensitivity: modeScope === 'health' || modeScope === 'finance' ? 'sensitive' : 'normal' })
+  return Boolean(saved && !exists)
 }
 
 async function askOllama(systemPrompt, userText) {
-  const response = await fetch(OLLAMA_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: MODEL,
+  const { response } = await complete(
+    () => ({
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userText },
@@ -41,8 +36,9 @@ async function askOllama(systemPrompt, userText) {
       temperature: 0.1,
       max_tokens: 400,
     }),
-  })
-  if (!response.ok) throw new Error(`Local AI returned ${response.status}`)
+    { streaming: false, preferCloud: false }
+  )
+
   const data = await response.json()
   const raw = data.choices?.[0]?.message?.content?.trim() || ''
   return raw.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim()
@@ -72,7 +68,7 @@ Return ONLY a JSON array, nothing else. Example: [{"name":"Chase Checking","type
 If nothing concrete is mentioned, return []`
 
 router.post('/', async (req, res) => {
-  const { name, answers = {} } = req.body || {}
+  const { answers = {} } = req.body || {}
   const summary = { classes: 0, healthEntries: 0, financeAccounts: 0, memories: 0, failures: [] }
 
   // Dylan's name is set client-side via existing Settings (localStorage) — nothing
@@ -94,7 +90,7 @@ router.post('/', async (req, res) => {
         throw new Error('nothing extracted')
       }
     } catch {
-      if (saveMemory(`School: ${answers.school.trim()}`)) summary.memories += 1
+      if (saveMemory(`School: ${answers.school.trim()}`, 'school')) summary.memories += 1
       summary.failures.push('school')
     }
   }
@@ -123,7 +119,7 @@ router.post('/', async (req, res) => {
         throw new Error('nothing extracted')
       }
     } catch {
-      if (saveMemory(`Health: ${answers.health.trim()}`)) summary.memories += 1
+      if (saveMemory(`Health: ${answers.health.trim()}`, 'health')) summary.memories += 1
       summary.failures.push('health')
     }
   }
@@ -153,7 +149,7 @@ router.post('/', async (req, res) => {
         throw new Error('nothing extracted')
       }
     } catch {
-      if (saveMemory(`Finance: ${answers.finance.trim()}`)) summary.memories += 1
+      if (saveMemory(`Finance: ${answers.finance.trim()}`, 'finance')) summary.memories += 1
       summary.failures.push('finance')
     }
   }
@@ -161,7 +157,7 @@ router.post('/', async (req, res) => {
   // The remaining six modes have no real backend yet — save as memories, no LLM needed.
   Object.entries(MEMORY_ONLY_MODES).forEach(([key, label]) => {
     if (answers[key]?.trim()) {
-      if (saveMemory(`${label}: ${answers[key].trim()}`)) summary.memories += 1
+      if (saveMemory(`${label}: ${answers[key].trim()}`, key)) summary.memories += 1
     }
   })
 

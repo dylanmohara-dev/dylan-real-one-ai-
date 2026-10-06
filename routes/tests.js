@@ -3,6 +3,7 @@ import { loadData, saveData } from '../lib/dataStore.js'
 import { buildStudySessions } from '../lib/studyPlan.js'
 import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.js'
 import { addToTrash } from '../lib/trashStore.js'
+import { effortFieldsForCreate, effortFieldsForUpdate, EffortEstimateValidationError } from '../lib/effortEstimate.js'
 
 const router = Router()
 
@@ -37,6 +38,7 @@ router.post('/', async (req, res) => {
       topics: (topics || '').trim(),
       completed: false,
       createdAt: new Date().toISOString(),
+      ...effortFieldsForCreate(req.body),
     }
     // Best-effort real-calendar write -- see lib/calendarAutoSync.js.
     await syncCalendarEvent(test, { title: test.title, date: test.date, mode: 'school' })
@@ -44,21 +46,34 @@ router.post('/', async (req, res) => {
     saveData('tests', tests)
     res.json({ test })
   } catch (error) {
+    if (error instanceof EffortEstimateValidationError) return res.status(400).json({ error: error.message })
     console.error(error)
     res.status(500).json({ error: 'Could not save test' })
   }
 })
 
 router.put('/:id', async (req, res) => {
-  const tests = loadData('tests')
-  const index = tests.findIndex((t) => t.id === req.params.id)
-  if (index === -1) {
-    return res.status(404).json({ error: 'Test not found' })
+  try {
+    const { fields, clear } = effortFieldsForUpdate(req.body)
+    const tests = loadData('tests')
+    const index = tests.findIndex((t) => t.id === req.params.id)
+    if (index === -1) return res.status(404).json({ error: 'Test not found' })
+    tests[index] = { ...tests[index], ...fields, id: tests[index].id }
+    if (clear) {
+      delete tests[index].estimatedEffortMinutes
+      delete tests[index].estimatedEffortProvenance
+    }
+    const effortOnly = Object.keys(req.body).length === 1 && Object.hasOwn(req.body, 'estimatedEffortMinutes')
+    if (!effortOnly) {
+      await syncCalendarEvent(tests[index], { title: tests[index].title, date: tests[index].date, mode: 'school' })
+    }
+    saveData('tests', tests)
+    res.json({ test: tests[index] })
+  } catch (error) {
+    if (error instanceof EffortEstimateValidationError) return res.status(400).json({ error: error.message })
+    console.error(error)
+    res.status(500).json({ error: 'Could not update test' })
   }
-  tests[index] = { ...tests[index], ...req.body, id: tests[index].id }
-  await syncCalendarEvent(tests[index], { title: tests[index].title, date: tests[index].date, mode: 'school' })
-  saveData('tests', tests)
-  res.json({ test: tests[index] })
 })
 
 router.delete('/:id', async (req, res) => {

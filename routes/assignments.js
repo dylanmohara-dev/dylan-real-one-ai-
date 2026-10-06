@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { loadData, saveData } from '../lib/dataStore.js'
 import { syncCalendarEvent, clearCalendarEvent } from '../lib/calendarAutoSync.js'
 import { addToTrash } from '../lib/trashStore.js'
+import { effortFieldsForCreate, effortFieldsForUpdate, EffortEstimateValidationError } from '../lib/effortEstimate.js'
 
 const router = Router()
 
@@ -32,6 +33,7 @@ router.post('/', async (req, res) => {
       category: ASSIGNMENT_CATEGORIES.includes(category) ? category : 'homework',
       completed: false,
       createdAt: new Date().toISOString(),
+      ...effortFieldsForCreate(req.body),
     }
     // Best-effort real-calendar write -- see lib/calendarAutoSync.js.
     await syncCalendarEvent(assignment, { title: assignment.title, date: assignment.dueDate, mode: 'school' })
@@ -39,21 +41,34 @@ router.post('/', async (req, res) => {
     saveData('assignments', assignments)
     res.json({ assignment })
   } catch (error) {
+    if (error instanceof EffortEstimateValidationError) return res.status(400).json({ error: error.message })
     console.error(error)
     res.status(500).json({ error: 'Could not save assignment' })
   }
 })
 
 router.put('/:id', async (req, res) => {
-  const assignments = loadData('assignments')
-  const index = assignments.findIndex((a) => a.id === req.params.id)
-  if (index === -1) {
-    return res.status(404).json({ error: 'Assignment not found' })
+  try {
+    const { fields, clear } = effortFieldsForUpdate(req.body)
+    const assignments = loadData('assignments')
+    const index = assignments.findIndex((a) => a.id === req.params.id)
+    if (index === -1) return res.status(404).json({ error: 'Assignment not found' })
+    assignments[index] = { ...assignments[index], ...fields, id: assignments[index].id }
+    if (clear) {
+      delete assignments[index].estimatedEffortMinutes
+      delete assignments[index].estimatedEffortProvenance
+    }
+    const effortOnly = Object.keys(req.body).length === 1 && Object.hasOwn(req.body, 'estimatedEffortMinutes')
+    if (!effortOnly) {
+      await syncCalendarEvent(assignments[index], { title: assignments[index].title, date: assignments[index].dueDate, mode: 'school' })
+    }
+    saveData('assignments', assignments)
+    res.json({ assignment: assignments[index] })
+  } catch (error) {
+    if (error instanceof EffortEstimateValidationError) return res.status(400).json({ error: error.message })
+    console.error(error)
+    res.status(500).json({ error: 'Could not update assignment' })
   }
-  assignments[index] = { ...assignments[index], ...req.body, id: assignments[index].id }
-  await syncCalendarEvent(assignments[index], { title: assignments[index].title, date: assignments[index].dueDate, mode: 'school' })
-  saveData('assignments', assignments)
-  res.json({ assignment: assignments[index] })
 })
 
 router.delete('/:id', async (req, res) => {

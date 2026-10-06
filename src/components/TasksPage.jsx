@@ -6,12 +6,15 @@ export default function TasksPage({
   setTaskPriority,
   taskDueDate,
   setTaskDueDate,
+  taskEstimatedEffortMinutes,
+  setTaskEstimatedEffortMinutes,
   taskReminder,
   setTaskReminder,
   saving,
   addTask,
   toggleTask,
   updateTaskPriority,
+  updateTaskEffort,
   deleteTask,
 }) {
   return (
@@ -47,6 +50,18 @@ export default function TasksPage({
           value={taskDueDate}
           onChange={(event) => setTaskDueDate(event.target.value)}
         />
+
+        <label>
+          Estimated effort (minutes)
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={taskEstimatedEffortMinutes}
+            onChange={(event) => setTaskEstimatedEffortMinutes(event.target.value)}
+            placeholder="Optional"
+          />
+        </label>
 
         <select
           value={taskReminder}
@@ -92,6 +107,21 @@ export default function TasksPage({
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
                 </select>
+
+                <label>
+                  Effort (minutes)
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    defaultValue={task.estimatedEffortMinutes ?? ''}
+                    onBlur={(event) => {
+                      const value = event.target.value
+                      if (value !== String(task.estimatedEffortMinutes ?? '')) updateTaskEffort(task, value)
+                    }}
+                    aria-label={`Estimated effort in minutes for ${task.title}`}
+                  />
+                </label>
 
                 <button className="delete-button" onClick={() => deleteTask(task.id)}>
                   ×

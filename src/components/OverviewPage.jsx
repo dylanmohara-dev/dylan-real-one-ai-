@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Sparkles, Droplet, Moon, BookOpen, CheckCircle2, Heart, Flame, GraduationCap } from 'lucide-react'
-import { WELCOME_GREETINGS } from '../data/lifeModes.js'
+import { LIFE_MODES, WELCOME_GREETINGS } from '../data/lifeModes.js'
 import FootballIcon from './FootballIcon.jsx'
 import HeroPhotoButton from './HeroPhotoButton.jsx'
 import DeadlineItem from './DeadlineItem.jsx'
@@ -148,14 +148,14 @@ function DailyFocus({ items, setActivePage }) {
     return (
       <div className="overview-focus overview-focus-clear">
         <CheckCircle2 size={15} strokeWidth={2.25} />
-        <span>Nothing urgent right now — you're caught up.</span>
+        <span>No additional urgent signals right now.</span>
       </div>
     )
   }
 
   return (
     <div className="overview-focus">
-      <span className="overview-focus-heading">Today's focus</span>
+      <span className="overview-focus-heading">Additional signals</span>
       <div className="overview-focus-list">
         {items.map((item, index) => (
           <button
@@ -169,6 +169,80 @@ function DailyFocus({ items, setActivePage }) {
         ))}
       </div>
     </div>
+  )
+}
+
+function DecisionBriefFocus({ brief, setActivePage }) {
+  const currentBrief = brief || {
+    candidates: [],
+    uncertainty: ['The decision brief could not be loaded right now.'],
+  }
+
+  const candidate = currentBrief.candidates?.[0]
+  const uncertainties = candidate?.uncertainty?.length
+    ? candidate.uncertainty
+    : !candidate ? (currentBrief.uncertainty || []) : []
+  const destination = candidate
+    ? LIFE_MODES.some((mode) => mode.key === candidate.area)
+      ? candidate.area
+      : candidate.type === 'goal' ? 'Goals' : 'Tasks'
+    : null
+  const destinationLabel = candidate
+    ? LIFE_MODES.find((mode) => mode.key === destination)?.title || destination
+    : null
+
+  return (
+    <section className="overview-focus overview-decision-focus" aria-labelledby="overview-decision-heading">
+      <span className="overview-focus-heading" id="overview-decision-heading">Today's Focus</span>
+      {!candidate ? (
+        <div className="overview-decision-empty">
+          <p>There isn’t enough current task or goal information to suggest a clear focus.</p>
+          {uncertainties.length > 0 && (
+            <ul className="overview-decision-uncertainty">
+              {uncertainties.slice(0, 3).map((item, index) => <li key={index}>{item}</li>)}
+            </ul>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="overview-decision-recommendation">
+            <span className="overview-decision-label">AI recommendation</span>
+            <h2>{candidate.title}</h2>
+            <p>
+              {candidate.rankReasons?.length
+                ? `Why it ranks here: ${candidate.rankReasons.join('; ')}.`
+                : 'No recorded due date or priority gives this item a clear urgency, so treat it as a tentative suggestion.'}
+            </p>
+          </div>
+          {candidate.evidence?.length > 0 && (
+            <div className="overview-decision-evidence">
+              <span>Based on current records</span>
+              <ul>
+                {candidate.evidence.slice(0, 4).map((item, index) => (
+                  <li key={`${item.source}-${index}`}>
+                    <span>{item.claim}</span>
+                    <small>{item.provenance === 'current_structured_record' ? 'Recorded fact' : item.provenance}</small>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {uncertainties.length > 0 && (
+            <ul className="overview-decision-uncertainty" aria-label="Uncertainty">
+              {uncertainties.slice(0, 3).map((item, index) => <li key={index}>{item}</li>)}
+            </ul>
+          )}
+          <button
+            type="button"
+            className="overview-decision-open"
+            onClick={() => setActivePage(destination)}
+          >
+            Open {destinationLabel} →
+          </button>
+          <p className="overview-decision-disclaimer">Suggested from the records shown; this does not schedule or complete anything.</p>
+        </>
+      )}
+    </section>
   )
 }
 
@@ -250,6 +324,7 @@ export default function OverviewPage({
   modesCount,
   setUpCount,
   overviewCards,
+  decisionBrief,
   dailyFocus,
   setActivePage,
   openChat,
@@ -340,6 +415,7 @@ export default function OverviewPage({
 
       </div>
 
+      <DecisionBriefFocus brief={decisionBrief} setActivePage={setActivePage} />
       <DailyFocus items={dailyFocus} setActivePage={setActivePage} />
 
       <UpcomingSchoolWidget

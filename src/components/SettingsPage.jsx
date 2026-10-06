@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Download, ShieldCheck, RotateCcw, Bell, BellOff, BellRing, Key, ExternalLink } from 'lucide-react'
 import { DESIGN_SYSTEMS, COLOR_PALETTES, LIFE_MODES } from '../data/lifeModes.js'
+import AvailabilitySettings from './AvailabilitySettings.jsx'
 
 // See useAppData.js's API constant for why this needs the DEV check --
 // hardcoded localhost:3001 would silently break every backup/restore
@@ -58,7 +59,7 @@ const COLLECTION_LABELS = {
   journal_meta: 'Journal setup',
 }
 
-export default function SettingsPage({ settings, setSettings, setActivePage, openChat, calendar }) {
+export default function SettingsPage({ settings, setSettings, setActivePage, openChat, calendar, workAvailability, saveWorkAvailability }) {
   const {
     connected: calendarConnected,
     calendars,
@@ -572,6 +573,8 @@ export default function SettingsPage({ settings, setSettings, setActivePage, ope
           </p>
         </div>
       </div>
+
+      <AvailabilitySettings availability={workAvailability} saveAvailability={saveWorkAvailability} />
 
       <div className="classic-tools">
         <div className="classic-tools-heading-row">
